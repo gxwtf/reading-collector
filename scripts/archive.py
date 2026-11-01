@@ -173,24 +173,12 @@ def rebuild_index() -> Path:
 
 def mirror_to_notion(title: str, url: str, body: str, source: str = "",
                      author: str = "", date: str = "") -> dict:
-    """从属镜像。失败不影响主流程。"""
-    cfg = CFG["notion"]
-    if not cfg["enabled"]:
-        return {"skipped": "notion.enabled = false"}
-    if not cfg["parent_page_id"]:
-        return {"skipped": "未配置 notion.parent_page_id"}
-    head = "\n".join(x for x in [
-        f"来源：{source}" if source else "",
-        f"作者：{author}" if author else "",
-        f"链接：{url}" if url else "",
-        f"日期：{date}" if date else "",
-    ] if x)
-    content = (head + "\n\n---\n\n" + body.strip()) if head else body.strip()
-    payload = {
-        "parent": {"page_id": cfg["parent_page_id"]},
-        "pages": [{"properties": {"title": title}, "content": content}],
-    }
-    return inbox.mcp(cfg["server"], cfg["create_tool"], payload)
+    """从属镜像。失败不影响主流程。
+
+    幂等交给 notion.sync：同一条 URL 再归档是更新原页，不会堆出重复页。
+    """
+    import notion  # 延迟导入，避免 --no-notion 时的无谓开销
+    return notion.sync(title, url, body, source=source, author=author, date=date)
 
 
 def read_body_file(spec: str) -> str:

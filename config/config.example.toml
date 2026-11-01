@@ -28,6 +28,10 @@ enabled = false
 parent_page_id = ""
 server = "Notion"
 create_tool = "notion-create-pages"
+# 镜像页的 URL → page_id 映射（幂等用），相对仓库根
+map_file = "config/notion-map.json"
+# 每次归档后刷新父页面下的「📇 索引」表格
+index = true
 
 [video]
 # 转写临时目录，留空则用 $TMPDIR/reading-collector

@@ -1,4 +1,5 @@
 config/config.toml
+config/notion-map.json
 inbox.md
 *.log
 out/
