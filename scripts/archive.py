@@ -140,7 +140,9 @@ def rebuild_index() -> Path:
         rows.append({
             "title": title, "source": fm.get("source", ""),
             "author": fm.get("author", ""), "date": fm.get("collected", ""),
-            "link": f"[[{rel}|{title}]]", "url": url,
+            # 表格单元格里的 alias 竖线必须转义成 \|，否则 | 会被当成列分隔符，
+            # [[路径|标题]] 就会退化成纯文本，点不动。
+            "link": "[[%s\\|%s]]" % (rel, title), "url": url,
         })
     rows.sort(key=lambda r: r["date"], reverse=True)
 
