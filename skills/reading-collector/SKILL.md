@@ -78,6 +78,19 @@ python3 "$RC/scripts/inbox.py" --done <id>
 配置 `[notion] enabled = true` 与 `parent_page_id` 后自动执行，或加 `--notion` 强制。
 **镜像失败不阻塞、不回滚、不重试**，只在汇报里提一句。
 
+单独调用 `scripts/notion.py`：
+
+```bash
+python3 "$RC/scripts/notion.py" check          # 连接 + 父页面是否可达
+python3 "$RC/scripts/notion.py" list           # 父页面下的子页面
+python3 "$RC/scripts/notion.py" url "<链接>"   # 这条链接已镜像到哪个页面
+python3 "$RC/scripts/notion.py" rebuild-index  # 重建「📇 索引」表格页
+```
+
+- **幂等**：`config/notion-map.json` 记录 URL → page_id，同一链接重跑是**更新**，不产生重复页。
+- 正文 = 来源头（来源/作者/链接/收集日期）+ 分隔线 + 清洗正文；图标按来源自动选（微信💬/视频🎬/网页📄）。
+- `[notion] index = true` 时每次归档顺手重建父页下的「📇 索引」表格。
+
 ## 汇报格式
 
 | 标题 | 来源 | 笔记 | 镜像 |
