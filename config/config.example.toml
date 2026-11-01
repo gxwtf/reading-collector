@@ -1,0 +1,57 @@
+# reading-collector 配置
+# 全部可用环境变量覆盖（见 scripts/config.py 的 _env_override）
+
+[vault]
+# Obsidian vault 根目录。Minis 上通常是 /var/minis/mounts/<UUID>/知识库
+# 也可用环境变量 MINIS_VAULT 覆盖
+path = ""
+# 归档子目录
+folder = "阅读收集"
+# 按年份建子目录：阅读收集/2026/2026-01-01-标题.md
+group_by_year = true
+# 附件目录
+assets = "附件"
+# 索引文件名
+index = "首页.md"
+
+[todo]
+# 青蛙todo 分组名：优先精确匹配，其次模糊包含
+# 可在 App 的「分类」里新建同名分组
+category = "阅读收集"
+server = "Todo"
+
+[notion]
+# 从属镜像：Obsidian 是权威，Notion 只是便于网页浏览的副本
+# 镜像失败不会阻塞主流程，也不回滚
+enabled = false
+# Notion 父页面 ID，留空则跳过镜像
+parent_page_id = ""
+server = "Notion"
+create_tool = "notion-create-pages"
+
+[video]
+# 转写临时目录，留空则用 $TMPDIR/reading-collector
+workdir = ""
+# 每片秒数。45 秒在识别准确率与重启开销之间比较平衡
+chunk_seconds = 45
+# 识别语言：auto / zh-CN / en-US / ja-JP ...
+# ⚠️ 必须与原声一致，选错会输出乱码
+locale = "auto"
+# 失败重试次数
+retries = 4
+# 每次调用之间的间隔（秒）。语音识别服务并发会限流，不建议并发
+gap = 0.4
+ytdlp = "yt-dlp"
+ffmpeg = "ffmpeg"
+ffprobe = "ffprobe"
+# 语音识别后端：apple-speech（macOS / iOS）或 whisper（尚未支持）
+speech = "apple-speech"
+
+[mcp]
+# MCP 客户端命令行
+cli = "minis-mcp-cli"
+timeout = 120
+
+[output]
+date_format = "%Y-%m-%d"
+filename_max_chars = 60
