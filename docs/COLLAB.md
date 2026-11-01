@@ -1,40 +1,58 @@
-# 协作状态（single source of truth）
+# 项目状态（所有工作前必读）
 
-> **每次开新任务前先读这个文件；每次完成工作后更新它。**
-> 目的：避免多个会话重复做同一件事。
+> 每次开工前先读本文件；每次完工后把进展写进下面的「进展记录」。
+> 目的是让不同会话之间不重复劳动、不踩同一个坑。
 
-## 当前项目
+## 活跃项目
 
 | 项目 | 位置 | 远程 | 状态 |
 |---|---|---|---|
-| reading-collector | `/var/minis/workspace/reading-collector/` | github.com/kyoukawa/reading-collector | 进行中 |
+| reading-collector | `/var/minis/workspace/reading-collector/` | github.com/kyoukawa/reading-collector | 运行中，手动触发 |
+| 英语语料库 | Obsidian vault → `语料库/` | — | 长期维护 |
+| 语文语料库 | Obsidian vault → `语文语料库/` | — | 长期维护 |
+
+## Obsidian vault
+
+根目录：`/var/minis/mounts/7A84464D-AA03-41E8-A2F3-C38F2CA047D0/知识库`
+**根目录只允许文件夹，不放零散文件。** 现有：`语料库/`、`语文语料库/`、`阅读收集/`
 
 ## 铁律
 
-1. **动手前先查**：`git pull` → 看 `git log --oneline -5` → 看 `git status`
-2. **本地不是权威**：远程仓库比本地工作区更新。改之前先同步，不要凭本地旧文件重写
-3. **会话之间不共享上下文**：另一个会话可能刚改过同一批文件。用
-   `minis-sessions-cli search --keywords "<主题>"` 查有没有别人做过
-4. **每次功能更新必须**：
-   - 向老大讲清楚改了什么、为什么、怎么验证的
-   - 用 github-maintainer 推到 GitHub
-   - 更新本文件的「变更记录」
+1. **动手前先读本文件**，再 `git pull`（代码项目）
+2. **本地不是权威**，远程仓库/挂载盘才是
+3. **查重**：`find / -maxdepth 5 -name "<文件名>"`、`minis-sessions-cli search --keywords "<主题>"`
+4. **完工后必须**：向老大说清改了什么 → 推 GitHub（代码项目）→ 追加「进展记录」
 
-## 变更记录
+## 进展记录（最新在上）
 
-| 日期 | 会话 | 内容 | commit |
-|---|---|---|---|
-| 2026-11-01 | 阅读收集 | reading-collector 初版四脚本 + 技能 | cbe2817 及之前 |
-| 2026-11-01 | 阅读收集 | Notion 镜像改幂等实现（scripts/notion.py） | ea8f65d |
-| 2026-11-01 | 阅读收集 | 技能文档补充 notion 用法 | b7e3bbe |
+### 2026-11-01
 
-## 已知平台事实（省得反复踩）
+- **reading-collector**：四个脚本重建完成（`config/inbox/archive/transcribe.py`），依赖全用 PATH 版本，不建 venv
+- **reading-collector**：Notion 镜像改幂等（`scripts/notion.py`），URL→page_id 映射，重跑走更新 `ea8f65d`
+- **reading-collector**：技能文档补充 notion 用法 `b7e3bbe`
+- **协作机制**：新增本文件 + 技能「铁律 0：先同步再动手」 `3e185df`
+- **阅读收集**：Obsidian 归档结构建立（`阅读收集/首页.md` + `<年>/` + `附件/`）
 
-- 依赖全在 PATH：`yt-dlp`、`ffmpeg`、`apple-speech`、系统 `python3`。**不建 venv、不 pip install**
+### 2026-10-27
+
+- **语文语料库**：第二次呼吸入库（一稿 46 → 二稿 48，一类上），复习队列 12 → 23 单元
+- **语文语料库**：目录约定写死（一题一文件夹、文件名规格、重复文件夹用 md5sum 比对）
+
+### 2026-10-26
+
+- **英语语料库**：迁入 Obsidian vault「知识库」，复习改手动触发（删掉 20:00 定时任务）
+- **英语语料库**：改为选稿制（AI 出候选 → 用户打勾把关）
+- **content-collector**：Grok 自动化迁移到 Minis（该版本已废弃，被 reading-collector 取代）
+
+## 平台事实速查
+
+- 依赖：`yt-dlp`、`ffmpeg`、`apple-speech`、系统 `python3` 都在 PATH。**不建 venv、不 pip install**
 - `apple-speech -q` 返回 `{"segments":[{"substring":...}]}`，拼 `substring` 不是 `text`
-- 语音识别**必须串行**，并发会被限流
+- 语音识别**必须串行**，并发会被限流（6 路并发 61 片只成 1 片）
 - `notion-create-pages` 的 pages 项：`{"properties":{"title":...},"content":...}`
 - `notion-update-page` 的 `replace_content` 需要 `allow_deleting_content: true`
-- `notion-delete-pages` 的 `page_ids` 必须是 **UUID**（传 URL 会 400），且需 `user_confirmed: true`
+- `notion-delete-pages` 的 `page_ids` 必须是 **UUID**，且需 `user_confirmed: true`
 - `apk` 报锁错误：`kill -9 $(pgrep apk); rm -f /lib/apk/db/lock`
-- Minis 定时任务不持久，App 重启后会丢；用户当前选择**全手动触发**
+- **Minis 定时任务不持久**，App 重启会丢。当前 reading-collector 选择全手动触发
+- `/var/minis` 不支持符号链接，venv 不能建在里面
+- `.pages` 的正文只存在于 `preview.jpg`，`Document.iwa` 抽不出文字
