@@ -1,164 +1,146 @@
 ---
-name: github-maintainer
-description: GitHub 仓库维护专用 agent。用户说「推上去」「提交」「建个仓库」「发个 release」「处理 issue/PR」「仓库改名」时使用。负责 git 提交、推送、建仓、改名、release、issue 管理，凭据已持久化，直接操作无需用户授权。
+name: reading-collector
+description: 把待办应用「阅读收集」分组里的链接整理成 Obsidian 笔记。用户说「整理收集」「处理待办」「收集这个链接」时使用。流程：读待办 → 抓正文（文章走 HTTP/浏览器，视频走转写）→ 写 Obsidian → 勾完成 → 可选镜像 Notion。**动手前先 `git pull` 远程仓库，避免与其他会话重复劳动。**
 ---
 
-# github-maintainer
+# reading-collector
 
-GitHub 仓库的日常维护。**凭据已配置好，不要再让用户授权，不要生成 device code。**
+用户在待办应用的分组里丢「题目 + 链接」，手动喊 agent 时批量整理成笔记。
+**手动触发，没有定时任务。**
+
+## 定位：Obsidian 是权威，Notion 只做网页浏览
+
+| | 角色 | 说明 |
+|---|---|---|
+| **Obsidian** | **唯一权威** | 所有内容真正存放在这里；结构、命名、索引以它为准 |
+| **Notion** | 只负责「网页浏览」 | 给人随时在手机/浏览器翻看的副本；可关、可重建，不影响任何东西 |
+| 待办应用 | 入口 | 只在「阅读收集」分组里丢「题目 + 链接」 |
+| **Notion 堆放区** | **已废弃** | 不再从 Notion 读链接，入口只有待办 |
+
+判断标准：**Obsidian 落盘成功就算归档成功。** Notion 同步失败只记一笔，不回滚、不重试、不阻塞。
 
 
 > **开工前先读 `/var/minis/memory/GLOBAL.md`**（环境事实、协作铁律、已知坑），读完再动手。
 
-## 铁律 0：先同步，再动手
+## 0. 先定位仓库
 
-多个会话可能同时维护同一个仓库。**动手改任何文件之前**，按顺序做：
-
-```bash
-cd <仓库目录>
-git pull                                    # 先把远程最新拉下来
-git log --oneline -5                        # 看别人最近改了什么
-git status --short                          # 确认工作区干净
+```sh
+# 依次尝试：显式环境变量 → 常见克隆位置 → 放弃并报错
+RC="${READING_COLLECTOR_ROOT:-}"
+if [ -z "$RC" ] || [ ! -d "$RC/scripts" ]; then
+  for d in "$HOME/reading-collector" "$PWD/reading-collector" \
+           "/var/minis/workspace/reading-collector"; do
+    if [ -d "$d/scripts" ]; then RC="$d"; break; fi
+  done
+fi
+test -d "${RC:-}/scripts" || {
+  echo "找不到仓库，请设置 READING_COLLECTOR_ROOT 指向克隆目录" >&2; exit 1; }
+echo "RC=$RC"
 ```
 
-- **本地工作区不是权威，远程才是。** 如果本地缺文件、或文件比远程短，说明本地是旧的，
-  **不要凭本地重写**——先 `git pull`，或重新 `git clone` 到临时目录再对比。
-- 判断是否重复劳动的快速办法：
-  ```bash
-  find / -maxdepth 5 -name "<关键文件名>" 2>/dev/null      # 本地有没有别人写过的版本
-  minis-sessions-cli search --keywords "<主题>"            # 别的会话做过没有
-  ```
-- 已存在的功能**只补差额**，不要推倒重来。改写别人的实现前先问老大。
-- 收尾：追加进展到 `/var/minis/memory/GLOBAL.md` 的「进展记录」（最新在上），写清改了什么／为什么／commit。
+**不要自己造 venv、不要 pip install。**依赖应在安装阶段装好；
+缺什么先跑 `bash "$RC/scripts/install.sh" --dry-run` 看缺哪项。
 
-## 0. 凭据（已就绪，直接用）
+## 1. 读待办
 
 ```bash
-# 全局 credential.helper 已指向 store 文件，git push 自动读取
-git config --global credential.helper    # 应输出 store --file=/root/.config/reading-collector/git-credentials
+python3 "$RC/scripts/inbox.py"            # 人类可读
+python3 "$RC/scripts/inbox.py" --json     # 结构化，含 id 与 urls
 ```
 
-| 用途 | 位置 |
-|---|---|
-| git 凭据 | `/root/.config/reading-collector/git-credentials` |
-| 裸 token（API 调用用） | `/root/.config/reading-collector/github_token` |
-| 备份（重启后可能要用） | `/var/minis/shared/.credentials/` |
-
-**铁律：**
-- **绝不 `echo`/`cat`/`printenv` 这些文件的内容。** 只用 `T=$(cat 路径)` 形式引用。
-- **remote URL 里不放 token**。保持 `https://github.com/<user>/<repo>.git`。
-- 每次用完变量就让它随 shell 结束，不写进任何日志或文件。
-
-**若凭据失效（401）：**
-1. 先从备份恢复：`cp /var/minis/shared/.credentials/* /root/.config/reading-collector/`
-2. 仍失败才走 device flow（流程见文末），用完**立刻**把 token 写回上述位置。
-
-## 1. 判断仓库归属
+没有 MCP 客户端时退回本地收件箱（Markdown 复选框格式）：
 
 ```bash
-cd <仓库目录>
-git remote -v            # 已有 remote 直接沿用
-git log --oneline -3     # 确认不是空仓库
+python3 "$RC/scripts/inbox.py" --backend file --inbox ./inbox.md
 ```
 
-没有 remote 就先问用户仓库名和可见性，再走「建仓」。
+**没链接的条目跳过，不要猜。**
 
-## 2. 提交
+## 2. 按类型取正文
+
+| 类型 | 判定 | 做法 |
+|---|---|---|
+| 视频 / 播客 | bilibili、b23.tv、youtube、youtu.be、小宇宙、Apple Podcasts | 走 `video-notes` |
+| 公众号 | `mp.weixin.qq.com` | 静态抓 `div#js_content`；遇验证墙用浏览器渲染 |
+| 普通网页 | 其它 http(s) | 静态抓 `article`/`main`，失败则浏览器渲染取 innerText |
+| X | `x.com` / `twitter.com` | 浏览器渲染；不行就请用户粘正文 |
+
+清洗：保留标题、作者、日期、核心论点、关键引语、层级；删除广告、分享栏、相关推荐、评论、Cookie 提示、App 引流。中文原样保留，不翻译。
+
+## 3. 写 Obsidian
 
 ```bash
-git add -A
-git status --short                      # 先看有没有意外文件（凭据、大文件、本地配置）
-git -c commit.gpgsign=false commit -m "<type>: <一句话>"
+python3 "$RC/scripts/archive.py" \
+  --title "标题" --url "https://…" --source "微信公众号" --author "作者" \
+  --tags "公众号" --body ./body.md
 ```
 
-- **提交前必查**：`.gitignore` 是否挡住 `config.toml`、`*.log`、`venv/`、`.env`、任何 token 文件。
-- 提交信息用 `feat: / fix: / docs: / chore:` 前缀。
-- 这个环境没有 GPG，必须带 `-c commit.gpgsign=false`，否则提交会卡住。
+- 默认写到 `<vault>/阅读收集/<年>/<日期>-<标题>.md`，含 front-matter 与来源 callout
+- 同时重建 `首页.md` 索引（不要手工编辑该文件的表格区）
+- 同一 URL 重跑会覆盖原文件，不会产生第二篇
 
-## 3. 推送
+## 4. 勾完成
 
 ```bash
-git push -u origin HEAD
+python3 "$RC/scripts/inbox.py" --done <id>
 ```
 
-- 默认分支可能是 `master` 或 `main`，**用 `HEAD` 让它自己判断**，别写死。
-- 推送后 `git ls-remote origin` 验证一次。
-- 强推（`--force`）**必须先征得用户同意**——这会覆写远端历史。
+**顺序不能反**：确认笔记落盘成功后再勾。失败就留着待办，下次重试。
 
-## 4. 建仓
+## 5. 镜像 Notion（只负责网页浏览）
+
+配置 `[notion] enabled = true` 与 `parent_page_id` 后自动执行，或加 `--notion` 强制。
+**镜像失败不阻塞、不回滚、不重试**，只在汇报里提一句。**Obsidian 落盘成功即视为归档成功。**
+
+镜像页顶部带「← 返回 有价值内容收集」（箭头必须在最前，否则 Notion 会把整行识别成 page mention 吞掉文字）。
+
+单独调用 `scripts/notion.py`：
 
 ```bash
-T=$(cat /root/.config/reading-collector/github_token)
-curl -s -X POST https://api.github.com/user/repos \
-  -H "Authorization: Bearer $T" -H "Accept: application/vnd.github+json" \
-  -d '{"name":"<repo>","description":"<描述>","private":false}' \
-  | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('html_url') or d)"
+python3 "$RC/scripts/notion.py" check          # 连接 + 父页面是否可达
+python3 "$RC/scripts/notion.py" list           # 父页面下的子页面
+python3 "$RC/scripts/notion.py" url "<链接>"   # 这条链接已镜像到哪个页面
+python3 "$RC/scripts/notion.py" rebuild-index  # 重建「📇 索引」表格页
 ```
 
-建完再加 remote 并推送：
+- **幂等**：`config/notion-map.json` 记录 URL → page_id，同一链接重跑是**更新**，不产生重复页。
+- 正文 = 来源头（来源/作者/链接/收集日期）+ 分隔线 + 清洗正文；图标按来源自动选（微信💬/视频🎬/网页📄）。
+- `[notion] index = true` 时每次归档顺手重建父页下的「📇 索引」表格。
+
+## 收尾：同步全局记忆（必做）
+
+任何功能更新结束后，**先追加进展到 `/var/minis/memory/GLOBAL.md`，再跑同步脚本**：
+
+```sh
+sh /var/minis/workspace/reading-collector/memsync.sh
+```
+
+脚本会一次性完成：memory → `/var/minis/shared/COLLAB.md` → 仓库 `docs/GLOBAL-MEMORY.md`，
+并自动提交推送。**不要手动 cp 三份文件**，容易漏掉仓库那份。
+
+- `--check` 只核对三份是否一致
+- `--no-push` 只同步不推送
+
+## 汇报格式
+
+| 标题 | 来源 | 笔记 | 镜像 |
+
+外加：成功 N 条、失败 M 条、跳过 K 条（无链接）。
+
+## 视频分支
 
 ```bash
-git remote add origin "https://github.com/<user>/<repo>.git"
-git push -u origin HEAD
+python3 "$RC/scripts/transcribe.py" "<URL>" --locale en-US
 ```
 
-**注意**：URL 里**不要**拼 token，credential.helper 会处理。
+- `--locale` 必须是**原声语言**：英文 `en-US`，中文 `zh-CN`。选错会乱码。
+- 产出 JSON：`title / uploader / duration / chapters[] / transcript[]`
+- 逐字稿是原料不是成品，**笔记要你自己写**：
 
-## 5. 常见操作速查
-
-```bash
-T=$(cat /root/.config/reading-collector/github_token)
-GH="Authorization: Bearer $T"
-
-# 我是谁
-curl -s -H "$GH" https://api.github.com/user | python3 -c "import json,sys;print(json.load(sys.stdin)['login'])"
-
-# 改名（GitHub 会自动做重定向）
-curl -s -X PATCH -H "$GH" -H "Accept: application/vnd.github+json" \
-  https://api.github.com/repos/<user>/<old> -d '{"name":"<new>"}'
-
-# 改可见性
-curl -s -X PATCH -H "$GH" https://api.github.com/repos/<user>/<repo> -d '{"private":true}'
-
-# 列 open issue
-curl -s -H "$GH" "https://api.github.com/repos/<user>/<repo>/issues?state=open" \
-  | python3 -c "import json,sys;[print(i['number'],i['title']) for i in json.load(sys.stdin)]"
-
-# 发 issue
-curl -s -X POST -H "$GH" https://api.github.com/repos/<user>/<repo>/issues \
-  -d '{"title":"...","body":"..."}'
-
-# 发 release（需先有 tag）
-git tag -a v1.0.0 -m "v1.0.0" && git push origin v1.0.0
-curl -s -X POST -H "$GH" https://api.github.com/repos/<user>/<repo>/releases \
-  -d '{"tag_name":"v1.0.0","name":"v1.0.0","body":"..."}'
+```
+# 标题
+一句话结论 → ## 分章要点（按 chapters 时间轴，讲机制不写流水账）
+→ ## 关键概念速查（表格） → ## 可直接抄的做法 → ## 金句（原文+译文+时间戳）
 ```
 
-## 6. 安全检查清单（每次推送前过一遍）
-
-- [ ] `git status` 里没有 `.env`、`*.pem`、`*token*`、`config.toml` 这类私密文件
-- [ ] 没有超过 50MB 的文件（GitHub 会拒绝，历史里也删不掉）
-- [ ] 提交信息能说清「改了什么、为什么」
-- [ ] 远端分支名对得上（用 `HEAD` 而不是写死 `master`）
-
-> 一旦 token 或密钥**真的**被推上去了，删文件没用，Git 历史里还在。
-> 正确做法：立刻去 GitHub 撤销该凭据，然后告诉用户历史需要重写（`git filter-repo`）。
-
-## 附：device flow（仅在凭据失效时）
-
-```bash
-# 1. 取授权码
-curl -s -X POST https://github.com/login/device/code -H "Accept: application/json" \
-  -d "client_id=01ab8ac9400c4e429b23&scope=repo%20read:user%20gist"
-# 用户在 https://github.com/login/device 输入 user_code
-
-# 2. 换 token
-curl -s -X POST https://github.com/login/oauth/access_token -H "Accept: application/json" \
-  -d "client_id=01ab8ac9400c4e429b23&device_code=<DEVICE_CODE>&grant_type=urn:ietf:params:oauth:grant-type:device_code"
-```
-
-拿到后写入 `/root/.config/reading-collector/github_token` 与 `git-credentials`，
-并同步一份到 `/var/minis/shared/.credentials/`，然后删除任何临时文件。
-
-**GitHub 不支持动态客户端注册**；Minis 设置页的 Authorize 按钮因 `clientId` 为空而置灰，
-所以 MCP 那条路走不通，直接用 CLI + credential.helper。
+归档时 `source` 填平台名，`tags` 加 `视频`。详见 `skills/video-notes/SKILL.md`。

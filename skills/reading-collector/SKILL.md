@@ -107,6 +107,20 @@ python3 "$RC/scripts/notion.py" rebuild-index  # 重建「📇 索引」表格�
 - 正文 = 来源头（来源/作者/链接/收集日期）+ 分隔线 + 清洗正文；图标按来源自动选（微信💬/视频🎬/网页📄）。
 - `[notion] index = true` 时每次归档顺手重建父页下的「📇 索引」表格。
 
+## 收尾：同步全局记忆（必做）
+
+任何功能更新结束后，**先追加进展到 `/var/minis/memory/GLOBAL.md`，再跑同步脚本**：
+
+```sh
+sh /var/minis/workspace/reading-collector/memsync.sh
+```
+
+脚本会一次性完成：memory → `/var/minis/shared/COLLAB.md` → 仓库 `docs/GLOBAL-MEMORY.md`，
+并自动提交推送。**不要手动 cp 三份文件**，容易漏掉仓库那份。
+
+- `--check` 只核对三份是否一致
+- `--no-push` 只同步不推送
+
 ## 汇报格式
 
 | 标题 | 来源 | 笔记 | 镜像 |
