@@ -12,7 +12,10 @@
 1. **动手前先同步**：读本文件 → `git pull` → `git log --oneline -5` → `git status`，再 `find` 本地是否已有同名实现。**别凭自己刚写的东西就开工。**
 2. **本地工作区不是权威，远程才是。** 本地缺文件或比远程短，说明本地是旧的——先 `git pull`，或重新 clone 到临时目录对比。
 3. **功能更新必须讲清楚 + push**：每次改完功能，说清做了什么、为什么、怎么验证的，然后推 GitHub，不用再问。
-4. **完工后必须**：说清改了什么 → 推 GitHub（代码项目）→ 追加本文件「进展记录」。
+4. **完工后必须**：说清改了什么 → 推 GitHub（代码项目）→ 追加本文件「进展记录」→ **跑 `memsync.sh` 同步三份副本**。
+   ```sh
+   sh /var/minis/workspace/reading-collector/memsync.sh
+   ```
 5. **聊天记录不跨会话共享**，但文件系统共享。状态一律落到文件里，不要指望别的情境记得。
 6. **反复踩同一个坑是失职**：修好一个坑，同时写进本文件或对应 SKILL.md。
 
@@ -140,6 +143,7 @@ minis-sessions-cli search --keywords "<主题>"
 
 ## 2026-11-01
 
+- **记忆同步脚本**：`sh /var/minis/workspace/reading-collector/memsync.sh` 一条命令同步三份副本并推送；`--check` 核对一致性，`--no-push` 只同步。此前手动 cp 漏掉过仓库 docs 副本（`/tmp/rc-remote` 被清后彻底丢失）
 - **Notion 堆放区已废弃**：删除页面 `40209d7f-d7ec-81be-bab3-e89df8d57cd3`；入口只剩待办「阅读收集」分组。**Obsidian 是唯一权威，Notion 只负责网页浏览**，落盘成功即归档成功 `bfc000b`
 - **Notion 镜像加返回**：`build_content` 顶部插入 `← [返回 有价值内容收集]`；前面必须带箭头字符，否则 Notion 把整行识别成 page mention 吞掉文字 `6a4a510`
 - **Notion 清理**：删除 3 篇 Grok 时代遗留（亚玛芬/最有效的休息/给高三三则时文），补建「如果Personal Agent不只属于一个人」，现与 Obsidian 4 篇一一对应
