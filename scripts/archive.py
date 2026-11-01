@@ -173,6 +173,21 @@ def mirror_to_notion(title: str, url: str, body: str, source: str = "",
     return inbox.mcp(cfg["server"], cfg["create_tool"], payload)
 
 
+def read_body_file(spec: str) -> str:
+    """读正文。支持普通路径与进程替换（/dev/fd/N、/proc/self/fd/N）。
+
+    进程替换传进来的 fd 是管道，既不能 stat 出大小也不能 seek，
+    所以统一按流读取，不走 Path.read_text。
+    """
+    if spec == "-":
+        return sys.stdin.read()
+    p = Path(spec)
+    if p.exists() or spec.startswith(("/dev/fd/", "/proc/self/fd/")):
+        with open(spec, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    sys.exit(f"正文文件不存在：{spec}")
+
+
 def main() -> None:
     import argparse
 
@@ -188,7 +203,7 @@ def main() -> None:
     ap.add_argument("--dry-run", action="store_true", help="只打印，不落盘")
     a = ap.parse_args()
 
-    body = (Path(a.body).read_text(encoding="utf-8") if a.body else sys.stdin.read())
+    body = (read_body_file(a.body) if a.body else sys.stdin.read())
     tags = [t.strip() for t in a.tags.split(",") if t.strip()]
     date = a.date or dt.date.today().strftime(CFG["output"]["date_format"])
 
