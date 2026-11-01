@@ -146,6 +146,11 @@ def rebuild_index() -> Path:
         years.setdefault(r["date"][:4] or "未分类", []).append(r)
 
     lines = [
+        "---",
+        "cssclasses:",
+        "  - rc-home",
+        "---",
+        "",
         f"# {CFG['vault']['folder']} · 导航",
         "",
         "> 收集到的网页 / 公众号 / X / 播客 / 视频等有价值内容，一条一篇。",
