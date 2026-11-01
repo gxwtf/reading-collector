@@ -58,7 +58,9 @@ def build_note(title: str, url: str, body: str, source: str = "",
         f"[原文]({url})" if url else "",
         author,
     ] if x)
-    back = f"[[{CFG['vault']['index'][:-3]}|← 返回 {CFG['vault']['folder']}]]"
+    # 必须带完整路径：vault 里 语料库/、语文语料库/、阅读收集/ 都有「首页.md」，
+    # 只写 [[首页]] 会跳到别的文件夹（实测跳到英语语料库首页）。
+    back = f"[[{CFG['vault']['folder']}/{CFG['vault']['index'][:-3]}|← 返回 {CFG['vault']['folder']}]]"
     return f"""---
 title: {yaml_str(title)}
 source: {yaml_str(source)}
