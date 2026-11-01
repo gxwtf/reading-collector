@@ -29,7 +29,7 @@ git status --short                          # 确认工作区干净
   minis-sessions-cli search --keywords "<主题>"            # 别的会话做过没有
   ```
 - 已存在的功能**只补差额**，不要推倒重来。改写别人的实现前先问老大。
-- 收尾：更新 `/var/minis/shared/COLLAB.md` 的「变更记录」表，写清日期／会话／内容／commit。
+- 收尾：追加进展到 `/var/minis/memory/GLOBAL.md` 的「进展记录」（最新在上），写清改了什么／为什么／commit。
 
 ## 0. 凭据（已就绪，直接用）
 
