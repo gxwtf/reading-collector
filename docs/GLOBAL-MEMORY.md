@@ -63,8 +63,13 @@ kill -9 $(pgrep apk); rm -f /lib/apk/db/lock
 ### reading-collector（开源）
 - 仓库：https://github.com/kyoukawa/reading-collector
 - 本地：`/var/minis/workspace/reading-collector/`
-- 机器上的副本在 `/var/minis/workspace/reading-collector/`
 - 用途：待办里的链接 → Obsidian 笔记 → 勾完成 → 可选镜像 Notion
+- **项目级协作状态：`docs/COLLAB.md`（也是 `/var/minis/shared/COLLAB.md`），开工前必读**
+- Notion 镜像已抽成独立模块 `scripts/notion.py`（幂等，URL→page_id 记在 `config/notion-map.json`），`archive.py` 延迟导入调用
+
+> ⚠️ **多个会话会同时改这个仓库**。2026-11-01 实测：我本地改完准备推时，远端已有别人 3 个提交
+> （其中 `scripts/notion.py` 是 314 行的完整幂等实现，比我当时的简版强得多）。
+> **教训：动代码前先 `git pull`，推之前再 `git fetch` 看一次。**
 
 **用户确认过的规则：**
 - 入口 = 青蛙todo 分组「阅读收集」，**标题写题目，正文放链接**
