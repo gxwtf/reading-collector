@@ -21,6 +21,12 @@ from config import CFG, archive_dir, vault_root  # noqa: E402
 import inbox  # noqa: E402
 
 
+def yaml_str(s: str) -> str:
+    """安全地写进 YAML 双引号字符串：转义反斜杠与引号，换行压成空格。"""
+    s = (s or "").replace("\\", "\\\\").replace('"', '\\"')
+    return '"' + s.replace("\r", " ").replace("\n", " ") + '"'
+
+
 def safe_filename(title: str, max_chars: int | None = None) -> str:
     """把标题变成安全文件名：去掉路径分隔符、控制字符、保留中文。"""
     limit = max_chars or CFG["output"]["filename_max_chars"]
@@ -50,11 +56,11 @@ def build_note(title: str, url: str, body: str, source: str = "",
         author,
     ] if x)
     return f"""---
-title: "{title}"
-source: "{source}"
-author: "{author}"
-url: "{url}"
-collected: "{date}"
+title: {yaml_str(title)}
+source: {yaml_str(source)}
+author: {yaml_str(author)}
+url: {yaml_str(url)}
+collected: {yaml_str(date)}
 tags:
 {tag_block}
 ---
@@ -93,6 +99,27 @@ def write_note(title: str, url: str, body: str, **kw) -> Path:
     return path
 
 
+def read_frontmatter(text: str) -> dict:
+    """按行边界解析 front-matter。
+
+    不能用 split("---")：正文里的水平分隔线、以及标题值里本身含 --- 都会切错。
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+    fm = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if ":" in line and line[:1] not in (" ", "\t", "-"):
+            k, v = line.split(":", 1)
+            v = v.strip()
+            if len(v) >= 2 and v[0] == v[-1] == '"':
+                v = v[1:-1].replace('\\"', '"').replace("\\\\", "\\")
+            fm[k.strip()] = v
+    return fm
+
+
 def rebuild_index() -> Path:
     """重建首页：按年份分组、组内按日期倒序。"""
     root = archive_dir()
@@ -103,14 +130,7 @@ def rebuild_index() -> Path:
         if p.name == index_name:
             continue
         text = p.read_text(encoding="utf-8", errors="ignore")
-        fm = {}
-        if text.startswith("---"):
-            block = text.split("---", 2)
-            if len(block) >= 3:
-                for line in block[1].splitlines():
-                    if ":" in line and not line.startswith(" "):
-                        k, v = line.split(":", 1)
-                        fm[k.strip()] = v.strip().strip('"')
+        fm = read_frontmatter(text)
         title = fm.get("title") or p.stem
         url = fm.get("url", "")
         rel = p.relative_to(root).with_suffix("").as_posix()

@@ -199,7 +199,9 @@ def backend_file(path: str) -> list[dict]:
             if m.group(1).strip().lower() == "x":
                 cur = None
                 continue
-            cur = {"title": m.group(2).strip(), "text": "", "urls": []}
+            head_line = m.group(2).strip()
+            cur = {"title": head_line, "text": head_line + "\n",
+                   "urls": extract_urls(head_line)}
             items.append(cur)
             continue
         if cur is not None:
@@ -219,17 +221,20 @@ def backend_frogtodo_done(todo_id: str) -> dict:
 def backend_file_done(todo_id: str, path: str) -> dict:
     """把对应复选框从 [ ] 改成 [x]。"""
     p = Path(path).expanduser()
-    lines = p.read_text(encoding="utf-8").splitlines()
-    idx = int(todo_id.split("-")[-1])
-    seen, out = -1, []
-    for line in lines:
+    if not p.exists():
+        sys.exit(f"收件箱不存在：{p}")
+    idx = int(todo_id.rsplit("-", 1)[-1])
+    lines = p.read_text(encoding="utf-8").splitlines(keepends=True)
+    n = -1
+    for i, line in enumerate(lines):
         m = re.match(r"^\s*[-*]\s*\[( |x|X)\]", line)
-        if m:
-            seen += 1
-            if seen == idx and m.group(1) == " ":
-                line = line.replace("[ ]", "[x]", 1)
-        out.append(line)
-    p.write_text("\n".join(out) + "\n", encoding="utf-8")
+        if not m or m.group(1).strip().lower() == "x":
+            continue                      # 只对未完成项计数，与 backend_file 一致
+        n += 1
+        if n == idx:
+            lines[i] = re.sub(r"\[ \]", "[x]", line, count=1)
+            break
+    p.write_text("".join(lines), encoding="utf-8")
     return {"ok": True, "marked": todo_id}
 
 
@@ -255,7 +260,7 @@ def main() -> None:
     items = backend_frogtodo() if backend == "frogtodo" else backend_file(inbox_path)
     if items and items[0].get("error"):
         print(json.dumps(items[0], ensure_ascii=False))
-        return
+        sys.exit(1)
 
     if "--json" in args:
         print(json.dumps({"backend": backend, "count": len(items),

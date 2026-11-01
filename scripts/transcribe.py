@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -65,6 +66,8 @@ def duration_of(path: Path) -> float:
 
 
 def cut(src: Path, workdir: Path, start: float, length: float, idx: int) -> Path | None:
+    if length <= 0.1:          # 时长刚好整除时别切出 0 秒空片
+        return None
     dst = workdir / f"c{idx:04d}.wav"
     r = run([CFG["video"]["ffmpeg"], "-y", "-loglevel", "error",
              "-ss", str(start), "-t", str(length), "-i", str(src),
@@ -169,10 +172,12 @@ def main() -> None:
     if not audio:
         sys.exit("音轨下载失败")
     dur = duration_of(audio)
+    if dur <= 0:
+        sys.exit("无法读取音频时长（ffprobe 失败或文件损坏）")
     print(f"      {audio.name} {dur:.0f}s", flush=True)
 
     chunk = int(cfg["chunk_seconds"])
-    n = int(dur // chunk) + 1
+    n = max(1, math.ceil(dur / chunk))   # 90s/45s -> 2，不再多切一片
     print(f"[3/4] 切片 x{n}…", flush=True)
     cuts: dict[int, Path] = {}
     with ThreadPoolExecutor(4) as ex:
@@ -190,7 +195,13 @@ def main() -> None:
     done = 0
     with ThreadPoolExecutor(1) as ex:  # 串行，避免限流
         def one(p: Path) -> str | None:
-            t = fn(p, locale, cfg["retries"])
+            # 从属步骤：单个片段失败不该让整次转写前功尽弃
+            try:
+                t = fn(p, locale, cfg["retries"])
+            except subprocess.TimeoutExpired:
+                print(f"[asr] 超时 {p.name}", file=sys.stderr); t = None
+            except Exception as exc:            # noqa: BLE001
+                print(f"[asr] 异常 {p.name}: {exc}", file=sys.stderr); t = None
             time.sleep(cfg["gap"])
             return t
         futs = {ex.submit(one, p): i for i, p in sorted(cuts.items())}

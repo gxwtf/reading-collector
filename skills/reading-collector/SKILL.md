@@ -10,18 +10,17 @@ description: 把待办应用「阅读收集」分组里的链接整理成 Obsidi
 
 ## 0. 先定位仓库
 
-```bash
-# 依次尝试：显式环境变量 → 常见克隆位置 → 全局查找
+```sh
+# 依次尝试：显式环境变量 → 常见克隆位置 → 放弃并报错
 RC="${READING_COLLECTOR_ROOT:-}"
-[ -n "$RC" ] && [ -d "$RC/scripts" ] || \
-for d in "$HOME/reading-collector" "./reading-collector" \
-         "/var/minis/workspace/reading-collector"; do
-  [ -d "$d/scripts" ] && { RC="$d"; break; }
-done
-[ -n "${RC:-}" ] || RC="$(dirname "$(dirname "$(find / -name transcribe.py \
-  -path '*/reading-collector/scripts/*' 2>/dev/null | head -1)")")"
-
-test -d "$RC/scripts" || { echo "找不到仓库，请设置 READING_COLLECTOR_ROOT"; exit 1; }
+if [ -z "$RC" ] || [ ! -d "$RC/scripts" ]; then
+  for d in "$HOME/reading-collector" "$PWD/reading-collector" \
+           "/var/minis/workspace/reading-collector"; do
+    if [ -d "$d/scripts" ]; then RC="$d"; break; fi
+  done
+fi
+test -d "${RC:-}/scripts" || {
+  echo "找不到仓库，请设置 READING_COLLECTOR_ROOT 指向克隆目录" >&2; exit 1; }
 echo "RC=$RC"
 ```
 

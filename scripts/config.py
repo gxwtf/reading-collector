@@ -12,7 +12,10 @@ from pathlib import Path
 try:
     import tomllib  # py3.11+
 except ModuleNotFoundError:  # pragma: no cover
-    tomllib = None
+    try:
+        import tomli as tomllib  # 3.9 / 3.10 回退
+    except ModuleNotFoundError:
+        tomllib = None
 
 DEFAULTS = {
     "vault": {
@@ -116,19 +119,20 @@ def find_config_file() -> Path | None:
 def load() -> dict:
     cfg = _merge({k: dict(v) for k, v in DEFAULTS.items()}, {})
     path = find_config_file()
-    if path and tomllib:
-        with open(path, "rb") as f:
-            cfg = _merge(cfg, tomllib.load(f))
+    if path:
+        if tomllib:
+            with open(path, "rb") as f:
+                cfg = _merge(cfg, tomllib.load(f))
+        else:
+            print(f"警告：发现 {path}，但当前 Python 没有 tomllib/tomli，"
+                  f"已忽略该文件（pip install tomli 或升级到 3.11+）",
+                  file=sys.stderr)
     cfg = _env_override(cfg)
 
-    # 自动探测 vault：Minis 的挂载点 / 常见的 Obsidian 路径
+    # 自动探测：只认真正带 .obsidian 的目录，绝不猜挂载根或 Documents
     if not cfg["vault"]["path"]:
-        for cand in (
-            Path("/var/minis/mounts"),
-            Path.home() / "Documents",
-            Path.home() / "Obsidian",
-        ):
-            if cand.exists():
+        for cand in (Path.home() / "Obsidian", Path.home() / "Documents"):
+            if (cand / ".obsidian").is_dir():
                 cfg["vault"]["path"] = str(cand)
                 break
 

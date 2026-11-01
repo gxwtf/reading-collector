@@ -33,11 +33,19 @@ done
 
 echo "== 检查依赖 =="
 missing=0
-for bin in python3 ffmpeg ffprobe yt-dlp; do
+for bin in python3; do
   if command -v "$bin" >/dev/null 2>&1; then
     printf '  ✓ %-10s %s\n' "$bin" "$(command -v "$bin")"
   else
-    printf '  ✗ %-10s 缺失\n' "$bin"; missing=1
+    printf '  ✗ %-10s 缺失（必需）\n' "$bin"; missing=1
+  fi
+done
+# 以下只服务视频分支，缺了不影响文章流程
+for bin in ffmpeg ffprobe yt-dlp; do
+  if command -v "$bin" >/dev/null 2>&1; then
+    printf '  ✓ %-10s %s\n' "$bin" "$(command -v "$bin")"
+  else
+    printf '  ! %-10s 缺失 —— 视频转写不可用，文章流程不受影响\n' "$bin"
   fi
 done
 
@@ -49,10 +57,9 @@ elif python3 -c "import faster_whisper" 2>/dev/null; then
   echo "  ✓ faster-whisper (本机推理)"
   ASR=whisper
 else
-  echo "  ✗ 没有可用的语音识别后端"
+  echo "  ! 没有可用的语音识别后端 —— 视频转写不可用，文章流程不受影响"
   echo "     macOS/iOS: 安装 apple-speech（Minis 自带）"
   echo "     其它平台:  pip install faster-whisper"
-  missing=1
 fi
 
 # MCP 客户端（只有用待办后端时才需要）
@@ -104,7 +111,31 @@ CFG="$ROOT/config/config.toml"
 if [[ -f "$CFG" ]]; then
   echo "  已存在，保留不覆盖：$CFG"
 else
-  sed "s|^path = \"\"|path = \"$VAULT\"|" "$ROOT/config/config.example.toml" > "$CFG"
+  python3 - "$ROOT/config/config.example.toml" "$CFG" "$VAULT" <<'TOML_GEN_EOF'
+import re, sys
+src, dst, vault = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(src, encoding="utf-8").read()
+bs = chr(92)
+if "'" not in vault:
+    literal = "'" + vault + "'"
+else:
+    literal = '"' + vault.replace(bs, bs + bs).replace('"', bs + '"') + '"'
+text, n = re.subn(r'^path = .*$', lambda m: 'path = ' + literal,
+                  text, count=1, flags=re.M)
+if n != 1:
+    sys.exit("config.example.toml 里找不到 path 占位行")
+open(dst, "w", encoding="utf-8").write(text)
+TOML_GEN_EOF
+  # 立刻校验，坏了就回滚，别留一个坏配置让用户重跑也修不好
+  if ! python3 -c "import sys
+try:
+    import tomllib
+except ModuleNotFoundError:
+    sys.exit(0)
+tomllib.load(open(sys.argv[1], 'rb'))" "$CFG" 2>/dev/null; then
+    echo "  生成的 $CFG 不是合法 TOML，已删除。请换一个 --vault 路径重试" >&2
+    rm -f "$CFG"; exit 1
+  fi
   echo "  已生成 $CFG"
 fi
 
