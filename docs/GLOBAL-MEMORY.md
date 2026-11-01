@@ -55,6 +55,7 @@ minis-sessions-cli search --keywords "<主题>"
 - **Obsidian 是权威，Notion 是从属镜像**（失败不阻塞、不回滚、不重试）
 - 顺序固定：写笔记 → 重建索引 → **勾完成 → 镜像**。**笔记没落盘就不勾**
 - 手动触发，**无定时任务**
+- **Obsidian 是唯一权威，Notion 只负责网页浏览**；Notion 堆放区已废弃
 
 ---
 
@@ -139,6 +140,7 @@ minis-sessions-cli search --keywords "<主题>"
 
 ## 2026-11-01
 
+- **Notion 堆放区已废弃**：删除页面 `40209d7f-d7ec-81be-bab3-e89df8d57cd3`；入口只剩待办「阅读收集」分组。**Obsidian 是唯一权威，Notion 只负责网页浏览**，落盘成功即归档成功 `bfc000b`
 - **Notion 镜像加返回**：`build_content` 顶部插入 `← [返回 有价值内容收集]`；前面必须带箭头字符，否则 Notion 把整行识别成 page mention 吞掉文字 `6a4a510`
 - **Notion 清理**：删除 3 篇 Grok 时代遗留（亚玛芬/最有效的休息/给高三三则时文），补建「如果Personal Agent不只属于一个人」，现与 Obsidian 4 篇一一对应
 - **阅读收集返回链接修复**：vault 里 `语料库/`、`语文语料库/`、`阅读收集/` 都有 `首页.md`，wikilink 只写 `[[首页]]` 会跳到错误文件夹（实测跳到英语语料库）→ 必须写 `[[阅读收集/首页|…]]` `e7633de`；顺带清掉 `阅读收集/阅读收集/` 空目录
