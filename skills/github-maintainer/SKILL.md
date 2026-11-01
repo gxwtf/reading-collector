@@ -7,6 +7,27 @@ description: GitHub 仓库维护专用 agent。用户说「推上去」「提交
 
 GitHub 仓库的日常维护。**凭据已配置好，不要再让用户授权，不要生成 device code。**
 
+## 铁律 0：先同步，再动手
+
+多个会话可能同时维护同一个仓库。**动手改任何文件之前**，按顺序做：
+
+```bash
+cd <仓库目录>
+git pull                                    # 先把远程最新拉下来
+git log --oneline -5                        # 看别人最近改了什么
+git status --short                          # 确认工作区干净
+```
+
+- **本地工作区不是权威，远程才是。** 如果本地缺文件、或文件比远程短，说明本地是旧的，
+  **不要凭本地重写**——先 `git pull`，或重新 `git clone` 到临时目录再对比。
+- 判断是否重复劳动的快速办法：
+  ```bash
+  find / -maxdepth 5 -name "<关键文件名>" 2>/dev/null      # 本地有没有别人写过的版本
+  minis-sessions-cli search --keywords "<主题>"            # 别的会话做过没有
+  ```
+- 已存在的功能**只补差额**，不要推倒重来。改写别人的实现前先问老大。
+- 收尾：更新 `/var/minis/shared/COLLAB.md` 的「变更记录」表，写清日期／会话／内容／commit。
+
 ## 0. 凭据（已就绪，直接用）
 
 ```bash

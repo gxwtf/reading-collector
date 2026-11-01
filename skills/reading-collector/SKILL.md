@@ -1,6 +1,6 @@
 ---
 name: reading-collector
-description: 把待办应用「阅读收集」分组里的链接整理成 Obsidian 笔记。用户说「整理收集」「处理待办」「收集这个链接」时使用。流程：读待办 → 抓正文（文章走 HTTP/浏览器，视频走转写）→ 写 Obsidian → 勾完成 → 可选镜像 Notion。
+description: 把待办应用「阅读收集」分组里的链接整理成 Obsidian 笔记。用户说「整理收集」「处理待办」「收集这个链接」时使用。流程：读待办 → 抓正文（文章走 HTTP/浏览器，视频走转写）→ 写 Obsidian → 勾完成 → 可选镜像 Notion。**动手前先 `git pull` 远程仓库，避免与其他会话重复劳动。**
 ---
 
 # reading-collector
