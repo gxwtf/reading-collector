@@ -85,15 +85,26 @@ def guess_icon(url: str, source: str = "") -> str:
 
 
 def build_content(title: str, url: str, body: str, source: str = "",
-                  author: str = "", date: str = "") -> str:
-    """来源头 + 分隔线 + 正文。头部信息让镜像页脱离 Obsidian 也能自解释。"""
+                  author: str = "", date: str = "", parent_page_id: str = "") -> str:
+    """来源头 + 分隔线 + 正文。头部信息让镜像页脱离 Obsidian 也能自解释。
+
+    顶部另加「← 返回 有价值内容收集」，与 Obsidian 笔记的返回按钮对应；
+    离开父页面往下翻了好几页时，不用一路滚回去。
+    """
     head = "\n".join(x for x in [
         f"来源：{source}  " if source else "",
         f"作者：{author}  " if author else "",
         f"链接：{url}  " if url else "",
         f"收集日期：{date or dt.date.today().isoformat()}",
     ] if x)
-    return f"{head}\n\n---\n\n{body.strip()}\n"
+    parent_page_id = parent_page_id or (CFG["notion"].get("parent_page_id") or "")
+    back = ""
+    if parent_page_id:
+        pid = parent_page_id.replace("-", "")
+        parent_url = "https://app.notion.com/p/" + pid
+        # 前面加几个字符，避免 Notion 把整行当成页面提及（mention）而吞掉箭头文字
+        back = f"← [返回 有价值内容收集]({parent_url})\n\n"
+    return f"{back}{head}\n\n---\n\n{body.strip()}\n"
 
 
 def _extract_created(res: dict) -> tuple[str, str]:
