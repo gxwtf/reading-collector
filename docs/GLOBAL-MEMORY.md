@@ -139,6 +139,7 @@ minis-sessions-cli search --keywords "<主题>"
 
 ## 2026-11-01
 
+- **同步核查**：远程 `6fa7bc8` 已把 COLLAB.md 并入 GLOBAL.md；本地三份副本（memory/shared/docs）md5 一致；`SOUL.md` 引用从 COLLAB.md 改指 GLOBAL.md；技能与 `scripts/*.py` 全部对齐远程最新
 - **全局记忆**：本文件建立，合并了 `GLOBAL.md` 与 `COLLAB.md`，成为唯一权威状态文件；技能统一要求开工前先读本文件
 - **github-maintainer**：新建技能，提交/推送/建仓/改名/release/issue 全流程，凭据持久化免授权
 - **reading-collector 开源**：https://github.com/kyoukawa/reading-collector 上线（公开）
