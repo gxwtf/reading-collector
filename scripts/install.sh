@@ -68,7 +68,18 @@ python3 -c "import tomllib" 2>/dev/null \
 
 if [[ $missing -eq 1 ]]; then
   echo
-  echo "依赖不全。可用 -h 查看安装提示，或自行补齐后重跑。"
+  echo "依赖不全，补齐方式："
+  command -v yt-dlp >/dev/null 2>&1 || cat <<'TIP'
+  yt-dlp      pip install -U yt-dlp        # 或 brew install yt-dlp / apk add yt-dlp
+TIP
+  command -v ffmpeg >/dev/null 2>&1 || cat <<'TIP'
+  ffmpeg      brew install ffmpeg          # Debian/Ubuntu: apt install ffmpeg
+                                            # Alpine: apk add ffmpeg
+                                            # macOS: brew install ffmpeg
+TIP
+  echo "  语音识别后端   macOS/iOS 用 apple-speech；其它平台 pip install faster-whisper"
+  echo
+  echo "补完后重跑本脚本。"
   [[ $DRY -eq 1 ]] || exit 1
 fi
 
