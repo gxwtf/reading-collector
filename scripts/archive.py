@@ -58,6 +58,7 @@ def build_note(title: str, url: str, body: str, source: str = "",
         f"[原文]({url})" if url else "",
         author,
     ] if x)
+    back = f"[[{CFG['vault']['index'][:-3]}|← 返回 {CFG['vault']['folder']}]]"
     return f"""---
 title: {yaml_str(title)}
 source: {yaml_str(source)}
@@ -67,6 +68,8 @@ collected: {yaml_str(date)}
 tags:
 {tag_block}
 ---
+
+{back}
 
 > [!info] 来源
 > {meta}

@@ -118,3 +118,28 @@
   background: var(--background-modifier-border);
   margin: 2em 0 1em;
 }
+
+/* ---------------- 笔记顶部「← 返回」 ---------------- */
+/* 指向首页的那条单独成段的链接，做成轻量胶囊按钮 */
+.markdown-preview-view .markdown-preview-sizer > div > p:has(> a.internal-link[data-href="首页"]),
+.markdown-source-view .cm-line:has(> a.internal-link[data-href="首页"]) {
+  /* 兜底：没有 :has 支持时不影响排版 */
+}
+
+.markdown-preview-sizer p > a.internal-link[data-href="首页"] {
+  display: inline-block;
+  padding: 3px 12px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  font-size: 0.82em;
+  text-decoration: none;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+.markdown-preview-sizer p > a.internal-link[data-href="首页"]:hover {
+  color: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  background: var(--background-secondary-alt);
+}
