@@ -42,13 +42,16 @@ def note_path(title: str, date: str, url: str = "") -> Path:
     if cfg["group_by_year"]:
         base = base / date[:4]
     base.mkdir(parents=True, exist_ok=True)
-    return base / f"{date}-{safe_filename(title)}.md"
+    return base / f"{safe_filename(title)}.md"
 
 
 def build_note(title: str, url: str, body: str, source: str = "",
                author: str = "", date: str = "", tags: list[str] | None = None) -> str:
     date = date or dt.date.today().strftime(CFG["output"]["date_format"])
-    tags = ["阅读收集"] + [t for t in (tags or []) if t]
+    # 日期不进标题，改做嵌套标签：#阅读收集/2026/11
+    stamp = "-".join(p for p in date.split("-")[:2] if p)
+    base_tags = ["阅读收集"] + ([stamp.replace("-", "/")] if stamp else [])
+    tags = base_tags + [t for t in (tags or []) if t]
     tag_block = "\n".join(f"  - {t}" for t in tags)
     meta = "　·　".join(x for x in [
         source,
@@ -141,9 +144,9 @@ def rebuild_index() -> Path:
         })
     rows.sort(key=lambda r: r["date"], reverse=True)
 
-    years: dict[str, list] = {}
+    months: dict[str, list] = {}
     for r in rows:
-        years.setdefault(r["date"][:4] or "未分类", []).append(r)
+        months.setdefault(r["date"][:7] or "未分类", []).append(r)
 
     lines = [
         "---",
@@ -159,14 +162,14 @@ def rebuild_index() -> Path:
         f"共 **{len(rows)}** 篇，按收集时间倒序。",
         "",
     ]
-    for year in sorted(years, reverse=True):
+    for month in sorted(months, reverse=True):
         lines += [
-            f"## {year}",
+            f"## {month}",
             "",
             "| 标题 | 来源 | 作者 | 收集日期 |",
             "| --- | --- | --- | --- |",
         ]
-        for r in years[year]:
+        for r in months[month]:
             lines.append(
                 f"| {r['link']} | {r['source'] or '—'} | {r['author'] or '—'} | {r['date']} |"
             )
