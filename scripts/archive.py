@@ -174,18 +174,27 @@ def mirror_to_notion(title: str, url: str, body: str, source: str = "",
 
 
 def read_body_file(spec: str) -> str:
-    """读正文。支持普通路径与进程替换（/dev/fd/N、/proc/self/fd/N）。
+    """读正文。支持普通路径、stdin（-）与进程替换（/dev/fd/N）。
 
-    进程替换传进来的 fd 是管道，既不能 stat 出大小也不能 seek，
-    所以统一按流读取，不走 Path.read_text。
+    进程替换传进来的 fd 是管道，不能 stat 也不能 seek，所以按流读；
+    另外某些精简环境（如 iSH）没有 /dev/fd，此时尽最大努力直读。
     """
     if spec == "-":
         return sys.stdin.read()
+    if spec.startswith(("/dev/fd/", "/proc/self/fd/")):
+        try:
+            with open(spec, encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except FileNotFoundError:
+            sys.exit(
+                f"当前环境不支持进程替换（{spec} 不存在）。\n"
+                f"先把正文写到文件再传：--body ./body.md\n"
+                f"或用管道：cat body.md | archive.py ... （省略 --body 即读 stdin）"
+            )
     p = Path(spec)
-    if p.exists() or spec.startswith(("/dev/fd/", "/proc/self/fd/")):
-        with open(spec, encoding="utf-8", errors="replace") as f:
-            return f.read()
-    sys.exit(f"正文文件不存在：{spec}")
+    if not p.exists():
+        sys.exit(f"正文文件不存在：{spec}")
+    return p.read_text(encoding="utf-8")
 
 
 def main() -> None:
