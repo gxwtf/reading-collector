@@ -139,6 +139,7 @@ minis-sessions-cli search --keywords "<主题>"
 
 ## 2026-11-01
 
+- **阅读收集首页链接修复**：表格单元格里 `[[路径|别名]]` 的竖线必须写成 `\|`，否则被当成列分隔符、链接退化成纯文本 `5f0eb2f`
 - **阅读收集命名规则**：文件名去掉日期前缀，只留标题；日期改写进嵌套标签 `#阅读收集/2026/11`；索引按月分组 `6459829`
 - **阅读收集首页美化**：卡片式 CSS snippet（表格行转卡片/月份小标签/hover 高亮），`archive.py` 重建时自动带 `cssclasses: rc-home`，不污染其他笔记 `1de1b76`
 - **同步核查**：远程 `6fa7bc8` 已把 COLLAB.md 并入 GLOBAL.md；本地三份副本（memory/shared/docs）md5 一致；`SOUL.md` 引用从 COLLAB.md 改指 GLOBAL.md；技能与 `scripts/*.py` 全部对齐远程最新
