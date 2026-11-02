@@ -36,8 +36,51 @@ minis-sessions-cli search --keywords "<主题>"
 | 项目 | 位置 | 远程 | 状态 |
 |---|---|---|---|
 | reading-collector | `/var/minis/workspace/reading-collector/` | github.com/kyoukawa/reading-collector | 运行中，手动触发 |
+| **agent-system** | `/var/minis/workspace/agent-system/` | github.com/kyoukawa/agent-system（私有） | 多 Agent 路由层，2026-11-02 重建并首次推仓 |
 | 英语语料库 | Obsidian vault → `语料库/` | — | 长期维护 |
 | 语文语料库 | Obsidian vault → `语文语料库/` | — | 长期维护 |
+
+## agent-system（多 Agent 架构）
+
+参照 Obsidian 笔记《Super-agent 设计探索》实现的双层架构。
+
+| 模块 | 位置 | 作用 |
+|---|---|---|
+| Router | `router/router.py` | 路由分派，**不亲自执行** |
+| Watchdog | `router/watchdog.py` | 检测僵尸任务 / 产出缺失 |
+| 事件层 | `triggers/events.py` | Fast/Slow Path 过滤 + Inline&Spill |
+| 状态层 | `state/state.py` | 存算分离 + 链式召回 |
+
+**五个 Worker**：`workers/*.json` 声明能力（triggers/sources/prompt）。
+`reading-collector`、`video-notes`、`github-maintainer`、`corpus-en`（英语语料库）、`corpus-zh`（语文语料库）。
+**统一入口技能：`agent-router`**。**架构维护：`system-steward`（系统管家）**。
+
+**管家工具**（`router/` 下）：
+- `validate.py` 校验 Worker 定义：字段齐全、技能文件存在、`name` 一致、触发词冲突
+- `scaffold.py <name> --purpose ... --triggers ...` 生成新 Worker 骨架
+
+### ⚠️ 双窗口分工（2026-11-02 用户定）
+
+用户已单独开了一个 **router 窗口**负责日常调度，**本机其他会话只负责管家职责**。
+
+| 窗口 | 负责 | 不要做 |
+|---|---|---|
+| **router 窗口** | 日常干活：整理待办、转视频、语料入库、推代码、复习 | 不改 Worker 定义 |
+| **其他窗口（管家）** | 加/改 Worker、`validate.py`、`watchdog.py`、架构演进 | **不替 Worker 干具体的活** |
+
+判定：收到「整理收集」「转个视频」「推上去」这类请求 → 告诉用户去 router 窗口，
+或只做路由判断不做执行。收到「加个 agent」「改 X 的行为」「体检」→ 才是管家范围。
+
+**加 Worker 的标准流程**：查重 → `scaffold.py` 生成 → 写实 SKILL.md → `validate.py` → `router.py --text` 试路由。
+**元角色**（`agent-router`、`system-steward`、`skill-creator`、`guided-learning`）不参与路由，不需要 Worker 定义。
+
+**两个语料库判据不同，不能混用**：
+- 英语：What→How→Effect→Value，重「少而精、可迁移、可调用」
+- 语文：老师六维（概念界定→段首句→机制→论据→思路→深化），只收「我的原句/老师的机制/避坑」三类
+- 两者都是**选稿制**（AI 出候选、用户打勾），复习都是**手动触发、每次 3 条**
+
+关键约定：同一 `thread` 的第二条事件走**直通**，不再重新判断归属；
+未归属事件必须报给用户，不许硬接；**多 Worker 同分时报歧义，让人来选**。
 
 ## Obsidian vault
 
@@ -78,6 +121,48 @@ minis-sessions-cli search --keywords "<主题>"
 **依赖**：`yt-dlp`、`ffmpeg`、`ffprobe`、`apple-speech`、系统 `python3` 都在 PATH。**不建 venv、不 pip install。**
 
 `apk` 报锁错误：`kill -9 $(pgrep apk); rm -f /lib/apk/db/lock`
+
+## 一键恢复清单（workspace 被清空时照这个做）
+
+**事故记录**：2026-11-02 11:38，iOS 容器重置把整个 `/var/minis/workspace/` 清空（agent-system、reading-collector 全丢），
+`/var/minis/attachments`、`offloads`、`browser` 也一起新建为空目录。`skills/`、`memory/`、`mounts/`、`shared/` 幸存。
+
+**结论：`/var/minis/workspace` 不是持久存储，任何代码必须推远程。**
+
+### 第一步：诊断
+```sh
+ls -la /var/minis/workspace/          # 空 = 确认被清
+ls /tmp/rc-remote 2>/dev/null          # /tmp 里可能还有上次的残留副本（不保证）
+```
+
+### 第二步：克隆两个仓库
+```sh
+cd /var/minis/workspace
+git clone https://github.com/kyoukawa/reading-collector.git
+git clone https://github.com/kyoukawa/agent-system.git
+```
+凭据在 `/root/.config/reading-collector/git-credentials`（通常能幸存；丢了从 `/var/minis/shared/.credentials/` 拷回）。
+
+### 第三步：补 reading-collector 的运行时配置（**这两个文件不在仓库里**，必须手写）
+- `config/config.toml`：vault path = `/var/minis/mounts/7A84464D-AA03-41E8-A2F3-C38F2CA047D0/知识库`，folder = `阅读收集`，group_by_year = true，index = `首页.md`，todo.category = `阅读收集`，todo.server = `Todo`
+- `config/notion-map.json`：URL → page_id 映射。丢了不影响功能，只是「📇 索引」会漏掉老页面。
+  补救：`notion.py list` 拿现网页面 → 用笔记 front-matter 的 `url:` 做 key 补录 → `notion.py rebuild-index`。
+
+### 第四步：设 `core.fileMode false`
+```sh
+cd /var/minis/workspace/reading-collector && git config core.fileMode false
+```
+iSH 的 chmod 无效，不关掉它 `scripts/install.sh` 永远显示为已修改。
+
+### 第五步：验证
+```sh
+cd /var/minis/workspace/agent-system && python3 tests/selftest.py && python3 router/validate.py
+cd /var/minis/workspace/reading-collector && python3 scripts/notion.py check
+```
+
+### 不清空的部分（不用恢复）
+`skills/`（技能正文）、`memory/`（本文件 + daily log）、`mounts/`（Obsidian vault，真数据在这）、`shared/`、`/root/.config/reading-collector/`（凭据）
+—— 但也别全指望，`/root` 重启会被清。
 
 ---
 
@@ -140,6 +225,31 @@ minis-sessions-cli search --keywords "<主题>"
 ---
 
 # 七、进展记录（最新在上）
+
+## 2026-11-02（12:15）
+
+- **本窗口改为 Router 窗口**：用户指定本会话作为 router 负责日常调度
+- **⚠️ workspace 再次被清空**（11:38，iOS 容器重置）：`/var/minis/workspace/` 整个空掉，agent-system 与 reading-collector 全丢。`skills/`、`memory/`、`mounts/`、`shared/` 幸存
+  - reading-collector 从 `/tmp/rc-remote` 残留副本救回；agent-system 无副本，按记忆重建
+  - **已加「一键恢复清单」进第三节**，照它五步能重建全部
+- **agent-system 重建并首次推仓**：https://github.com/kyoukawa/agent-system（私有）`342e90a`
+  - `tests/selftest.py` 15 项全过；`validate.py` error 0 / warn 1 / info 2
+  - 新增：`thread_auto` 标志区分自动/显式 thread；`enabled` 字段软停用 Worker；validate 扩到 17 条规则
+  - `github-maintainer/SKILL.md` 内容原本是 reading-collector 的副本 → 已重写为真正的 git 手册
+- **阅读收集一轮**：收件箱 3 条 → 成 2 条（时文1029、时文1030 已落盘并勾完成），时文1027 卡登录墙
+- **Notion 镜像已开并补齐**：`config.toml` 填入父页面 `40209d7f-…`，两篇新笔记首建、验证幂等（第二次 `updated` 同 page_id）
+  - 发现 `notion-map.json` 清空导致索引漏老页：用笔记 front-matter 的 `url:` 补录 4 条映射，`rebuild-index` 现 6 行
+  - 两文件均在 `.gitignore` 内，不入公开仓
+- **reading-collector 设 `core.fileMode=false`**：iSH chmod 无效导致 `install.sh` 永远显示脏
+
+## 2026-11-02（11:45 补记）
+
+- **agent-system 重建并首次推仓**：`/var/minis/workspace/` 被系统清空导致整个目录丢失，按本文件 + daily log 的设计原样重建，推到 https://github.com/kyoukawa/agent-system（私有）`342e90a`
+  - 模块：`router/{router,watchdog,validate,scaffold}.py`、`triggers/events.py`、`state/state.py`、`workers/*.json`、`tests/selftest.py`
+  - 纯标准库；`tests/selftest.py` 15 项全过；`validate.py` error 0 / warn 1 / info 2
+  - **今后改 agent-system 一律先 `git pull`**，别再靠本地工作区
+  - 详细设计差异见仓库 README「设计上的几个关键决定」
+- **`github-maintainer` 技能内容是错的文件**：`/var/minis/skills/github-maintainer/SKILL.md` 里装的其实是 reading-collector 的正文（只有 front-matter 的 name 改对了），描述也是阅读收集的。已重写为真正的 git/GitHub 维护手册（凭据、建仓、改名、release、iSH 坑、汇报格式）
 
 ## 2026-11-01
 
