@@ -14,7 +14,7 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 SRC=/var/minis/memory/GLOBAL.md
 SHARED=/var/minis/shared/COLLAB.md
-REPO=${RC_REPO:-/tmp/rc-remote}
+REPO=${RC_REPO:-/var/minis/workspace/reading-collector}
 DOCS="$REPO/docs/GLOBAL-MEMORY.md"
 
 PUSH=1
