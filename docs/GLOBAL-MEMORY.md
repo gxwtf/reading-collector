@@ -36,7 +36,7 @@ minis-sessions-cli search --keywords "<主题>"
 | 项目 | 位置 | 远程 | 状态 |
 |---|---|---|---|
 | reading-collector | `/var/minis/workspace/reading-collector/` | github.com/kyoukawa/reading-collector | 运行中，手动触发 |
-| **agent-system** | `/var/minis/workspace/agent-system/` | github.com/kyoukawa/agent-system（私有） | 多 Agent 路由层，2026-11-02 重建并首次推仓 |
+| **agent-system** | `/var/minis/workspace/agent-system/` | github.com/kyoukawa/agent-system（**公开**，2026-11-02 推仓） | 多 Agent 路由层 |
 | 英语语料库 | Obsidian vault → `语料库/` | — | 长期维护 |
 | 语文语料库 | Obsidian vault → `语文语料库/` | — | 长期维护 |
 

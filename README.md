@@ -13,6 +13,42 @@
                       文章/视频/播客       └──► Notion 镜像（可选，从属）
 ```
 
+## 它在多 Agent 系统里的位置
+
+这个仓库是**业务插件**。它自己就能跑，也可以挂到框架下面统一调度。
+
+```
+   agent-system（框架：决定谁干活）
+            │
+            ▼  读 workers/reading-collector.json
+   reading-collector（本仓库：决定活怎么干）
+            │
+            └── scripts/inbox.py → archive.py
+```
+
+| 只用本仓库 | 配合框架 |
+|---|---|
+| 直接跑 `scripts/*.py` | 说「整理收集」，由 Router 判断后派给本仓库的 Worker |
+| 适合只想整理链接的人 | 适合有多种任务、需要统一入口的人 |
+
+框架仓库：**github.com/kyoukawa/agent-system**
+
+### 两边的连接点
+
+框架只在 `workers/reading-collector.json` 里引用本仓库的**技能手册**：
+
+```json
+{
+  "triggers": ["整理", "收集", "待办"],
+  "skill": "/var/minis/skills/reading-collector/SKILL.md",
+  "prompt": "你是 reading-collector Worker……"
+}
+```
+
+**本仓库的脚本不依赖框架。** 框架挂了，这些脚本照常能跑。
+
+---
+
 ## 为什么这样设计
 
 - **待办是收件箱，Obsidian 是权威库。**待办只负责「还没处理的东西」，处理完就消失，
