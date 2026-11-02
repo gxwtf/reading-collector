@@ -16,7 +16,7 @@
 
 set -u
 
-VAULT="${VAULT_PATH:-/var/minis/mounts/7A84464D-AA03-41E8-A2F3-C38F2CA047D0/知识库}"
+VAULT="${VAULT_PATH:-/var/minis/mounts/知识库}"
 WORK="${VAULT_BACKUP_DIR:-/var/minis/shared/vault-backup}"
 REMOTE="https://github.com/kyoukawa/vault-backup.git"
 MODE="${1:-}"
@@ -103,5 +103,7 @@ else
   echo "✓ 已提交"
 fi
 
-git push -q -u origin HEAD:main 2>&1 || git push -q origin HEAD:master 2>&1
+# 备份仓库固定用 main，避免两套分支并存
+git branch -q -M main 2>/dev/null || true
+git push -q -u origin main 2>&1
 echo "✓ 已推送：$REMOTE"
