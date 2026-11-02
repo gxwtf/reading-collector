@@ -44,6 +44,13 @@ minis-sessions-cli search --keywords "<主题>"
 
 参照 Obsidian 笔记《Super-agent 设计探索》实现的双层架构。
 
+**框架仓，不含业务代码。** 与 `reading-collector` 是「框架 + 插件」关系：
+框架决定谁干活，业务决定活怎么干，靠 `workers/*.json` 松耦合连接。
+架构说明见 `agent-system/docs/ARCHITECTURE.md`。
+
+**技能副本三处**（运行时 `/var/minis/skills/`、框架仓 `skills/`、业务仓 `skills/`），
+以运行时为真相，用 `sh agent-system/scripts/skillsync.sh` 同步或 `--check` 核对。
+
 | 模块 | 位置 | 作用 |
 |---|---|---|
 | Router | `router/router.py` | 路由分派，**不亲自执行** |
