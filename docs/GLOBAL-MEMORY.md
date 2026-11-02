@@ -108,6 +108,8 @@ minis-sessions-cli search --keywords "<主题>"
 - **Obsidian 是权威，Notion 是从属镜像**（失败不阻塞、不回滚、不重试）
 - 顺序固定：写笔记 → 重建索引 → **勾完成 → 镜像**。**笔记没落盘就不勾**
 - 手动触发，**无定时任务**
+- **异地备份**：`sh reading-collector/scripts/vaultbackup.sh` → 私有仓 `kyoukawa/vault-backup`，
+  每天 23:30 自动跑。`--restore <目录>` 可恢复。**vault 为空或不存在时会拒绝执行，不会覆盖备份。**
 - **Obsidian 是唯一权威，Notion 只负责网页浏览**；Notion 堆放区已废弃
 
 ---
