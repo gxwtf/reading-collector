@@ -110,6 +110,8 @@ minis-sessions-cli search --keywords "<主题>"
 - 手动触发，**无定时任务**
 - **异地备份**：`sh reading-collector/scripts/vaultbackup.sh` → 私有仓 `kyoukawa/vault-backup`，
   每天 23:30 自动跑。`--restore <目录>` 可恢复。**vault 为空或不存在时会拒绝执行，不会覆盖备份。**
+  **备份内容**：三个知识库目录 + `.obsidian/snippets/` + `_minis/`（MCP 配置、OAuth 令牌、memory、skills），
+  明文保存。**丢了 MCP 配置或技能，从 `_minis/` 恢复，不用重新授权。**
 - **Obsidian 是唯一权威，Notion 只负责网页浏览**；Notion 堆放区已废弃
 
 ---
