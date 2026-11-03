@@ -91,7 +91,7 @@ minis-sessions-cli search --keywords "<主题>"
 
 ## Obsidian vault
 
-根目录：`/var/minis/mounts/知识库`
+根目录：`/var/minis/mounts/dev/TheBook`
 **根目录只允许文件夹，不放零散文件。** 现有：`语料库/`、`语文语料库/`、`阅读收集/`
 
 阅读收集结构：`首页.md`（自动重建的索引）+ `<年>/<日期>-<标题>.md` + `附件/`
@@ -172,7 +172,7 @@ git clone https://github.com/kyoukawa/agent-system.git
 凭据在 `/root/.config/reading-collector/git-credentials`（通常能幸存；丢了从 `/var/minis/shared/.credentials/` 拷回）。
 
 ### 第三步：补 reading-collector 的运行时配置（**这两个文件不在仓库里**，必须手写）
-- `config/config.toml`：vault path = `/var/minis/mounts/知识库`，folder = `阅读收集`，group_by_year = true，index = `首页.md`，todo.category = `阅读收集`，todo.server = `Todo`
+- `config/config.toml`：vault path = `/var/minis/mounts/dev/TheBook`，folder = `阅读收集`，group_by_year = true，index = `首页.md`，todo.category = `阅读收集`，todo.server = `Todo`
 - `config/notion-map.json`：URL → page_id 映射。丢了不影响功能，只是「📇 索引」会漏掉老页面。
   补救：`notion.py list` 拿现网页面 → 用笔记 front-matter 的 `url:` 做 key 补录 → `notion.py rebuild-index`。
 

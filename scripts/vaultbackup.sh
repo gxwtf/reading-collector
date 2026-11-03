@@ -16,7 +16,7 @@
 
 set -u
 
-VAULT="${VAULT_PATH:-/var/minis/mounts/知识库}"
+VAULT="${VAULT_PATH:-/var/minis/mounts/dev/TheBook}"
 WORK="${VAULT_BACKUP_DIR:-/var/minis/shared/vault-backup}"
 REMOTE="https://github.com/kyoukawa/vault-backup.git"
 MODE="${1:-}"
