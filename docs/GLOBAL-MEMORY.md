@@ -116,20 +116,37 @@ minis-sessions-cli search --keywords "<主题>"
 
 ---
 
-# 三、环境事实（Minis / iSH / Alpine）
+# 三、环境事实（2026-11-03 迁到一加 Android 16）
+
+> 从 iOS + iSH 迁移到 **一加 PLZ110 / Android 17 (sdk 37) / ColorOS**，
+> Alpine 3.21 PRoot。旧 iSH 的限制大部分消失了，但出现了新问题。
 
 | 项 | 事实 |
 |---|---|
-| Python | 系统 `python3` 3.12，`/usr/bin/python3` |
-| Shell | 默认 BusyBox ash，无 bash 特性保证 |
-| 包管理 | `apk add py3-<name>` 优先；纯 Python 才用 `pip` |
-| **`/var/minis` 不支持符号链接** | venv 不能建在里面，放 `/opt` |
-| **无 `/dev/fd`** | 进程替换 `<(...)` 不可用，走管道或临时文件 |
-| **`chmod` 无效** | 设执行位用 `git update-index --chmod=+x` |
-| 磁盘 | 约 30G 可用，注意大文件 |
-| **Minis 定时任务不持久** | App 重启会丢；当前 reading-collector 全手动触发 |
+| 硬件 | 8 核 aarch64，15G 内存，455G 磁盘（余 393G） |
+| Python | 系统 `python3` 3.12，需 `apk add` |
+| Shell | BusyBox ash |
+| **`/dev/fd` 仍然不可用** | 进程替换 `<(...)` 还是不能用，走管道或临时文件 |
+| `/var/minis` 符号链接 | 迁移后未验证，venv 仍放 `/opt` 更稳 |
+| **沙箱看不到手机存储** | `/storage/emulated/0` 在 PRoot 内不存在，需在 App 里挂载外部文件夹 |
+| **沙箱无 `/dev/snd`** | ffmpeg 无法直接录音，必须靠 App 侧 API |
 
-**依赖**：`yt-dlp`、`ffmpeg`、`ffprobe`、`apple-speech`、系统 `python3` 都在 PATH。**不建 venv、不 pip install。**
+**依赖（2026-11-03 重装）**：`python3`、`git`、`ripgrep`、`ffmpeg`、`curl`、
+`yt-dlp 2026.10.26`、`py3-requests`、`whisper.cpp`（源码编译）。
+
+### 语音识别：三台机器的三种答案
+
+| 方案 | 状态 | 原因 |
+|---|---|---|
+| apple-speech | ❌ 不存在 | iOS 专属，Android 无此命令 |
+| android-speech | ❌ 不可用 | 这台一加没有装系统语音识别服务 |
+| faster-whisper | ❌ 不可用 | ctranslate2 只有 glibc 版，musl 符号缺失 |
+| **whisper.cpp** | ✅ **可用** | 纯 C++ 编译，实测 60 秒音频 14 秒转完 |
+
+whisper.cpp 装在 `/opt/whisper.cpp`，模型 `models/ggml-small.bin`（465MB），
+`whisper-cli` 已软链到 `/usr/local/bin/`。转写脚本自动优先选这个后端。
+
+**录音**：沙箱拿不到麦克风，用户用系统录音 App 录，然后发文件过来转。
 
 `apk` 报锁错误：`kill -9 $(pgrep apk); rm -f /lib/apk/db/lock`
 
