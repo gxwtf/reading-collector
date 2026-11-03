@@ -2,11 +2,13 @@
 """视频 → 逐字稿：yt-dlp 抓音轨与章节 → ffmpeg 切片 → 语音识别 → 带时间戳文本。
 
 语音识别后端可插拔（见 asr/）：
-  apple   macOS / iOS 的 apple-speech（零配置、免费、无需 API key）
-  whisper faster-whisper 本地推理（需自行安装，x86_64 上可用）
+  whispercpp  whisper.cpp（纯 C++，musl 可用，推荐）
+  apple       macOS / iOS 的 apple-speech
+  whisper     faster-whisper（依赖 ctranslate2，仅 glibc）
 
 用法:
-  python3 transcribe.py "<视频URL>" [--locale zh-CN] [--backend apple] [-o out.json]
+  python3 transcribe.py "<视频URL>" [--locale zh-CN] [-o out.json]
+  python3 transcribe.py "/path/to/录音.m4a"   # 本地音频文件，直接转写
 
 ⚠️ 识别语言必须与原声一致。英文讲座用 en-US，中文用 zh-CN，选错会输出乱码。
 """
@@ -54,6 +56,27 @@ def fetch_audio(url: str, workdir: Path) -> Path | None:
         return None
     cands = [p for p in workdir.glob("audio.*") if p.suffix not in (".part", ".ytdl")]
     return max(cands, key=lambda p: p.stat().st_size) if cands else None
+
+
+
+AUDIO_EXT = {".m4a", ".mp3", ".wav", ".aac", ".flac", ".ogg", ".opus", ".amr", ".3gp", ".webm"}
+
+
+def is_local_audio(src: str) -> bool:
+    p = Path(src).expanduser()
+    return p.exists() and p.suffix.lower() in AUDIO_EXT
+
+
+def prepare_local(src: str, workdir: Path) -> Path:
+    """把本地音频统一成 16k 单声道 wav，跟下载来的文件走同一条后续流程。"""
+    srcp = Path(src).expanduser().resolve()
+    dst = workdir / "audio.wav"
+    r = run([CFG["video"]["ffmpeg"], "-y", "-loglevel", "error",
+             "-i", str(srcp), "-ar", "16000", "-ac", "1", str(dst)], timeout=1800)
+    if r.returncode != 0 or not dst.exists():
+        print(f"[audio] 转码失败：{(r.stderr or '')[-200:]}", file=sys.stderr)
+        return srcp
+    return dst
 
 
 def duration_of(path: Path) -> float:
@@ -121,20 +144,51 @@ def asr_whisper(path: Path, locale: str, tries: int = 1) -> str | None:
     return " ".join(s.text.strip() for s in segs).strip()
 
 
-BACKENDS = {"apple": asr_apple, "whisper": asr_whisper}
+
+def asr_whispercpp(path: Path, locale: str, tries: int = 1) -> str | None:
+    """whisper.cpp 命令行后端。纯 C++ 实现，musl/Alpine/Android 上可直接跑。
+
+    相比 faster-whisper 的好处：不依赖 ctranslate2，没有 glibc 符号问题。
+    """
+    binp = shutil.which(CFG["video"].get("whisper_cli", "whisper-cli"))
+    model = CFG["video"].get("whisper_model", "")
+    if not binp:
+        print("[asr] 找不到 whisper-cli", file=sys.stderr)
+        return None
+    if not model or not Path(model).exists():
+        print(f"[asr] 模型文件不存在：{model}", file=sys.stderr)
+        return None
+    lang = (locale or "en-US").split("-")[0]
+    out_base = path.with_suffix("")
+    cmd = [binp, "-m", model, "-f", str(path), "-l", lang, "-nt",
+           "-otxt", "-of", str(out_base), "-t", str(os.cpu_count() or 4)]
+    r = run(cmd, timeout=1800)
+    txt = out_base.with_suffix(".txt")
+    if txt.exists():
+        text = txt.read_text(encoding="utf-8", errors="replace").strip()
+        txt.unlink(missing_ok=True)
+        return text or None
+    if r.returncode != 0:
+        print(f"[asr] whisper-cli 失败: {(r.stderr or '')[-200:]}", file=sys.stderr)
+    return None
+
+
+BACKENDS = {"whispercpp": asr_whispercpp, "apple": asr_apple, "whisper": asr_whisper}
 
 
 def pick_backend() -> str:
     want = os.environ.get("ASR_BACKEND", "")
     if want in BACKENDS:
         return want
+    if shutil.which(CFG["video"].get("whisper_cli", "whisper-cli")):
+        return "whispercpp"
     if shutil.which(CFG["video"]["speech"]):
         return "apple"
     try:
-        import faster_whisper  # noqa: F401
+        import ctranslate2  # noqa: F401
         return "whisper"
     except ImportError:
-        return "apple"
+        return "whispercpp"
 
 
 # ----------------------------------------------------------------------- main
@@ -157,20 +211,28 @@ def main() -> None:
     workdir = Path(cfg["workdir"]) / tag
     workdir.mkdir(parents=True, exist_ok=True)
 
+    local = is_local_audio(a.url)
+
     print(f"[1/4] 读取元数据…", flush=True)
-    meta = fetch_meta(a.url)
-    title = meta.get("title") or ""
+    meta = {} if local else fetch_meta(a.url)
+    title = meta.get("title") or (Path(a.url).stem if local else "")
     print(f"      {title} | {meta.get('duration')}s", flush=True)
 
     locale = a.locale
     if locale == "auto":
-        locale = "zh-CN" if any("\u4e00" <= c <= "\u9fff" for c in title) else "en-US"
+        # 本地录音没有标题可猜，默认中文（个人录音多为中文）
+        hint = title or ("zh" if local else "")
+        locale = "zh-CN" if (local or any("\u4e00" <= c <= "\u9fff" for c in hint)) else "en-US"
         print(f"      自动判定语言：{locale}（不对就用 --locale 指定）", flush=True)
 
-    print(f"[2/4] 下载音轨…", flush=True)
-    audio = fetch_audio(a.url, workdir)
+    if local:
+        print(f"[2/4] 本地音频转码…", flush=True)
+        audio = prepare_local(a.url, workdir)
+    else:
+        print(f"[2/4] 下载音轨…", flush=True)
+        audio = fetch_audio(a.url, workdir)
     if not audio:
-        sys.exit("音轨下载失败")
+        sys.exit("音轨处理失败")
     dur = duration_of(audio)
     if dur <= 0:
         sys.exit("无法读取音频时长（ffprobe 失败或文件损坏）")

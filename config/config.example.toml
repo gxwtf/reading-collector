@@ -48,8 +48,13 @@ gap = 0.4
 ytdlp = "yt-dlp"
 ffmpeg = "ffmpeg"
 ffprobe = "ffprobe"
-# 语音识别后端：apple-speech（macOS / iOS）或 whisper（尚未支持）
+# 语音识别后端，按可用性自动选择：
+#   whisper-cli    whisper.cpp（纯 C++，musl/Android 可用）
+#   apple-speech   macOS / iOS
 speech = "apple-speech"
+# whisper.cpp 可执行文件与模型（推荐 small，中文/英文都够用）
+whisper_cli = "whisper-cli"
+whisper_model = "/opt/whisper.cpp/models/ggml-small.bin"
 
 [mcp]
 # MCP 客户端命令行
