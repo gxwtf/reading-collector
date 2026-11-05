@@ -44,7 +44,7 @@
 | 表 | 作用 | 关键约束 |
 | --- | --- | --- |
 | `User` | 从 SSO 同步的用户镜像 | `userId`（广学账号 ID）唯一，业务表都指向它 |
-| `Entry` | 一条收藏 | `@@unique([userId, url])` 保证幂等；`state` 管抓取状态，`readState` 管阅读进度 |
+| `Entry` | 一条收藏 | `@@unique([userId, urlHash])` 保证幂等；`state` 管抓取状态，`readState` 管阅读进度 |
 | `Collection` / `CollectionEntry` | 分组（待读 / 素材 / 外刊…） | 用户级命名唯一，与条目多对多 |
 | `Tag` / `EntryTag` / `TagConfig` | 标签与用户级配色 | 与「作文积累本」同构，标签名全局去重 |
 | `Transcript` | 音视频逐字稿 | 一条收藏至多一份，保留分段与识别后端 |
