@@ -368,7 +368,18 @@ function buildLines(raw: unknown): { start: number; end: number; text: string }[
   return lines;
 }
 
-: {
+type TranscriptSegment = { start?: number; end?: number; text?: string };
+
+function mmss(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** 兜底：没有可嵌入播放器时，按 60 秒聚合的纯文本逐字稿 */
+function TranscriptView({
+  transcript,
+}: {
   transcript: { backend: string; locale: string; text: string; segments: unknown };
 }) {
   const raw = Array.isArray(transcript.segments) ? (transcript.segments as TranscriptSegment[]) : [];
@@ -394,7 +405,6 @@ function buildLines(raw: unknown): { start: number; end: number; text: string }[
           {transcript.backend} · {transcript.locale} · {segments.length} 段
         </span>
       </div>
-
       {chunks.length > 0 ? (
         <div className="space-y-4 text-[15px] leading-8">
           {chunks.map((c) => (
