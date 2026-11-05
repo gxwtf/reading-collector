@@ -108,7 +108,7 @@ export function VideoReader({
   return (
     <div className="space-y-4">
       {/* 浮动播放器：滚动时不离开视口 */}
-      <div className="sticky top-[4.25rem] z-20 -mx-1 px-1 pb-2">
+      <div className="sticky top-14 z-30 -mx-1 bg-background/95 px-1 py-2 backdrop-blur">
         <div
           className="overflow-hidden rounded-lg border border-border bg-black shadow-lg"
           style={{ aspectRatio: embed.ratio }}

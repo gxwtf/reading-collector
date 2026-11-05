@@ -9,7 +9,7 @@ export async function Navbar() {
   const session = await getSession();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold text-brand-red">
           <BookOpenText className="size-5" />
