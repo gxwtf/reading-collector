@@ -250,8 +250,8 @@ export function VideoReader({
                 className={[
                   "flex gap-3 rounded-md px-1 py-1 transition-all duration-500",
                   active
-                    ? "bg-brand-red/10 text-[17px] font-medium leading-9 text-foreground"
-                    : "text-[15px] leading-8 text-muted-foreground/55 hover:text-muted-foreground",
+                    ? "bg-brand-red/15 text-[18px] font-semibold leading-10 text-foreground shadow-sm"
+                    : "text-[15px] leading-8 text-muted-foreground/45 hover:text-muted-foreground",
                 ].join(" ")}
               >
                 <button
