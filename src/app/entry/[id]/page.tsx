@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { serialize } from "next-mdx-remote/serialize";
-import { MDXRemote } from "next-mdx-remote";
+import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ExternalLink, RotateCw } from "lucide-react";
 import { prisma } from "@/lib/db";
@@ -42,14 +41,6 @@ export default async function EntryPage({ params }: { params: Params }) {
   if (!entry) notFound();
 
   const body = entry.contentMd ?? "";
-  // 正文是抓来的 Markdown，交给 MDX 序列化后渲染；blockJS 关闭，避免正文里的脚本被执行
-  const mdxSource = body
-    ? await serialize(body, {
-        mdxOptions: { remarkPlugins: [remarkGfm] },
-        blockJS: false,
-        blockDangerousJS: true,
-      })
-    : null;
 
   const lastJob = entry.jobs[0];
 
@@ -111,9 +102,12 @@ export default async function EntryPage({ params }: { params: Params }) {
         </div>
       ) : null}
 
-      {mdxSource ? (
+      {body ? (
         <div className="prose-reading max-w-none text-[15px] leading-7">
-          <MDXRemote {...mdxSource} />
+          <MDXRemote
+            source={body}
+            options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+          />
         </div>
       ) : null}
 
