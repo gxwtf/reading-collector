@@ -144,7 +144,15 @@ export default async function EntryPage({ params }: { params: Params }) {
 
       {body ? (
         <ReadingShell>
-          <HighlightLayer entryId={entry.id}>
+          <HighlightLayer
+            entryId={entry.id}
+            highlights={entry.highlights.map((h) => ({
+              id: h.id,
+              quote: h.quote,
+              note: h.note,
+              anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
+            }))}
+          >
             <div className="prose-reading max-w-none">
               <MDXRemote
                 source={body}

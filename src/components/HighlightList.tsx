@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { deleteHighlight } from "@/actions/highlights";
 
@@ -15,6 +15,27 @@ export type HighlightItem = {
 /** 划线列表：点击可定位到正文对应段落 */
 export function HighlightList({ items }: { items: HighlightItem[] }) {
   const [pending, startTransition] = useTransition();
+
+  // 点正文里的高亮标记 → 滚到对应批注并闪一下
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const id = target?.dataset?.hl;
+      if (!id) return;
+      const item = document.getElementById(`hl-item-${id}`);
+      if (!item) return;
+      item.scrollIntoView({ behavior: "smooth", block: "center" });
+      item.animate(
+        [
+          { backgroundColor: "rgba(163,31,36,0.18)" },
+          { backgroundColor: "rgba(163,31,36,0)" },
+        ],
+        { duration: 1600 },
+      );
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
 
   function jumpTo(anchor: HighlightItem["anchor"]) {
     if (!anchor || typeof anchor.block !== "number") return;
@@ -42,7 +63,11 @@ export function HighlightList({ items }: { items: HighlightItem[] }) {
   return (
     <ul className="space-y-2">
       {items.map((h) => (
-        <li key={h.id} className="group rounded-lg border border-border bg-card p-3">
+        <li
+          key={h.id}
+          id={`hl-item-${h.id}`}
+          className="group rounded-lg border border-border bg-card p-3"
+        >
           <div className="flex items-start gap-2">
             <button
               type="button"

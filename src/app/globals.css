@@ -531,3 +531,71 @@
     text-align: left;
   }
 }
+
+/* ===== 划线标记 ===== */
+.hl-mark {
+  background: color-mix(in srgb, var(--color-brand-red) 16%, transparent);
+  color: inherit;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  padding-bottom: 0.05em;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.dark .hl-mark {
+  background: color-mix(in srgb, var(--color-brand-red) 26%, transparent);
+}
+.hl-mark:active {
+  background: color-mix(in srgb, var(--color-brand-red) 32%, transparent);
+}
+
+/* ===== 阅读器优化 ===== */
+.prose-reading {
+  text-wrap: pretty;
+  hanging-punctuation: allow-end;
+}
+.prose-reading > :first-child {
+  margin-top: 0;
+}
+.prose-reading h1,
+.prose-reading h2,
+.prose-reading h3 {
+  scroll-margin-top: 6rem;
+  text-wrap: balance;
+}
+.prose-reading p + p {
+  margin-top: 1.05em;
+}
+.prose-reading ul li::marker,
+.prose-reading ol li::marker {
+  font-size: 0.9em;
+}
+.prose-reading pre {
+  -webkit-overflow-scrolling: touch;
+}
+.prose-reading table {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iPad / 手机：正文更松、边距更小、表格满宽横滑 */
+@media (max-width: 820px) {
+  .prose-reading {
+    line-height: 1.95;
+    padding-bottom: 1rem;
+  }
+  .prose-reading table {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    width: calc(100% + 2rem);
+  }
+  .prose-reading pre {
+    margin-inline: -0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .prose-reading {
+    font-size: calc(var(--reading-font-size, 16px) + 1px);
+    line-height: 1.9;
+    text-align: left;
+  }
+}
