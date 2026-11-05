@@ -33,6 +33,9 @@ export async function Navbar() {
           <ThemeToggle />
           {session.isLoggedIn ? (
             <>
+              <Link href="/settings" className="text-muted-foreground hover:text-foreground">
+                设置
+              </Link>
               <span className="hidden text-muted-foreground sm:inline">{session.userName}</span>
               <form action={logout}>
                 <button
