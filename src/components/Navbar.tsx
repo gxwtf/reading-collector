@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { BookOpenText } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { logout } from "@/actions/auth";
@@ -30,9 +29,7 @@ export async function Navbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3 text-sm">
-          <Suspense fallback={<span className="hidden h-8 w-48 md:block" />}>
-            <SearchBox />
-          </Suspense>
+          <SearchBox />
           <ThemeToggle />
           {session.isLoggedIn ? (
             <>
