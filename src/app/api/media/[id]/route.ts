@@ -111,8 +111,8 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
   }
 
   const headers = new Headers();
-  const contentType = upstream.headers.get("content-type");
-  if (contentType) headers.set("Content-Type", contentType);
+  // 浏览器对 application/octet-stream 的 <audio>/<video> 可能拒播，显式给出类型
+  headers.set("Content-Type", kind === "audio" ? "audio/mp4" : "video/mp4");
   headers.set("Accept-Ranges", "bytes");
   const contentRange = upstream.headers.get("content-range");
   if (contentRange) headers.set("Content-Range", contentRange);
