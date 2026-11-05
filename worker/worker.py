@@ -68,7 +68,7 @@ def handle(client: httpx.Client, job: dict) -> None:
             result = transcribe(url)
             entry = {
                 "title": result["title"] or url,
-                "site": "音视频",
+                "site": result.get("site") or "音视频",
                 "author": result["author"],
                 "coverImage": result["coverImage"],
                 "durationSec": result["durationSec"],

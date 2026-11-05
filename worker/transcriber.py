@@ -107,6 +107,30 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
     return text, segments, lang
 
 
+SITES = {
+    "bilibili.com": "哔哩哔哩",
+    "youtube.com": "YouTube",
+    "youtu.be": "YouTube",
+    "xiaoyuzhoufm.com": "小宇宙",
+    "podcasts.apple.com": "Apple Podcasts",
+    "spotify.com": "Spotify",
+}
+
+
+def _site_of(url: str) -> str:
+    host = httpx_host(url)
+    for key, name in SITES.items():
+        if host.endswith(key):
+            return name
+    return "音视频"
+
+
+def httpx_host(url: str) -> str:
+    from urllib.parse import urlparse
+
+    return (urlparse(url).hostname or "").replace("www.", "")
+
+
 def transcribe(url: str, locale: str | None = None) -> dict:
     """返回 {text, segments, locale, backend, model, durationSec, title, author, coverImage, kind}"""
     TMP_ROOT.mkdir(parents=True, exist_ok=True)
@@ -134,4 +158,5 @@ def transcribe(url: str, locale: str | None = None) -> dict:
         "author": meta.get("uploader") or meta.get("channel"),
         "coverImage": thumbnail,
         "kind": "video",
+        "site": _site_of(url),
     }
