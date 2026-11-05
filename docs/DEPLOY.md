@@ -107,3 +107,20 @@ pg_dump -U gxwtf -Fc gxwtf_reading > /var/backups/gxwtf_reading_$(date +%F).dump
 ```
 
 `.env` 与 `prisma/migrations/` 不要丢——前者含密钥，后者是表结构来源。
+
+## 6. 国内服务器补充（gxwtf 主服务器实测）
+
+| 现象 | 处理 |
+| --- | --- |
+| `git clone/pull` 走 https 超时 | 服务器只有 SSH key 能出网：`git remote set-url origin git@github.com:gxwtf/reading-collector.git` |
+| `certbot` 报 `acme-v02.api.letsencrypt.org` 超时 | 本机有 clash（127.0.0.1:7890），用 `sudo env HTTPS_PROXY=http://127.0.0.1:7890 certbot --nginx -d <域名>` |
+| worker 抓不到维基/YouTube 等境外站点 | 给 worker 的环境加 `HTTP_PROXY` / `HTTPS_PROXY=http://127.0.0.1:7890`（httpx 自动读取），已写进服务器 `.env` |
+| pip 装不上包 | `HTTPS_PROXY=http://127.0.0.1:7890 pip install …` |
+| 公网打开是别的站点 | 新 vhost 少了 `listen 127.0.0.1:8143 ssl proxy_protocol;`，见 `/server/realip.md` |
+
+重启服务走白名单包装器，新服务需先加进 `/usr/local/sbin/gxwtf-systemctl` 的 `ALLOWLIST`：
+
+```bash
+sudo /usr/local/sbin/gxwtf-systemctl restart gxreading.service
+sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
+```
