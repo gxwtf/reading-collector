@@ -11,6 +11,8 @@ Group=gxwtf
 # worker 用 `from config import ...` 的相对导入，工作目录必须是 worker/
 WorkingDirectory=/home/gxwtf/gxwtf_reading/worker
 EnvironmentFile=/home/gxwtf/gxwtf_reading/.env
+# venv 里装了 yt-dlp，必须进 PATH，否则 subprocess 找不到
+Environment=PATH=/home/gxwtf/venv_reading/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/home/gxwtf/venv_reading/bin/python worker.py
 Restart=always
 RestartSec=10
