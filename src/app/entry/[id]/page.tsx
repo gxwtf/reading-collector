@@ -163,7 +163,11 @@ export default async function EntryPage({ params }: { params: Params }) {
         </ReadingShell>
       ) : null}
 
-      {entry.transcript ? <TranscriptView transcript={entry.transcript} /> : null}
+      {entry.transcript ? (
+        <ReadingShell>
+          <TranscriptView transcript={entry.transcript} />
+        </ReadingShell>
+      ) : null}
 
       <section className="space-y-3 border-t border-border pt-4">
         <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>

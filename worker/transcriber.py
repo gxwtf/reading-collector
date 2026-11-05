@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -107,6 +108,18 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
     return text, segments, lang
 
 
+def clean_title(text: str) -> str:
+    """B 站标题常把「标题 + p01 + 【字幕】 + 标题」拼在一起，去掉重复与分 P 后缀。"""
+    t = re.sub(r"\s*p\d+\s*$", "", (text or "").strip())
+    if len(t) > 40:
+        head = t[:20]
+        for i in range(25, len(t) // 2 + 1):
+            if t[i : i + 20] == head:
+                t = t[:i].strip()
+                break
+    return t[:120]
+
+
 SITES = {
     "bilibili.com": "哔哩哔哩",
     "youtube.com": "YouTube",
@@ -154,7 +167,7 @@ def transcribe(url: str, locale: str | None = None) -> dict:
         "backend": "whispercpp",
         "model": Path(WHISPER_MODEL).name,
         "durationSec": int(duration) if duration else None,
-        "title": meta.get("title"),
+        "title": clean_title(meta.get("title") or ""),
         "author": meta.get("uploader") or meta.get("channel"),
         "coverImage": thumbnail,
         "kind": "video",
