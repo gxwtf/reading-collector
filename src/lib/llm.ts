@@ -105,14 +105,15 @@ const SUMMARY_PROMPT = `你在帮用户做阅读摘要。请把下面的文章�
 
 /** AI 概括；失败时抛错，由调用方回退到抽取式 */
 export async function aiSummary(text: string, cfg: LlmConfig): Promise<string> {
-  const content = text.slice(0, 16_000);
+  const content = text.slice(0, 12_000);
   const reply = await chat(
     cfg,
     [
       { role: "system", content: SUMMARY_PROMPT },
       { role: "user", content },
     ],
-    { maxTokens: 900, temperature: 0.2 },
+    // 推理型模型会先消耗思考 token，预算给足，否则 content 为空
+    { maxTokens: 2500, temperature: 0.2, timeoutMs: 90_000 },
   );
 
   const lines = reply
