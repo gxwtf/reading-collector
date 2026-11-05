@@ -90,16 +90,19 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
                 words = []
                 for tok in item.get("tokens", []):
                     t = (tok.get("text") or "").replace("\u2581", " ")
-                    if not t.strip() or t.strip().startswith("<|") or t.strip().startswith("[_"):
+                    stripped = t.strip()
+                    if not stripped or stripped.startswith("<|") or stripped.startswith("[_"):
                         continue
                     off = tok.get("offsets", {})
-                    words.append(
-                        {
-                            "start": off.get("from", 0) / 1000,
-                            "end": off.get("to", 0) / 1000,
-                            "text": t,
-                        }
-                    )
+                    start, end = off.get("from", 0) / 1000, off.get("to", 0) / 1000
+
+                    # 纯标点并入前一个词，避免高亮停在一个逗号上
+                    if words and all(ch in PUNCT_ONLY for ch in stripped):
+                        words[-1]["text"] += t
+                        words[-1]["end"] = end
+                        continue
+
+                    words.append({"start": start, "end": end, "text": t})
                 segments.append(
                     {
                         "start": item.get("offsets", {}).get("from", 0) / 1000,
@@ -122,9 +125,20 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
     return text, segments, lang
 
 
+PUNCT_ONLY = set("，。、；：？！,.!?;:\"'（）()[]{}《》<>—…·-")
+
+
 def clean_title(text: str) -> str:
     """B 站标题常把「标题 + p01 + 【字幕】 + 标题」拼在一起，去掉重复与分 P 后缀。"""
-    t = re.sub(r"\s*p\d+\s*$", "", (text or "").strip())
+    t = re.sub(r"\s+p\d+\s*", " ", (text or "").strip())
+    t = re.sub(r"\s+", " ", t).strip()
+
+    # 去掉【中英字幕】这类标签后，取最长的一段
+    parts = [p.strip() for p in re.split(r"【[^】]*】", t) if p.strip()]
+    if parts:
+        t = max(parts, key=len)
+
+    # 「A + A」式重复：找到第二次出现的开头并截断
     if len(t) > 40:
         head = t[:20]
         for i in range(25, len(t) // 2 + 1):
