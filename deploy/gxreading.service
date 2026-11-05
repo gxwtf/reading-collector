@@ -11,7 +11,7 @@ Group=gxwtf
 WorkingDirectory=/home/gxwtf/gxwtf_reading
 EnvironmentFile=/home/gxwtf/gxwtf_reading/.env
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/pnpm start
+ExecStart=/usr/local/bin/pnpm start
 Restart=always
 RestartSec=5
 StandardOutput=journal
