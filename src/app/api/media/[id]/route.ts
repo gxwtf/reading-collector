@@ -53,8 +53,8 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
   if (!hit || Date.now() - hit.at >= CACHE_TTL) {
     try {
       const [video, audio] = await Promise.all([
-        direct(entry.url, "bv*[height<=720]/bv*"),
-        direct(entry.url, "ba/b"),
+        direct(entry.url, "bv*[height<=720]/bv*/b"),
+        direct(entry.url, "ba/bestaudio/b"),
       ]);
       hit = { at: Date.now(), video, audio, title: entry.title };
       cache.set(entryId, hit);
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
   // 代理流：补上 Referer/UA，透传 Range
   const target = kind === "video" ? hit.video : hit.audio;
   const range = request.headers.get("range") ?? undefined;
-  const upstream = await fetch(target, {
+  let upstream = await fetch(target, {
     headers: {
       Referer: "https://www.bilibili.com/",
       "User-Agent": UA,
@@ -86,6 +86,29 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
     },
     cache: "no-store",
   });
+
+  // 直链过期会返 403：清缓存重取一次
+  if (upstream.status === 403 || upstream.status === 404) {
+    cache.delete(entryId);
+    try {
+      const [video, audio] = await Promise.all([
+        direct(entry.url, "bv*[height<=720]/bv*/b"),
+        direct(entry.url, "ba/bestaudio/b"),
+      ]);
+      cache.set(entryId, { at: Date.now(), video, audio, title: entry.title });
+      const fresh = kind === "video" ? video : audio;
+      upstream = await fetch(fresh, {
+        headers: {
+          Referer: "https://www.bilibili.com/",
+          "User-Agent": UA,
+          ...(range ? { Range: range } : {}),
+        },
+        cache: "no-store",
+      });
+    } catch {
+      // 保持原响应
+    }
+  }
 
   const headers = new Headers();
   const contentType = upstream.headers.get("content-type");
