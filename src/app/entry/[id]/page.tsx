@@ -267,10 +267,7 @@ function mmss(sec: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-/** 逐字稿：按 60 秒聚合成段，带时间戳；没有分段时退回纯文本 */
-function TranscriptView({
-  transcript,
-}: {
+/** 逐字稿：按 60 秒聚合成段，带时间戳；没有分段时退回纯文本 */: {
   transcript: { backend: string; locale: string; text: string; segments: unknown };
 }) {
   const raw = Array.isArray(transcript.segments) ? (transcript.segments as TranscriptSegment[]) : [];
