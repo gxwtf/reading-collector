@@ -7,6 +7,7 @@ import { ArrowLeft, ExternalLink, RotateCw } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { retryFetch } from "@/actions/entries";
+import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -39,6 +40,12 @@ export default async function EntryPage({ params }: { params: Params }) {
   const session = await requireSession(`/entry/${entryId}`);
   const entry = await loadEntry(entryId, session.userId);
   if (!entry) notFound();
+
+  const collections = await prisma.collection.findMany({
+    where: { userId: session.userId },
+    orderBy: { createdAt: "asc" },
+    include: { entries: { where: { entryId }, select: { id: true } } },
+  });
 
   const body = entry.contentMd ?? "";
 
@@ -83,6 +90,36 @@ export default async function EntryPage({ params }: { params: Params }) {
           </div>
         ) : null}
       </header>
+
+      {collections.length > 0 ? (
+        <section className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">分组：</span>
+          {collections.map((c) => {
+            const inGroup = c.entries.length > 0;
+            return (
+              <form
+                key={c.id}
+                action={
+                  inGroup
+                    ? removeEntryFromCollection.bind(null, entry.id, c.id)
+                    : addEntryToCollection.bind(null, entry.id, c.id)
+                }
+              >
+                <button
+                  type="submit"
+                  className={
+                    inGroup
+                      ? "rounded-full border border-brand-red/40 bg-brand-red/10 px-2.5 py-0.5 text-xs text-brand-red"
+                      : "rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+                  }
+                >
+                  {inGroup ? `✓ ${c.name}` : `+ ${c.name}`}
+                </button>
+              </form>
+            );
+          })}
+        </section>
+      ) : null}
 
       {entry.state === "pending" ? (
         <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">

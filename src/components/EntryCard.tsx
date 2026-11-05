@@ -11,6 +11,7 @@ export type EntryCardData = {
   excerpt: string | null;
   kind: string;
   state: string;
+  jobStatus?: string | null;
   readState: string;
   favorite: boolean;
   wordCount: number | null;
@@ -20,7 +21,8 @@ export type EntryCardData = {
 };
 
 const stateLabel: Record<string, string> = {
-  pending: "抓取中",
+  pending: "排队中",
+  running: "抓取中",
   ready: "可读",
   failed: "抓取失败",
 };
@@ -57,7 +59,9 @@ export function EntryCard({ entry }: { entry: EntryCardData }) {
             {entry.durationSec ? <span>{formatDuration(entry.durationSec)}</span> : null}
             {entry.state !== "ready" ? (
               <span className={entry.state === "failed" ? "text-destructive" : "text-amber-600 dark:text-amber-400"}>
-                {stateLabel[entry.state] ?? entry.state}
+                {entry.state === "pending"
+                  ? stateLabel[entry.jobStatus ?? "pending"] ?? "排队中"
+                  : stateLabel[entry.state] ?? entry.state}
               </span>
             ) : null}
             {entry.readState === "done" ? <span>已读完</span> : null}
