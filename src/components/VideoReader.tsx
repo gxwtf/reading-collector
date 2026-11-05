@@ -104,8 +104,7 @@ export function VideoReader({
   const [following, setFollowing] = useState(false);
   const [activeWord, setActiveWord] = useState(-1);
   const [activeChunk, setActiveChunk] = useState(-1);
-  // 逐字稿很长（几千个词/span），分批渲染，滚到底再续
-  const [visible, setVisible] = useState(12);
+
 
   const startedAt = useRef<number>(0);
   const startTime = useRef<number>(0);
@@ -131,7 +130,6 @@ export function VideoReader({
       if (ci >= 0) {
         setActiveChunk(ci);
         activeChunkRef.current = ci;
-        setVisible((v) => Math.max(v, ci + 3));
         if (scroll) chunkRefs.current[ci]?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     },
@@ -153,7 +151,6 @@ export function VideoReader({
       if (ci >= 0 && ci !== activeChunkRef.current) {
         activeChunkRef.current = ci;
         setActiveChunk(ci);
-        setVisible((v) => Math.max(v, ci + 3));
         chunkRefs.current[ci]?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 300);
@@ -208,7 +205,7 @@ export function VideoReader({
         </div>
 
         <div className="space-y-3 text-[15px] leading-8">
-          {chunks.slice(0, visible).map((c, ci) => (
+          {chunks.map((c, ci) => (
             <div
               key={c.start}
               ref={(el) => {
@@ -230,36 +227,33 @@ export function VideoReader({
               </button>
 
               <p className="min-w-0 flex-1">
-                {words.slice(c.from, c.to).map((w, i) => {
-                  const index = c.from + i;
-                  return (
-                    <span
-                      key={index}
-                      onClick={() => jumpTo(w.start, false)}
-                      className={
-                        index === activeWord && following
-                          ? "rounded-sm bg-brand-red/25 text-foreground"
-                          : "transition-colors hover:bg-muted"
-                      }
-                      title={mmss(w.start)}
-                    >
-                      {w.text}
-                    </span>
-                  );
-                })}
+                {following && ci === activeChunk ? (
+                  words.slice(c.from, c.to).map((w, i) => {
+                    const index = c.from + i;
+                    return (
+                      <span
+                        key={index}
+                        onClick={() => jumpTo(w.start, false)}
+                        className={
+                          index === activeWord
+                            ? "rounded-sm bg-brand-red/25 text-foreground"
+                            : "transition-colors hover:bg-muted"
+                        }
+                        title={mmss(w.start)}
+                      >
+                        {w.text}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <span onClick={() => jumpTo(c.start)} title="跳到这一段">
+                    {c.text.trim()}
+                  </span>
+                )}
               </p>
             </div>
           ))}
 
-          {visible < chunks.length ? (
-            <button
-              type="button"
-              onClick={() => setVisible((v) => v + 30)}
-              className="w-full rounded-md border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              展开更多（{visible}/{chunks.length} 段）
-            </button>
-          ) : null}
         </div>
       </section>
     </div>
