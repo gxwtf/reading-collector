@@ -209,3 +209,64 @@ export async function deleteEntry(entryId: number) {
   await prisma.entry.delete({ where: { id: entryId } });
   revalidatePath("/");
 }
+
+/* ---------------- 批量管理 ---------------- */
+
+async function ownedIds(ids: number[], userId: number) {
+  const rows = await prisma.entry.findMany({
+    where: { id: { in: ids }, userId },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
+export async function bulkSetReadState(ids: number[], readState: "unread" | "reading" | "done") {
+  const session = await requireSession("/");
+  const owned = await ownedIds(ids, session.userId);
+  if (owned.length === 0) return;
+
+  await prisma.entry.updateMany({
+    where: { id: { in: owned }, userId: session.userId },
+    data: { readState, readAt: readState === "done" ? new Date() : null },
+  });
+  revalidatePath("/");
+}
+
+export async function bulkDelete(ids: number[]) {
+  const session = await requireSession("/");
+  const owned = await ownedIds(ids, session.userId);
+  if (owned.length === 0) return;
+
+  await prisma.entry.deleteMany({ where: { id: { in: owned }, userId: session.userId } });
+  revalidatePath("/");
+}
+
+export async function bulkAddToCollection(ids: number[], collectionId: number) {
+  const session = await requireSession("/");
+  const collection = await prisma.collection.findFirst({
+    where: { id: collectionId, userId: session.userId },
+    select: { id: true },
+  });
+  if (!collection) return;
+
+  const owned = await ownedIds(ids, session.userId);
+  for (const entryId of owned) {
+    await prisma.collectionEntry.upsert({
+      where: { collectionId_entryId: { collectionId, entryId } },
+      update: {},
+      create: { collectionId, entryId },
+    });
+  }
+  revalidatePath("/");
+}
+
+export async function bulkRemoveFromCollection(ids: number[], collectionId: number) {
+  const session = await requireSession("/");
+  const owned = await ownedIds(ids, session.userId);
+  if (owned.length === 0) return;
+
+  await prisma.collectionEntry.deleteMany({
+    where: { entryId: { in: owned }, collectionId },
+  });
+  revalidatePath("/");
+}

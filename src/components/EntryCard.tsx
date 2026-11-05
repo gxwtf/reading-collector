@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Bookmark, BookmarkCheck, Clock3, FileText, Video } from "lucide-react";
 import { toggleFavorite, setReadState } from "@/actions/entries";
@@ -16,7 +18,7 @@ export type EntryCardData = {
   favorite: boolean;
   wordCount: number | null;
   durationSec: number | null;
-  createdAt: Date;
+  createdAt: string;
   tags: string[];
 };
 
@@ -32,16 +34,33 @@ function formatDuration(sec: number) {
   return m >= 60 ? `${Math.floor(m / 60)} 小时 ${m % 60} 分` : `${m} 分钟`;
 }
 
-export function EntryCard({ entry }: { entry: EntryCardData }) {
+type Props = {
+  entry: EntryCardData;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggle?: (id: number, checked: boolean) => void;
+};
+
+export function EntryCard({ entry, selectable, selected, onToggle }: Props) {
   return (
-    <article className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-brand-red/40">
+    <article
+      className={`rounded-lg border bg-card p-4 transition-colors ${
+        selected ? "border-brand-red/50 ring-1 ring-brand-red/20" : "border-border hover:border-brand-red/40"
+      }`}
+    >
       <div className="flex items-start gap-3">
+        {selectable ? (
+          <input
+            type="checkbox"
+            aria-label={`选择 ${entry.title}`}
+            checked={Boolean(selected)}
+            onChange={(e) => onToggle?.(entry.id, e.target.checked)}
+            className="mt-1 size-4 shrink-0 accent-[var(--primary)]"
+          />
+        ) : null}
+
         <div className="mt-0.5 text-muted-foreground">
-          {entry.kind === "article" ? (
-            <FileText className="size-4" />
-          ) : (
-            <Video className="size-4" />
-          )}
+          {entry.kind === "article" ? <FileText className="size-4" /> : <Video className="size-4" />}
         </div>
 
         <div className="min-w-0 flex-1">

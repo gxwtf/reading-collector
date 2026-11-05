@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { AddEntryForm } from "@/components/AddEntryForm";
-import { EntryCard } from "@/components/EntryCard";
+import { EntryList } from "@/components/EntryList";
 import { FetchProgress } from "@/components/FetchProgress";
 import { Sidebar } from "@/components/Sidebar";
 
@@ -104,36 +104,26 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
         <AddEntryForm collections={collections.map((c) => ({ id: c.id, name: c.name }))} />
 
-        {entries.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            这里还没有内容。把想读的链接贴到上面，抓取会在后台完成。
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {entries.map((entry) => (
-              <li key={entry.id}>
-                <EntryCard
-                  entry={{
-                    id: entry.id,
-                    title: entry.title,
-                    url: entry.url,
-                    site: entry.site,
-                    excerpt: entry.excerpt,
-                    kind: entry.kind,
-                    state: entry.state,
-                    jobStatus: entry.jobs[0]?.status ?? null,
-                    readState: entry.readState,
-                    favorite: entry.favorite,
-                    wordCount: entry.wordCount,
-                    durationSec: entry.durationSec,
-                    createdAt: entry.createdAt,
-                    tags: entry.tags.map((t) => t.tag.name),
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <EntryList
+          entries={entries.map((entry) => ({
+            id: entry.id,
+            title: entry.title,
+            url: entry.url,
+            site: entry.site,
+            excerpt: entry.excerpt,
+            kind: entry.kind,
+            state: entry.state,
+            jobStatus: entry.jobs[0]?.status ?? null,
+            readState: entry.readState,
+            favorite: entry.favorite,
+            wordCount: entry.wordCount,
+            durationSec: entry.durationSec,
+            createdAt: entry.createdAt.toISOString(),
+            tags: entry.tags.map((t) => t.tag.name),
+          }))}
+          collections={collections.map((c) => ({ id: c.id, name: c.name }))}
+          activeCollectionId={collectionId}
+        />
       </div>
     </div>
   );

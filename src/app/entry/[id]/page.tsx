@@ -9,6 +9,7 @@ import { requireSession } from "@/lib/session";
 import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { Badge } from "@/components/ui/badge";
+import { ReadingShell } from "@/components/ReadingShell";
 import { Button } from "@/components/ui/button";
 
 type Params = Promise<{ id: string }>;
@@ -140,12 +141,14 @@ export default async function EntryPage({ params }: { params: Params }) {
       ) : null}
 
       {body ? (
-        <div className="prose-reading max-w-none text-[15px] leading-7">
-          <MDXRemote
-            source={body}
-            options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-          />
-        </div>
+        <ReadingShell>
+          <div className="prose-reading max-w-none">
+            <MDXRemote
+              source={body}
+              options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+            />
+          </div>
+        </ReadingShell>
       ) : null}
 
       {entry.transcript ? (
