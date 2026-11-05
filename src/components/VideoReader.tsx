@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PauseCircle, PlayCircle } from "lucide-react";
 import { seekUrl, type Embed } from "@/lib/embed";
 
-type Segment = { start?: number; end?: number; text?: string };
+type Segment = {
+  start?: number;
+  end?: number;
+  text?: string;
+  words?: { start?: number; end?: number; text?: string }[];
+};
 
 export type TranscriptData = {
   backend: string;
@@ -19,29 +24,66 @@ function mmss(sec: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-/** 逐字稿按 60 秒聚合成段 */
-function buildChunks(segments: Segment[]) {
-  const chunks: { start: number; text: string }[] = [];
+type Word = { start: number; end: number; text: string };
+type Chunk = { start: number; from: number; to: number; text: string };
+
+/** 把分段拍平成「词 + 段落区间」：词带绝对时间，段落用于滚动定位 */
+function buildTranscript(segments: Segment[]) {
+  const words: Word[] = [];
+  const chunks: Chunk[] = [];
+
   for (const seg of segments) {
-    const start = Number(seg.start ?? 0);
-    const text = (seg.text ?? "").trim();
-    if (!text) continue;
+    const segStart = Number(seg.start ?? 0);
+    const segWords = (seg.words ?? [])
+      .map((w) => ({
+        start: Number(w.start ?? segStart),
+        end: Number(w.end ?? segStart),
+        text: w.text ?? "",
+      }))
+      .filter((w) => w.text.trim().length > 0);
+
+    if (segWords.length === 0 && !(seg.text ?? "").trim()) continue;
+
     const last = chunks[chunks.length - 1];
-    if (last && start - last.start < 60) {
-      last.text += text.startsWith(" ") || /^[a-zA-Z]/.test(text) ? ` ${text}` : text;
-    } else {
-      chunks.push({ start, text });
+    if (!last || segStart - last.start >= 60) {
+      chunks.push({ start: segStart, from: words.length, to: words.length, text: "" });
     }
+    const chunk = chunks[chunks.length - 1];
+
+    if (segWords.length > 0) {
+      for (const w of segWords) {
+        words.push(w);
+        chunk.text += w.text;
+      }
+    } else {
+      // 老数据没有词级时间：整段当一个「词」，只能段级高亮
+      const text = (seg.text ?? "").trim();
+      words.push({ start: segStart, end: Number(seg.end ?? segStart), text });
+      chunk.text += ` ${text}`;
+    }
+    chunk.to = words.length;
   }
-  return chunks;
+
+  return { words, chunks };
 }
 
-/**
- * 视频阅读器：
- * - 播放器浮动（sticky），滚动正文/概括时始终可见
- * - 点时间戳跳转到对应秒数，并把逐字稿滚到那一段
- * - 「跟随播放」按跳转后的计时估算播放进度，自动滚动逐字稿（第三方播放器无法读取真实进度）
- */
+function findWordIndex(words: Word[], t: number) {
+  let lo = 0;
+  let hi = words.length - 1;
+  let ans = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (words[mid].start <= t) {
+      ans = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  // 时间落在词的间隔里时，仍高亮上一个词，避免闪烁
+  return ans;
+}
+
 export function VideoReader({
   embed,
   title,
@@ -55,16 +97,18 @@ export function VideoReader({
     () => (Array.isArray(transcript.segments) ? (transcript.segments as Segment[]) : []),
     [transcript.segments],
   );
-  const chunks = useMemo(() => buildChunks(segments), [segments]);
+  const { words, chunks } = useMemo(() => buildTranscript(segments), [segments]);
 
   const [seek, setSeek] = useState(0);
   const [playKey, setPlayKey] = useState(0);
   const [following, setFollowing] = useState(false);
-  const [active, setActive] = useState(-1);
+  const [activeWord, setActiveWord] = useState(-1);
+  const [activeChunk, setActiveChunk] = useState(-1);
 
   const startedAt = useRef<number>(0);
   const startTime = useRef<number>(0);
   const chunkRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const activeChunkRef = useRef(-1);
 
   const src = seek > 0 || playKey > 0 ? seekUrl(embed, seek) : embed.base;
 
@@ -74,36 +118,43 @@ export function VideoReader({
       setPlayKey((k) => k + 1);
       startedAt.current = Date.now();
       startTime.current = seconds;
-      const index = chunks.findIndex((c, i) => {
+
+      const wi = findWordIndex(words, seconds);
+      setActiveWord(wi);
+
+      const ci = chunks.findIndex((c, i) => {
         const next = chunks[i + 1];
         return seconds >= c.start && (!next || seconds < next.start);
       });
-      if (index >= 0) {
-        setActive(index);
-        if (scroll) {
-          chunkRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+      if (ci >= 0) {
+        setActiveChunk(ci);
+        activeChunkRef.current = ci;
+        if (scroll) chunkRefs.current[ci]?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     },
-    [chunks],
+    [chunks, words],
   );
 
-  // 估算播放进度：点时间戳后按真实时间推进
+  // 估算播放进度 → 逐字推进
   useEffect(() => {
     if (!following) return;
     const timer = setInterval(() => {
-      const est = startTime.current + (Date.now() - startedAt.current) / 1000;
-      const index = chunks.findIndex((c, i) => {
+      const t = startTime.current + (Date.now() - startedAt.current) / 1000;
+      const wi = findWordIndex(words, t);
+      if (wi >= 0) setActiveWord(wi);
+
+      const ci = chunks.findIndex((c, i) => {
         const next = chunks[i + 1];
-        return est >= c.start && (!next || est < next.start);
+        return t >= c.start && (!next || t < next.start);
       });
-      if (index >= 0 && index !== active) {
-        setActive(index);
-        chunkRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (ci >= 0 && ci !== activeChunkRef.current) {
+        activeChunkRef.current = ci;
+        setActiveChunk(ci);
+        chunkRefs.current[ci]?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-    }, 1000);
+    }, 300);
     return () => clearInterval(timer);
-  }, [following, chunks, active]);
+  }, [following, words, chunks]);
 
   return (
     <div className="space-y-4">
@@ -137,8 +188,9 @@ export function VideoReader({
               onClick={() => {
                 setFollowing((v) => {
                   if (!v) {
+                    const t = startTime.current + (Date.now() - startedAt.current) / 1000;
+                    startTime.current = t;
                     startedAt.current = Date.now();
-                    startTime.current = seek;
                   }
                   return !v;
                 });
@@ -151,15 +203,15 @@ export function VideoReader({
           </div>
         </div>
 
-        <div className="space-y-2 text-[15px] leading-8">
-          {chunks.map((c, i) => (
+        <div className="space-y-3 text-[15px] leading-8">
+          {chunks.map((c, ci) => (
             <div
               key={c.start}
               ref={(el) => {
-                chunkRefs.current[i] = el;
+                chunkRefs.current[ci] = el;
               }}
               className={`flex gap-3 rounded-md px-1 py-0.5 transition-colors ${
-                active === i ? "bg-brand-red/8" : ""
+                activeChunk === ci && following ? "bg-brand-red/5" : ""
               }`}
             >
               <button
@@ -167,12 +219,31 @@ export function VideoReader({
                 onClick={() => jumpTo(c.start)}
                 title="跳到这一段"
                 className={`w-11 shrink-0 pt-1 text-left text-xs tabular-nums underline-offset-2 hover:underline ${
-                  active === i ? "font-medium text-brand-red" : "text-muted-foreground"
+                  activeChunk === ci ? "font-medium text-brand-red" : "text-muted-foreground"
                 }`}
               >
                 {mmss(c.start)}
               </button>
-              <p className="min-w-0 flex-1">{c.text}</p>
+
+              <p className="min-w-0 flex-1">
+                {words.slice(c.from, c.to).map((w, i) => {
+                  const index = c.from + i;
+                  return (
+                    <span
+                      key={index}
+                      onClick={() => jumpTo(w.start, false)}
+                      className={
+                        index === activeWord && following
+                          ? "rounded-sm bg-brand-red/25 text-foreground"
+                          : "transition-colors hover:bg-muted"
+                      }
+                      title={mmss(w.start)}
+                    >
+                      {w.text}
+                    </span>
+                  );
+                })}
+              </p>
             </div>
           ))}
         </div>

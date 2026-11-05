@@ -75,7 +75,7 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
             "-f", str(wav),
             "-l", lang,
             "-nt",
-            "-oj",
+            "-ojf",
             "-of", str(out_base),
         ],
     )
@@ -87,11 +87,25 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
         try:
             data = json.loads(json_path.read_text(encoding="utf-8"))
             for item in data.get("transcription", []):
+                words = []
+                for tok in item.get("tokens", []):
+                    t = (tok.get("text") or "").replace("\u2581", " ")
+                    if not t.strip() or t.strip().startswith("<|") or t.strip().startswith("[_"):
+                        continue
+                    off = tok.get("offsets", {})
+                    words.append(
+                        {
+                            "start": off.get("from", 0) / 1000,
+                            "end": off.get("to", 0) / 1000,
+                            "text": t,
+                        }
+                    )
                 segments.append(
                     {
                         "start": item.get("offsets", {}).get("from", 0) / 1000,
                         "end": item.get("offsets", {}).get("to", 0) / 1000,
                         "text": (item.get("text") or "").strip(),
+                        "words": words,
                     }
                 )
             text = "".join(s["text"] for s in segments).strip()
