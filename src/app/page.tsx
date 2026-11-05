@@ -95,7 +95,12 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           </p>
         </div>
 
-        <FetchProgress pending={pending} running={runningJobs} ready={ready} failed={failed} />
+        <FetchProgress
+          pending={Math.max(0, pending - runningJobs)}
+          running={runningJobs}
+          ready={ready}
+          failed={failed}
+        />
 
         <AddEntryForm collections={collections.map((c) => ({ id: c.id, name: c.name }))} />
 
