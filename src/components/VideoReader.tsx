@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PauseCircle, PlayCircle, RefreshCw } from "lucide-react";
+import { Pause, Play, RefreshCw } from "lucide-react";
 import { seekUrl, type Embed } from "@/lib/embed";
 
 export type TranscriptLine = { start: number; end: number; text: string };
@@ -14,33 +14,47 @@ function mmss(sec: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+type Media = { video: string; audio: string };
+
 /**
- * 视频阅读器（按行高亮，Apple Music 式滚动歌词）
- * - 播放器 sticky 浮动
- * - 点时间戳跳转
- * - 跟随：YouTube 用官方 IFrame API 的真实 currentTime；B 站没有公开接口，用时间估算 + 重同步
+ * 视频阅读器
+ * - B 站：自建播放器（后端取直链，video+audio 双流），播放/暂停/进度全由页面掌控 → 暂停即停滚动
+ * - YouTube：官方 IFrame API 实时同步
+ * - 按行高亮，滚动定位避开悬浮播放器
  */
 export function VideoReader({
   embed,
   title,
+  entryId,
   backend,
   locale,
   segmentCount,
   lines,
+  bilibiliMode = true,
 }: {
   embed: Embed;
   title: string;
+  entryId: number;
   backend: string;
   locale: string;
   segmentCount: number;
   lines: TranscriptLine[];
+  bilibiliMode?: boolean;
 }) {
+  const useNative = embed.provider === "bilibili" && bilibiliMode;
+
   const [seek, setSeek] = useState(0);
   const [playKey, setPlayKey] = useState(0);
   const [following, setFollowing] = useState(false);
   const [activeLine, setActiveLine] = useState(-1);
   const [liveSync, setLiveSync] = useState(false);
   const [pauseReason, setPauseReason] = useState<"manual" | "player" | null>(null);
+
+  const [media, setMedia] = useState<Media | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [now, setNow] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   const startedAt = useRef<number>(0);
   const startTime = useRef<number>(0);
@@ -49,8 +63,11 @@ export function VideoReader({
   const playerState = useRef<number | null>(null);
   const playerStateAt = useRef<number>(0);
   const programmaticScrollAt = useRef<number>(0);
+
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const playerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const activeRef = useRef(-1);
 
   const src = useMemo(() => {
@@ -60,7 +77,29 @@ export function VideoReader({
     return `${base}&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
   }, [embed, seek, playKey]);
 
-  // YouTube：让播放器把 currentTime 推过来
+  // B 站直链
+  useEffect(() => {
+    if (!useNative) return;
+    let cancelled = false;
+    setMediaError(null);
+    fetch(`/api/media/${entryId}`)
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.error ?? "取直链失败");
+        return data as Media;
+      })
+      .then((data) => {
+        if (!cancelled) setMedia({ video: data.video, audio: data.audio });
+      })
+      .catch((error) => {
+        if (!cancelled) setMediaError((error as Error).message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [entryId, useNative]);
+
+  // YouTube postMessage
   useEffect(() => {
     if (embed.provider !== "youtube") return;
 
@@ -73,10 +112,7 @@ export function VideoReader({
           return;
         }
       }
-      const payload = data as {
-        event?: string;
-        info?: { currentTime?: number; playerState?: number };
-      };
+      const payload = data as { event?: string; info?: { currentTime?: number; playerState?: number } };
       if (payload?.event === "infoDelivery" && payload.info) {
         if (typeof payload.info.currentTime === "number") {
           playerTime.current = payload.info.currentTime;
@@ -115,7 +151,6 @@ export function VideoReader({
     [lines],
   );
 
-  /** 悬浮播放器会占掉一大块，定位时按它真实底边算，否则目标行会被盖住 */
   const scrollToLine = useCallback((index: number) => {
     const el = lineRefs.current[index];
     if (!el) return;
@@ -125,25 +160,38 @@ export function VideoReader({
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }, []);
 
-  const jumpTo = useCallback(
+  const applyLine = useCallback(
     (seconds: number, scroll = true) => {
-      setSeek(seconds);
-      setPlayKey((k) => k + 1);
-      startedAt.current = Date.now();
-      startTime.current = seconds;
-      playerTime.current = null;
-
       const li = lineAt(seconds);
-      if (li >= 0) {
-        setActiveLine(li);
-        activeRef.current = li;
-        if (scroll) setTimeout(() => scrollToLine(li), 60);
-      }
+      if (li < 0) return;
+      activeRef.current = li;
+      setActiveLine(li);
+      if (scroll) setTimeout(() => scrollToLine(li), 60);
     },
     [lineAt, scrollToLine],
   );
 
-  /** 从当前视口最近的一行开始跟随，不回到开头 */
+  const seekTo = useCallback(
+    (seconds: number) => {
+      if (useNative) {
+        const audio = audioRef.current;
+        const video = videoRef.current;
+        if (audio) audio.currentTime = seconds;
+        if (video) video.currentTime = seconds;
+        setNow(seconds);
+        setLiveSync(true);
+      } else {
+        setSeek(seconds);
+        setPlayKey((k) => k + 1);
+        startedAt.current = Date.now();
+        startTime.current = seconds;
+        playerTime.current = null;
+      }
+      applyLine(seconds);
+    },
+    [applyLine, useNative],
+  );
+
   const startFollow = useCallback(() => {
     let li = activeRef.current;
     if (li < 0) {
@@ -168,18 +216,27 @@ export function VideoReader({
     activeRef.current = li;
     setActiveLine(li);
     setFollowing(true);
-  }, [lines]);
+    setPauseReason(null);
 
-  // 跟随：真实时间优先，否则估算
+    if (useNative) {
+      void audioRef.current?.play().catch(() => undefined);
+      void videoRef.current?.play().catch(() => undefined);
+    } else {
+      applyLine(seconds);
+    }
+  }, [applyLine, lines, useNative]);
+
+  const paused = useNative ? !playing : false;
+
+  // 跟随 tick
   useEffect(() => {
     if (!following) return;
-
     const tick = () => {
-      const live =
-        playerTime.current !== null && Date.now() - playerTimeAt.current < 5000
+      const t = useNative
+        ? (audioRef.current?.currentTime ?? 0)
+        : playerTime.current !== null && Date.now() - playerTimeAt.current < 5000
           ? playerTime.current
-          : null;
-      const t = live ?? startTime.current + (Date.now() - startedAt.current) / 1000;
+          : startTime.current + (Date.now() - startedAt.current) / 1000;
 
       const li = lineAt(t);
       if (li >= 0 && li !== activeRef.current) {
@@ -188,13 +245,12 @@ export function VideoReader({
         scrollToLine(li);
       }
     };
-
     tick();
     const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
-  }, [following, lineAt, scrollToLine]);
+  }, [following, lineAt, scrollToLine, useNative]);
 
-  // 用户手动滚动时暂停跟随，避免和自动滚动打架
+  // 手动滚动 → 暂停跟随
   useEffect(() => {
     if (!following) return;
     const onScroll = () => {
@@ -210,43 +266,153 @@ export function VideoReader({
     };
   }, [following]);
 
-  // 播放器暂停/缓冲超过 1.5 秒 → 暂停跟随（仅 YouTube 能读到状态）
+  // 播放器暂停 → 暂停跟随（仅 YouTube 需要推断；B 站是自家播放器直接知道）
   useEffect(() => {
-    if (!following || !liveSync) return;
+    if (!following) return;
+    if (useNative) {
+      if (!playing) {
+        setFollowing(false);
+        setPauseReason("player");
+      }
+      return;
+    }
     const timer = setInterval(() => {
-      const state = playerState.current;
       const fresh = Date.now() - playerStateAt.current < 4000;
-      if (fresh && state !== null && state !== 1) {
+      if (fresh && playerState.current !== null && playerState.current !== 1) {
         setFollowing(false);
         setPauseReason("player");
       }
     }, 1500);
     return () => clearInterval(timer);
-  }, [following, liveSync]);
+  }, [following, playing, useNative]);
 
-  const resync = useCallback(() => {
-    const li = activeRef.current >= 0 ? activeRef.current : 0;
-    startedAt.current = Date.now();
-    startTime.current = lines[li]?.start ?? 0;
-    playerTime.current = null;
-  }, [lines]);
+  const togglePlay = useCallback(() => {
+    const audio = audioRef.current;
+    const video = videoRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      void audio.play();
+      void video?.play();
+    } else {
+      audio.pause();
+      video?.pause();
+    }
+  }, []);
+
+  // 音频为时钟，视频静音跟随
+  useEffect(() => {
+    if (!useNative) return;
+    const audio = audioRef.current;
+    const video = videoRef.current;
+    if (!audio || !video) return;
+
+    const syncVideo = () => {
+      if (Math.abs(video.currentTime - audio.currentTime) > 0.3) {
+        video.currentTime = audio.currentTime;
+      }
+    };
+    const timer = setInterval(() => {
+      if (!audio.paused) syncVideo();
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [useNative, media]);
 
   return (
     <div className="space-y-4">
       <div ref={playerRef} className="sticky top-14 z-30 -mx-1 bg-background/95 px-1 py-2 backdrop-blur">
         <div
-          className="overflow-hidden rounded-lg border border-border bg-black shadow-lg"
+          className="relative overflow-hidden rounded-lg border border-border bg-black shadow-lg"
           style={{ aspectRatio: embed.ratio }}
         >
-          <iframe
-            key={playKey}
-            src={src}
-            title={title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-            className="size-full"
-          />
+          {useNative ? (
+            media ? (
+              <>
+                <video
+                  ref={videoRef}
+                  src={media.video}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="size-full"
+                  onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
+                  onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                />
+                <audio
+                  ref={audioRef}
+                  src={media.audio}
+                  preload="metadata"
+                  onPlay={() => setPlaying(true)}
+                  onPause={() => setPlaying(false)}
+                  onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
+                  onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                  onEnded={() => setPlaying(false)}
+                />
+
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity hover:opacity-100"
+                  aria-label={playing ? "暂停" : "播放"}
+                >
+                  <span className="rounded-full bg-black/60 p-4 text-white">
+                    {paused ? <Play className="size-6" /> : <Pause className="size-6" />}
+                  </span>
+                </button>
+
+                <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-black/60 px-3 py-2 text-white">
+                  <button type="button" onClick={togglePlay} aria-label="播放/暂停">
+                    {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
+                  </button>
+                  <span className="text-xs tabular-nums">{mmss(now)}</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration || 0}
+                    step={0.5}
+                    value={now}
+                    onChange={(e) => seekTo(Number(e.target.value))}
+                    className="h-1 flex-1 accent-white"
+                  />
+                  <span className="text-xs tabular-nums">{duration ? mmss(duration) : "--:--"}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex size-full flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                {mediaError ? (
+                  <>
+                    <p>{mediaError}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMedia(null);
+                        setMediaError(null);
+                        fetch(`/api/media/${entryId}`)
+                          .then((r) => r.json())
+                          .then((d) => setMedia({ video: d.video, audio: d.audio }))
+                          .catch((e) => setMediaError((e as Error).message));
+                      }}
+                      className="rounded border border-border px-2 py-1"
+                    >
+                      重试
+                    </button>
+                  </>
+                ) : (
+                  <p>正在取视频直链…</p>
+                )}
+              </div>
+            )
+          ) : (
+            <iframe
+              key={playKey}
+              src={src}
+              title={title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              className="size-full"
+            />
+          )}
         </div>
       </div>
 
@@ -256,14 +422,18 @@ export function VideoReader({
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>
               {backend} · {locale} · {segmentCount} 段
-              {following ? (liveSync ? " · 实时同步" : " · 估算同步") : ""}
+              {following ? (useNative || liveSync ? " · 实时同步" : " · 估算同步") : ""}
             </span>
 
-            {following && !liveSync ? (
+            {following && !useNative && !liveSync ? (
               <button
                 type="button"
-                onClick={resync}
-                title="在播放器里拖过进度？点这里重新对齐"
+                onClick={() => {
+                  const li = activeRef.current >= 0 ? activeRef.current : 0;
+                  startedAt.current = Date.now();
+                  startTime.current = lines[li]?.start ?? 0;
+                  playerTime.current = null;
+                }}
                 className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:text-foreground"
               >
                 <RefreshCw className="size-3.5" />
@@ -280,7 +450,7 @@ export function VideoReader({
               }}
               className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:text-foreground"
             >
-              {following ? <PauseCircle className="size-3.5" /> : <PlayCircle className="size-3.5" />}
+              {following ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
               {following ? "停止跟随" : "跟随播放"}
             </button>
           </div>
@@ -322,7 +492,7 @@ export function VideoReader({
               >
                 <button
                   type="button"
-                  onClick={() => jumpTo(line.start)}
+                  onClick={() => seekTo(line.start)}
                   title="跳到这一行"
                   className={`w-11 shrink-0 pt-0.5 text-left text-xs tabular-nums underline-offset-2 hover:underline ${
                     active ? "font-medium text-brand-red" : "text-muted-foreground/60"

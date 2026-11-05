@@ -116,6 +116,7 @@ export default async function EntryPage({ params }: { params: Params }) {
             <VideoReader
               embed={embed}
               title={entry.title}
+              entryId={entry.id}
               backend={entry.transcript.backend}
               locale={entry.transcript.locale}
               segmentCount={
