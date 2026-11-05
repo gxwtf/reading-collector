@@ -28,7 +28,10 @@ async function direct(url: string, format: string) {
   return line;
 }
 
-export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+export async function GET(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session.isLoggedIn || !session.userId) {
     return new Response("unauthorized", { status: 401 });
@@ -44,22 +47,54 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: st
   });
   if (!entry) return new Response("not found", { status: 404 });
 
-  const hit = cache.get(entryId);
-  if (hit && Date.now() - hit.at < CACHE_TTL) {
-    return Response.json({ video: hit.video, audio: hit.audio, title: hit.title, cached: true });
+  const kind = new URL(request.url).searchParams.get("kind") as "video" | "audio" | null;
+
+  let hit = cache.get(entryId);
+  if (!hit || Date.now() - hit.at >= CACHE_TTL) {
+    try {
+      const [video, audio] = await Promise.all([
+        direct(entry.url, "bv*[height<=720]/bv*"),
+        direct(entry.url, "ba/b"),
+      ]);
+      hit = { at: Date.now(), video, audio, title: entry.title };
+      cache.set(entryId, hit);
+    } catch (error) {
+      return Response.json(
+        { error: `取直链失败：${(error as Error).message.slice(0, 160)}` },
+        { status: 502 },
+      );
+    }
   }
 
-  try {
-    const [video, audio] = await Promise.all([
-      direct(entry.url, "bv*[height<=720]/bv*"),
-      direct(entry.url, "ba/b"),
-    ]);
-    cache.set(entryId, { at: Date.now(), video, audio, title: entry.title });
-    return Response.json({ video, audio, title: entry.title });
-  } catch (error) {
-    return Response.json(
-      { error: `取直链失败：${(error as Error).message.slice(0, 160)}` },
-      { status: 502 },
-    );
+  // 没有 kind：返回元数据（实际播放走本代理，B 站 CDN 要求 Referer 与 UA）
+  if (!kind) {
+    return Response.json({
+      video: `/api/media/${entryId}?kind=video`,
+      audio: `/api/media/${entryId}?kind=audio`,
+      title: entry.title,
+    });
   }
+
+  // 代理流：补上 Referer/UA，透传 Range
+  const target = kind === "video" ? hit.video : hit.audio;
+  const range = request.headers.get("range") ?? undefined;
+  const upstream = await fetch(target, {
+    headers: {
+      Referer: "https://www.bilibili.com/",
+      "User-Agent": UA,
+      ...(range ? { Range: range } : {}),
+    },
+    cache: "no-store",
+  });
+
+  const headers = new Headers();
+  const contentType = upstream.headers.get("content-type");
+  if (contentType) headers.set("Content-Type", contentType);
+  headers.set("Accept-Ranges", "bytes");
+  const contentRange = upstream.headers.get("content-range");
+  if (contentRange) headers.set("Content-Range", contentRange);
+  const contentLength = upstream.headers.get("content-length");
+  if (contentLength) headers.set("Content-Length", contentLength);
+
+  return new Response(upstream.body, { status: upstream.status, headers });
 }
