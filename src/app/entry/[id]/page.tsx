@@ -116,12 +116,13 @@ export default async function EntryPage({ params }: { params: Params }) {
             <VideoReader
               embed={embed}
               title={entry.title}
-              transcript={{
-                backend: entry.transcript.backend,
-                locale: entry.transcript.locale,
-                text: entry.transcript.text,
-                segments: entry.transcript.segments,
-              }}
+              entryId={entry.id}
+              backend={entry.transcript.backend}
+              locale={entry.transcript.locale}
+              segmentCount={
+                Array.isArray(entry.transcript.segments) ? entry.transcript.segments.length : 0
+              }
+              chunks={chunkTranscript(entry.transcript.segments)}
             />
           ) : (
             <>
@@ -315,4 +316,24 @@ function TranscriptView({
       )}
     </section>
   );
+}
+
+type SegLike = { start?: number; end?: number; text?: string };
+
+/** 逐字稿按 60 秒聚合，只把「时间戳 + 文本」传给客户端（词级数据走接口按需拉） */
+function chunkTranscript(raw: unknown): { start: number; text: string }[] {
+  const segments = Array.isArray(raw) ? (raw as SegLike[]) : [];
+  const chunks: { start: number; text: string }[] = [];
+  for (const seg of segments) {
+    const start = Number(seg.start ?? 0);
+    const text = (seg.text ?? "").trim();
+    if (!text) continue;
+    const last = chunks[chunks.length - 1];
+    if (last && start - last.start < 60) {
+      last.text += text.startsWith(" ") || /^[a-zA-Z]/.test(text) ? ` ${text}` : text;
+    } else {
+      chunks.push({ start, text });
+    }
+  }
+  return chunks;
 }
