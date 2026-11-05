@@ -222,6 +222,10 @@ export function VideoReader({
     setPauseReason(null);
 
     if (useNative) {
+      if (audioRef.current?.readyState === 0) {
+        audioRef.current.load();
+        videoRef.current?.load();
+      }
       void audioRef.current?.play().catch(() => undefined);
       void videoRef.current?.play().catch(() => undefined);
     } else {
@@ -295,6 +299,10 @@ export function VideoReader({
     const video = videoRef.current;
     if (!audio) return;
     if (audio.paused) {
+      if (audio.readyState === 0) {
+        audio.load();
+        video?.load();
+      }
       void audio.play();
       void video?.play();
     } else {
@@ -337,7 +345,7 @@ export function VideoReader({
                   src={media.video}
                   muted
                   playsInline
-                  preload="metadata"
+                  preload="none"
                   className="size-full"
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
@@ -345,7 +353,7 @@ export function VideoReader({
                 <audio
                   ref={audioRef}
                   src={media.audio}
-                  preload="metadata"
+                  preload="none"
                   onPlay={() => setPlaying(true)}
                   onPause={() => setPlaying(false)}
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
