@@ -11,6 +11,26 @@ def _first_sentences(text: str, n: int = 2) -> str:
     return "".join(parts[:n]).strip()[:180]
 
 
+def chunk_summary(text: str, max_points: int) -> list[str]:
+    """无小标题的长文本（逐字稿）：按字符位置切段，各取首句。"""
+    sentences = [s.strip() for s in SENTENCE_RE.split(re.sub(r"\s+", " ", text)) if len(s.strip()) > 8]
+    if not sentences:
+        return []
+    total = sum(len(s) for s in sentences)
+    step = max(200, total // max_points)
+    out: list[str] = []
+    pos = 0
+    nxt = 0
+    for s in sentences:
+        if pos >= nxt:
+            out.append(s[:150])
+            nxt += step
+            if len(out) >= max_points:
+                break
+        pos += len(s)
+    return out
+
+
 def summarize(text: str, max_points: int = 8) -> str:
     if not text or len(text.strip()) < 80:
         return ""
@@ -53,5 +73,10 @@ def summarize(text: str, max_points: int = 8) -> str:
         out.append(p if len(p) <= 140 else p[:140] + "…")
         if len(out) >= max_points:
             break
+
+    if len(out) < 3:
+        fallback = chunk_summary(text, max_points)
+        if fallback:
+            return "\n".join(f"- {p}" for p in fallback)
 
     return "\n".join(f"- {p}" for p in out)

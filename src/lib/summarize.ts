@@ -9,6 +9,31 @@ function firstSentences(text: string, n: number): string {
   return joined.slice(0, 180).trim();
 }
 
+/** 没有小标题的长文本（如逐字稿）：按位置切成 n 段，各取首句 */
+function chunkSummary(text: string, maxPoints: number): string[] {
+  const sentences = text
+    .replace(/\s+/g, " ")
+    .split(/(?<=[。！？.!?])\s*/)
+    .filter((s) => s.trim().length > 8);
+  if (sentences.length === 0) return [];
+
+  const total = sentences.reduce((n, s) => n + s.length, 0);
+  const step = Math.max(200, Math.ceil(total / maxPoints));
+  const out: string[] = [];
+  let pos = 0;
+  let next = 0;
+
+  for (const s of sentences) {
+    if (pos >= next) {
+      out.push(s.trim().slice(0, 150));
+      next += step;
+      if (out.length >= maxPoints) break;
+    }
+    pos += s.length;
+  }
+  return out;
+}
+
 export function summarizeMarkdown(md: string, maxPoints = 8): string {
   const lines = md.split("\n");
   const points: string[] = [];
@@ -49,6 +74,11 @@ export function summarizeMarkdown(md: string, maxPoints = 8): string {
     seen.add(key);
     out.push(p.length > 140 ? `${p.slice(0, 140)}…` : p);
     if (out.length >= maxPoints) break;
+  }
+
+  if (out.length < 3) {
+    const fallback = chunkSummary(md, maxPoints);
+    if (fallback.length > 0) return fallback.map((p) => `- ${p}`).join("\n");
   }
 
   return out.map((p) => `- ${p}`).join("\n");
