@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ReadingShell } from "@/components/ReadingShell";
 import { HighlightLayer } from "@/components/HighlightLayer";
 import { HighlightList } from "@/components/HighlightList";
+import { VideoReader } from "@/components/VideoReader";
 
 type Params = Promise<{ id: string }>;
 
@@ -111,54 +112,71 @@ export default async function EntryPage({ params }: { params: Params }) {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         {/* 左栏：原文 / 播放器 / 逐字稿 */}
         <div className="min-w-0 space-y-6">
-          {embed ? (
-            <div
-              className="overflow-hidden rounded-lg border border-border bg-muted"
-              style={{ aspectRatio: embed.ratio ?? "16 / 9" }}
-            >
-              <iframe
-                src={embed.url}
-                title={entry.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                className="size-full"
-              />
-            </div>
-          ) : null}
-
-          {entry.state === "pending" ? (
-            <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
-              正在后台抓取正文，稍后刷新即可。视频与播客需要先转写，可能要几分钟。
-            </div>
-          ) : null}
-
-          {body ? (
-            <ReadingShell>
-              <HighlightLayer
-                entryId={entry.id}
-                highlights={entry.highlights.map((h) => ({
-                  id: h.id,
-                  quote: h.quote,
-                  note: h.note,
-                  anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
-                }))}
-              >
-                <div className="prose-reading max-w-none">
-                  <MDXRemote
-                    source={body}
-                    options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-                  />
+          {embed && entry.transcript ? (
+            <VideoReader
+              embed={embed}
+              title={entry.title}
+              transcript={{
+                backend: entry.transcript.backend,
+                locale: entry.transcript.locale,
+                text: entry.transcript.text,
+                segments: entry.transcript.segments,
+              }}
+            />
+          ) : (
+            <>
+              {embed ? (
+                <div className="sticky top-[4.25rem] z-20">
+                  <div
+                    className="overflow-hidden rounded-lg border border-border bg-muted shadow-lg"
+                    style={{ aspectRatio: embed.ratio }}
+                  >
+                    <iframe
+                      src={embed.base}
+                      title={entry.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="size-full"
+                    />
+                  </div>
                 </div>
-              </HighlightLayer>
-            </ReadingShell>
-          ) : null}
+              ) : null}
 
-          {entry.transcript ? (
-            <ReadingShell>
-              <TranscriptView transcript={entry.transcript} />
-            </ReadingShell>
-          ) : null}
+              {entry.state === "pending" ? (
+                <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
+                  正在后台抓取正文，稍后刷新即可。视频与播客需要先转写，可能要几分钟。
+                </div>
+              ) : null}
+
+              {body ? (
+                <ReadingShell>
+                  <HighlightLayer
+                    entryId={entry.id}
+                    highlights={entry.highlights.map((h) => ({
+                      id: h.id,
+                      quote: h.quote,
+                      note: h.note,
+                      anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
+                    }))}
+                  >
+                    <div className="prose-reading max-w-none">
+                      <MDXRemote
+                        source={body}
+                        options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+                      />
+                    </div>
+                  </HighlightLayer>
+                </ReadingShell>
+              ) : null}
+
+              {entry.transcript ? (
+                <ReadingShell>
+                  <TranscriptView transcript={entry.transcript} />
+                </ReadingShell>
+              ) : null}
+            </>
+          )}
         </div>
 
         {/* 右栏：概括 + 划线批注 */}
