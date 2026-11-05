@@ -317,6 +317,106 @@ function TranscriptView({
   );
 }
 
+type SegLike = {
+  start?: number;
+  end?: number;
+  text?: string;
+  words?: { start?: number; end?: number; text?: string }[];
+};
+
+/**
+ * 逐字稿切成「歌词行」：按词累积，遇到句末标点 / 满 48 字 / 超过 7 秒就断行。
+ * 行高亮比逐字稳，也比整段更像 Apple Music 的滚动歌词。
+ */
+function buildLines(raw: unknown): { start: number; end: number; text: string }[] {
+  const segments = Array.isArray(raw) ? (raw as SegLike[]) : [];
+  const lines: { start: number; end: number; text: string }[] = [];
+
+  let cur: { start: number; end: number; text: string } | null = null;
+  const flush = () => {
+    if (cur && cur.text.trim()) lines.push({ ...cur, text: cur.text.trim() });
+    cur = null;
+  };
+
+  for (const seg of segments) {
+    const segStart = Number(seg.start ?? 0);
+    const segEnd = Number(seg.end ?? segStart);
+    const words =
+      seg.words && seg.words.length > 0
+        ? seg.words.map((w) => ({
+            start: Number(w.start ?? segStart),
+            end: Number(w.end ?? segEnd),
+            text: w.text ?? "",
+          }))
+        : [{ start: segStart, end: segEnd, text: " " + (seg.text ?? "") }];
+
+    for (const w of words) {
+      if (!cur) cur = { start: w.start, end: w.end, text: "" };
+      cur.text += w.text;
+      cur.end = w.end;
+
+      const dur = cur.end - cur.start;
+      const tail = w.text.trim();
+      const endsSentence = /[。！？.!?]/.test(tail.slice(-1));
+      if (endsSentence || dur >= 7 || cur.text.trim().length >= 48) flush();
+    }
+
+    if (cur && cur.end - cur.start > 9) flush();
+  }
+  flush();
+
+  return lines;
+}
+
+function TranscriptView({
+  transcript,
+}: {
+  transcript: { backend: string; locale: string; text: string; segments: unknown };
+}) {
+  const raw = Array.isArray(transcript.segments) ? (transcript.segments as TranscriptSegment[]) : [];
+  const segments = raw.filter((s) => (s.text ?? "").trim().length > 0);
+
+  const chunks: { start: number; text: string }[] = [];
+  for (const seg of segments) {
+    const start = Number(seg.start ?? 0);
+    const text = (seg.text ?? "").trim();
+    const last = chunks[chunks.length - 1];
+    if (last && start - last.start < 60) {
+      last.text += text.startsWith(" ") || /^[a-zA-Z]/.test(text) ? ` ${text}` : text;
+    } else {
+      chunks.push({ start, text });
+    }
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-medium">逐字稿</h2>
+        <span className="text-xs text-muted-foreground">
+          {transcript.backend} · {transcript.locale} · {segments.length} 段
+        </span>
+      </div>
+
+      {chunks.length > 0 ? (
+        <div className="space-y-4 text-[15px] leading-8">
+          {chunks.map((c) => (
+            <div key={c.start} className="flex gap-3">
+              <span className="w-11 shrink-0 pt-1 text-xs tabular-nums text-muted-foreground">
+                {mmss(c.start)}
+              </span>
+              <p className="min-w-0 flex-1">{c.text}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <pre className="whitespace-pre-wrap break-words text-sm leading-7 text-muted-foreground">
+          {transcript.text}
+        </pre>
+      )}
+    </section>
+  );
+}
+
 type SegLike = { start?: number; end?: number; text?: string };
 
 /**
