@@ -40,11 +40,15 @@ export function VideoReader({
   const [following, setFollowing] = useState(false);
   const [activeLine, setActiveLine] = useState(-1);
   const [liveSync, setLiveSync] = useState(false);
+  const [pauseReason, setPauseReason] = useState<"manual" | "player" | null>(null);
 
   const startedAt = useRef<number>(0);
   const startTime = useRef<number>(0);
   const playerTime = useRef<number | null>(null);
   const playerTimeAt = useRef<number>(0);
+  const playerState = useRef<number | null>(null);
+  const playerStateAt = useRef<number>(0);
+  const programmaticScrollAt = useRef<number>(0);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const playerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(-1);
@@ -69,11 +73,20 @@ export function VideoReader({
           return;
         }
       }
-      const payload = data as { event?: string; info?: { currentTime?: number } };
-      if (payload?.event === "infoDelivery" && typeof payload.info?.currentTime === "number") {
-        playerTime.current = payload.info.currentTime;
-        playerTimeAt.current = Date.now();
-        setLiveSync(true);
+      const payload = data as {
+        event?: string;
+        info?: { currentTime?: number; playerState?: number };
+      };
+      if (payload?.event === "infoDelivery" && payload.info) {
+        if (typeof payload.info.currentTime === "number") {
+          playerTime.current = payload.info.currentTime;
+          playerTimeAt.current = Date.now();
+          setLiveSync(true);
+        }
+        if (typeof payload.info.playerState === "number") {
+          playerState.current = payload.info.playerState;
+          playerStateAt.current = Date.now();
+        }
       }
     };
 
@@ -106,6 +119,7 @@ export function VideoReader({
   const scrollToLine = useCallback((index: number) => {
     const el = lineRefs.current[index];
     if (!el) return;
+    programmaticScrollAt.current = Date.now();
     const playerBottom = playerRef.current?.getBoundingClientRect().bottom ?? FALLBACK_OFFSET;
     const top = el.getBoundingClientRect().top + window.scrollY - playerBottom - 16;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
@@ -180,6 +194,36 @@ export function VideoReader({
     return () => clearInterval(timer);
   }, [following, lineAt, scrollToLine]);
 
+  // 用户手动滚动时暂停跟随，避免和自动滚动打架
+  useEffect(() => {
+    if (!following) return;
+    const onScroll = () => {
+      if (Date.now() - programmaticScrollAt.current < 1200) return;
+      setFollowing(false);
+      setPauseReason("manual");
+    };
+    window.addEventListener("wheel", onScroll, { passive: true });
+    window.addEventListener("touchmove", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", onScroll);
+      window.removeEventListener("touchmove", onScroll);
+    };
+  }, [following]);
+
+  // 播放器暂停/缓冲超过 1.5 秒 → 暂停跟随（仅 YouTube 能读到状态）
+  useEffect(() => {
+    if (!following || !liveSync) return;
+    const timer = setInterval(() => {
+      const state = playerState.current;
+      const fresh = Date.now() - playerStateAt.current < 4000;
+      if (fresh && state !== null && state !== 1) {
+        setFollowing(false);
+        setPauseReason("player");
+      }
+    }, 1500);
+    return () => clearInterval(timer);
+  }, [following, liveSync]);
+
   const resync = useCallback(() => {
     const li = activeRef.current >= 0 ? activeRef.current : 0;
     startedAt.current = Date.now();
@@ -229,7 +273,11 @@ export function VideoReader({
 
             <button
               type="button"
-              onClick={() => (following ? setFollowing(false) : startFollow())}
+              onClick={() => {
+                setPauseReason(null);
+                if (following) setFollowing(false);
+                else startFollow();
+              }}
               className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:text-foreground"
             >
               {following ? <PauseCircle className="size-3.5" /> : <PlayCircle className="size-3.5" />}
@@ -237,6 +285,24 @@ export function VideoReader({
             </button>
           </div>
         </div>
+
+        {pauseReason && !following ? (
+          <div className="flex items-center justify-between rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+            <span>
+              {pauseReason === "manual" ? "检测到手动滚动，已暂停跟随" : "播放器已暂停，跟随自动停下"}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setPauseReason(null);
+                startFollow();
+              }}
+              className="rounded-md border border-border px-2 py-0.5 hover:text-foreground"
+            >
+              继续跟随
+            </button>
+          </div>
+        ) : null}
 
         <div className="space-y-1.5">
           {lines.map((line, i) => {
