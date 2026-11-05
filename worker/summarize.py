@@ -35,6 +35,9 @@ def summarize(text: str, max_points: int = 8) -> str:
     if not text or len(text.strip()) < 80:
         return ""
 
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+
     points: list[str] = []
     heading = ""
     buffer: list[str] = []

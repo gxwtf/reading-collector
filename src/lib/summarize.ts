@@ -34,7 +34,11 @@ function chunkSummary(text: string, maxPoints: number): string[] {
   return out;
 }
 
-export function summarizeMarkdown(md: string, maxPoints = 8): string {
+export function summarizeMarkdown(raw: string, maxPoints = 8): string {
+  // 去掉图片与链接语法，只留文字
+  const md = raw
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
   const lines = md.split("\n");
   const points: string[] = [];
   let heading = "";
