@@ -49,6 +49,8 @@ export function VideoReader({
   const [activeLine, setActiveLine] = useState(-1);
   const [liveSync, setLiveSync] = useState(false);
   const [pauseReason, setPauseReason] = useState<"manual" | "player" | null>(null);
+  // 长讲座几百行，先渲染一批，跟随/点击时再补
+  const [visible, setVisible] = useState(120);
 
   const [media, setMedia] = useState<Media | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -166,6 +168,7 @@ export function VideoReader({
       if (li < 0) return;
       activeRef.current = li;
       setActiveLine(li);
+      setVisible((v) => Math.max(v, li + 30));
       if (scroll) setTimeout(() => scrollToLine(li), 60);
     },
     [lineAt, scrollToLine],
@@ -242,6 +245,7 @@ export function VideoReader({
       if (li >= 0 && li !== activeRef.current) {
         activeRef.current = li;
         setActiveLine(li);
+        setVisible((v) => Math.max(v, li + 30));
         scrollToLine(li);
       }
     };
@@ -475,7 +479,7 @@ export function VideoReader({
         ) : null}
 
         <div className="space-y-1.5">
-          {lines.map((line, i) => {
+          {lines.slice(0, visible).map((line, i) => {
             const active = i === activeLine && following;
             return (
               <p
@@ -504,6 +508,16 @@ export function VideoReader({
               </p>
             );
           })}
+
+          {visible < lines.length ? (
+            <button
+              type="button"
+              onClick={() => setVisible((v) => v + 200)}
+              className="w-full rounded-md border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              展开更多（{visible}/{lines.length} 行）
+            </button>
+          ) : null}
         </div>
       </section>
     </div>
