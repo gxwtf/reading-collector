@@ -42,12 +42,17 @@ function wrapRange(root: HTMLElement, start: number, end: number, id: number) {
     node = walker.nextNode() as Text | null;
   }
 
-  // 反向切分，前面的节点偏移不受影响
+  // 反向切分，前面的节点偏移不受影响。
+  // 必须先按 from 切开，再把 mid 按 to-from 切开，否则会把节点开头也包进去
   for (const t of targets.reverse()) {
     if (!t.node.parentNode) continue;
-    const tail = t.node.splitText(Math.min(t.to, t.node.data.length));
-    const mid = tail.previousSibling as Text | null;
-    if (!mid) continue;
+    const len = t.node.data.length;
+    const from = Math.max(0, Math.min(t.from, len));
+    const to = Math.max(from, Math.min(t.to, len));
+
+    const mid = t.node.splitText(from);
+    mid.splitText(to - from);
+
     const mark = document.createElement("mark");
     mark.dataset.hl = String(id);
     mark.className = "hl-mark";
