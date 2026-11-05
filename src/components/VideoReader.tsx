@@ -104,6 +104,8 @@ export function VideoReader({
   const [following, setFollowing] = useState(false);
   const [activeWord, setActiveWord] = useState(-1);
   const [activeChunk, setActiveChunk] = useState(-1);
+  // 逐字稿很长（几千个词/span），分批渲染，滚到底再续
+  const [visible, setVisible] = useState(12);
 
   const startedAt = useRef<number>(0);
   const startTime = useRef<number>(0);
@@ -129,6 +131,7 @@ export function VideoReader({
       if (ci >= 0) {
         setActiveChunk(ci);
         activeChunkRef.current = ci;
+        setVisible((v) => Math.max(v, ci + 3));
         if (scroll) chunkRefs.current[ci]?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     },
@@ -150,6 +153,7 @@ export function VideoReader({
       if (ci >= 0 && ci !== activeChunkRef.current) {
         activeChunkRef.current = ci;
         setActiveChunk(ci);
+        setVisible((v) => Math.max(v, ci + 3));
         chunkRefs.current[ci]?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 300);
@@ -204,7 +208,7 @@ export function VideoReader({
         </div>
 
         <div className="space-y-3 text-[15px] leading-8">
-          {chunks.map((c, ci) => (
+          {chunks.slice(0, visible).map((c, ci) => (
             <div
               key={c.start}
               ref={(el) => {
@@ -246,6 +250,16 @@ export function VideoReader({
               </p>
             </div>
           ))}
+
+          {visible < chunks.length ? (
+            <button
+              type="button"
+              onClick={() => setVisible((v) => v + 30)}
+              className="w-full rounded-md border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              展开更多（{visible}/{chunks.length} 段）
+            </button>
+          ) : null}
         </div>
       </section>
     </div>
