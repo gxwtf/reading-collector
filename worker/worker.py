@@ -29,6 +29,7 @@ from config import (
 )
 from fetcher import FetchError, fetch_article
 from transcriber import TranscribeError, transcribe
+from summarize import summarize
 
 HEADERS = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
 
@@ -67,6 +68,7 @@ def handle(client: httpx.Client, job: dict) -> None:
         if kind == "transcribe":
             result = transcribe(url)
             entry = {
+                "summary": summarize(result.get("text") or ""),
                 "title": result["title"] or url,
                 "site": result.get("site") or "音视频",
                 "author": result["author"],
@@ -87,7 +89,9 @@ def handle(client: httpx.Client, job: dict) -> None:
                 },
             }
         else:
-            payload = {"status": "done", "entry": fetch_article(url)}
+            article = fetch_article(url)
+            article["summary"] = summarize(article.get("contentMd") or "")
+            payload = {"status": "done", "entry": article}
 
         if report(client, job_id, payload):
             log(f"job {job_id} 完成")

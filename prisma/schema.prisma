@@ -74,8 +74,10 @@ model Entry {
   kind        String    @default("article") @db.VarChar(20)
   lang        String?   @db.VarChar(20)
   excerpt     String?   @db.Text
-  /// 清洗后的正文 Markdown（文章正文 / 视频逐字稿的整理稿）
+  /// 清洗后的正文 Markdown（文章正文；视频为空，正文看 Transcript）
   contentMd   String?   @db.Text
+  /// 自动概括（要点列表，Markdown）
+  summary     String?   @db.Text
   coverImage  String?   @db.VarChar(2048)
   wordCount   Int?
   durationSec Int?

@@ -3,16 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, ExternalLink, RotateCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, RefreshCw, RotateCw } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
+import { regenerateSummary } from "@/actions/summary";
+import { getEmbed } from "@/lib/embed";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ReadingShell } from "@/components/ReadingShell";
 import { HighlightLayer } from "@/components/HighlightLayer";
 import { HighlightList } from "@/components/HighlightList";
-import { Button } from "@/components/ui/button";
 
 type Params = Promise<{ id: string }>;
 
@@ -51,7 +53,7 @@ export default async function EntryPage({ params }: { params: Params }) {
   });
 
   const body = entry.contentMd ?? "";
-
+  const embed = getEmbed(entry.url, entry.kind);
   const lastJob = entry.jobs[0];
 
   return (
@@ -94,42 +96,6 @@ export default async function EntryPage({ params }: { params: Params }) {
         ) : null}
       </header>
 
-      {collections.length > 0 ? (
-        <section className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">分组：</span>
-          {collections.map((c) => {
-            const inGroup = c.entries.length > 0;
-            return (
-              <form
-                key={c.id}
-                action={
-                  inGroup
-                    ? removeEntryFromCollection.bind(null, entry.id, c.id)
-                    : addEntryToCollection.bind(null, entry.id, c.id)
-                }
-              >
-                <button
-                  type="submit"
-                  className={
-                    inGroup
-                      ? "rounded-full border border-brand-red/40 bg-brand-red/10 px-2.5 py-0.5 text-xs text-brand-red"
-                      : "rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
-                  }
-                >
-                  {inGroup ? `✓ ${c.name}` : `+ ${c.name}`}
-                </button>
-              </form>
-            );
-          })}
-        </section>
-      ) : null}
-
-      {entry.state === "pending" ? (
-        <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
-          正在后台抓取正文，稍后刷新即可。视频与播客需要先转写，可能要几分钟。
-        </div>
-      ) : null}
-
       {entry.state === "failed" ? (
         <div className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="text-destructive">抓取失败{lastJob?.error ? `：${lastJob.error}` : ""}</p>
@@ -142,45 +108,136 @@ export default async function EntryPage({ params }: { params: Params }) {
         </div>
       ) : null}
 
-      {body ? (
-        <ReadingShell>
-          <HighlightLayer
-            entryId={entry.id}
-            highlights={entry.highlights.map((h) => ({
-              id: h.id,
-              quote: h.quote,
-              note: h.note,
-              anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
-            }))}
-          >
-            <div className="prose-reading max-w-none">
-              <MDXRemote
-                source={body}
-                options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        {/* 左栏：原文 / 播放器 / 逐字稿 */}
+        <div className="min-w-0 space-y-6">
+          {embed ? (
+            <div
+              className="overflow-hidden rounded-lg border border-border bg-muted"
+              style={{ aspectRatio: embed.ratio ?? "16 / 9" }}
+            >
+              <iframe
+                src={embed.url}
+                title={entry.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                className="size-full"
               />
             </div>
-          </HighlightLayer>
-        </ReadingShell>
-      ) : null}
+          ) : null}
 
-      {entry.transcript ? (
-        <ReadingShell>
-          <TranscriptView transcript={entry.transcript} />
-        </ReadingShell>
-      ) : null}
+          {entry.state === "pending" ? (
+            <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
+              正在后台抓取正文，稍后刷新即可。视频与播客需要先转写，可能要几分钟。
+            </div>
+          ) : null}
 
-      <section className="space-y-3 border-t border-border pt-4">
-        <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>
-        <HighlightList
-          items={entry.highlights.map((h) => ({
-            id: h.id,
-            quote: h.quote,
-            note: h.note,
-            anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
-            createdAt: h.createdAt.toLocaleDateString("zh-CN"),
-          }))}
-        />
-      </section>
+          {body ? (
+            <ReadingShell>
+              <HighlightLayer
+                entryId={entry.id}
+                highlights={entry.highlights.map((h) => ({
+                  id: h.id,
+                  quote: h.quote,
+                  note: h.note,
+                  anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
+                }))}
+              >
+                <div className="prose-reading max-w-none">
+                  <MDXRemote
+                    source={body}
+                    options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+                  />
+                </div>
+              </HighlightLayer>
+            </ReadingShell>
+          ) : null}
+
+          {entry.transcript ? (
+            <ReadingShell>
+              <TranscriptView transcript={entry.transcript} />
+            </ReadingShell>
+          ) : null}
+        </div>
+
+        {/* 右栏：概括 + 划线批注 */}
+        <aside className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-auto lg:pr-1">
+          <section className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium">概括</h2>
+              <form action={regenerateSummary.bind(null, entry.id)}>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <RefreshCw className="size-3" />
+                  重算
+                </button>
+              </form>
+            </div>
+
+            {entry.summary ? (
+              <ul className="mt-2 space-y-1.5 text-sm leading-6 text-muted-foreground">
+                {entry.summary.split("\n").map((line, i) => (
+                  <li key={i} className="border-l-2 border-border pl-2">
+                    {line.replace(/^-\s*/, "")}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {entry.state === "pending" ? "抓取完成后自动生成。" : "还没有概括，点「重算」生成。"}
+              </p>
+            )}
+          </section>
+
+          <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+            <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>
+            <HighlightList
+              items={entry.highlights.map((h) => ({
+                id: h.id,
+                quote: h.quote,
+                note: h.note,
+                anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
+                createdAt: h.createdAt.toLocaleDateString("zh-CN"),
+              }))}
+            />
+          </section>
+
+          {collections.length > 0 ? (
+            <section className="rounded-lg border border-border bg-card p-4">
+              <h2 className="text-sm font-medium">分组</h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {collections.map((c) => {
+                  const inGroup = c.entries.length > 0;
+                  return (
+                    <form
+                      key={c.id}
+                      action={
+                        inGroup
+                          ? removeEntryFromCollection.bind(null, entry.id, c.id)
+                          : addEntryToCollection.bind(null, entry.id, c.id)
+                      }
+                    >
+                      <button
+                        type="submit"
+                        className={
+                          inGroup
+                            ? "rounded-full border border-brand-red/40 bg-brand-red/10 px-2.5 py-0.5 text-xs text-brand-red"
+                            : "rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+                        }
+                      >
+                        {inGroup ? `✓ ${c.name}` : `+ ${c.name}`}
+                      </button>
+                    </form>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+        </aside>
+      </div>
     </article>
   );
 }
@@ -215,7 +272,7 @@ function TranscriptView({
   }
 
   return (
-    <section className="space-y-3 border-t border-border pt-4">
+    <section className="space-y-3">
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm font-medium">逐字稿</h2>
         <span className="text-xs text-muted-foreground">

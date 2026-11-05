@@ -14,6 +14,7 @@ type JobResult = {
     lang?: string;
     excerpt?: string;
     contentMd?: string;
+    summary?: string;
     coverImage?: string;
     wordCount?: number;
     durationSec?: number;
@@ -79,6 +80,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
           ...(entry.lang ? { lang: entry.lang.slice(0, 20) } : {}),
           ...(entry.excerpt ? { excerpt: entry.excerpt } : {}),
           ...(entry.contentMd ? { contentMd: entry.contentMd } : {}),
+          ...(entry.summary ? { summary: entry.summary } : {}),
           ...(entry.coverImage ? { coverImage: entry.coverImage.slice(0, 2048) } : {}),
           ...(typeof entry.wordCount === "number" ? { wordCount: entry.wordCount } : {}),
           ...(typeof entry.durationSec === "number" ? { durationSec: entry.durationSec } : {}),
