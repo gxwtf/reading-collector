@@ -80,6 +80,6 @@ def summarize(text: str, max_points: int = 8) -> str:
     if len(out) < 3:
         fallback = chunk_summary(text, max_points)
         if fallback:
-            return "\n".join(f"- {p}" for p in fallback)
+            return "\n".join(["## 分章要点"] + [f"- {p}" for p in fallback])
 
-    return "\n".join(f"- {p}" for p in out)
+    return "\n".join(["## 分章要点"] + [f"- {p}" for p in out])

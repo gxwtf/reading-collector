@@ -85,5 +85,5 @@ export function summarizeMarkdown(raw: string, maxPoints = 8): string {
     if (fallback.length > 0) return fallback.map((p) => `- ${p}`).join("\n");
   }
 
-  return out.map((p) => `- ${p}`).join("\n");
+  return ["## 分章要点", ...out.map((p) => `- ${p}`)].join("\n");
 }

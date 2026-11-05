@@ -599,3 +599,55 @@
     text-align: left;
   }
 }
+
+/* ===== 右栏概括（紧凑 Markdown）===== */
+.summary-prose {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--muted-foreground);
+}
+.summary-prose > :first-child {
+  margin-top: 0;
+}
+.summary-prose h2 {
+  margin: 1.1em 0 0.45em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.summary-prose h3 {
+  margin: 0.9em 0 0.35em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.summary-prose p {
+  margin: 0.5em 0;
+}
+.summary-prose ul {
+  display: grid;
+  gap: 0.5em;
+  margin: 0.4em 0;
+  padding-left: 1.05em;
+  list-style: disc;
+}
+.summary-prose li::marker {
+  color: var(--color-brand-red);
+}
+.summary-prose strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.summary-prose blockquote {
+  margin: 0.6em 0;
+  padding-left: 0.7em;
+  border-left: 2px solid color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  color: var(--foreground);
+}
+.summary-prose code {
+  font-size: 0.9em;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  background: var(--muted);
+  color: var(--foreground);
+}

@@ -178,13 +178,12 @@ export default async function EntryPage({ params }: { params: Params }) {
             </div>
 
             {entry.summary ? (
-              <ul className="mt-2 space-y-1.5 text-sm leading-6 text-muted-foreground">
-                {entry.summary.split("\n").map((line, i) => (
-                  <li key={i} className="border-l-2 border-border pl-2">
-                    {line.replace(/^-\s*/, "")}
-                  </li>
-                ))}
-              </ul>
+              <div className="summary-prose mt-2">
+                <MDXRemote
+                  source={entry.summary}
+                  options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+                />
+              </div>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
                 {entry.state === "pending" ? "抓取完成后自动生成。" : "还没有概括，点「重算」生成。"}

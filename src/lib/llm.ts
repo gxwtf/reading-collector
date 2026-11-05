@@ -114,33 +114,44 @@ export async function chat(
   }
 }
 
-const SUMMARY_PROMPT = `你在帮用户做阅读摘要。请把下面的文章（或逐字稿）概括成 4-8 条中文要点。
+const SUMMARY_PROMPT = `你在为「阅读收集」写一份读书笔记摘要。请严格按下面的 Markdown 结构输出，不要任何开场白或额外解释：
 
-要求：
-- 每条一行，以「- 」开头，不超过 60 字
-- 抓具体信息（人物、数字、结论、方法与反例），不要空话
-- 保留原文的关键概念与专有名词，不要翻译人名
-- 只输出要点列表，不要任何开场白或总结句`;
+## 一句话结论
+（一句话，不超过 40 字，说清这篇最重要的判断或发现）
 
-/** AI 概括；失败时抛错，由调用方回退到抽取式 */
-export async function aiSummary(text: string, cfg: LlmConfig): Promise<string> {
+## 分章要点
+- **小标题**：要点（每条不超过 60 字，4-8 条）
+- 视频/播客按时间顺序，每条以 \`[mm:ss]\` 开头，例如 \`[03:20] **为什么 agent 需要常驻**：…\`
+- 文章按原文的论证顺序，讲机制、讲取舍，不要复述流水账
+
+## 金句
+> 原文原句（视频/播客标 \`[mm:ss]\`）
+（1-3 条，只挑真正有信息量或画面感的句子，不要编造）
+
+要求：具体、带数字与专有名词；人名与术语保留原文；中文输出。`;
+
+export async function aiSummary(
+  text: string,
+  cfg: LlmConfig,
+  options: { kind?: "article" | "video" | "podcast" } = {},
+): Promise<string> {
   const content = text.slice(0, 12_000);
   const reply = await chat(
     cfg,
     [
       { role: "system", content: SUMMARY_PROMPT },
-      { role: "user", content },
+      {
+        role: "user",
+        content: `${options.kind === "article" ? "这是一篇文章" : "这是音视频的逐字稿，时间戳已在每段开头"}：\n\n${content}`,
+      },
     ],
     // 推理型模型会先消耗思考 token，预算给足，否则 content 为空
     { maxTokens: 2500, temperature: 0.2, timeoutMs: 90_000 },
   );
 
-  const lines = reply
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.startsWith("-") || /^\d+[.、]/.test(l))
-    .map((l) => `- ${l.replace(/^(-|\d+[.、])\s*/, "")}`);
-
-  if (lines.length === 0) throw new Error("模型返回的摘要格式不对");
-  return lines.slice(0, 10).join("\n");
+  const cleaned = reply.trim();
+  if (!cleaned.includes("一句话结论") && cleaned.length < 30) {
+    throw new Error("模型返回的摘要格式不对");
+  }
+  return cleaned;
 }
