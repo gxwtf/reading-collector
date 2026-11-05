@@ -1,0 +1,25 @@
+[Unit]
+Description=阅读收集站点（gxreading）
+Documentation=https://github.com/gxwtf/reading-collector
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gxwtf
+Group=gxwtf
+WorkingDirectory=/home/gxwtf/gxwtf_reading
+EnvironmentFile=/home/gxwtf/gxwtf_reading/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/pnpm start
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# 站点只需要读写自己的目录
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,24 @@
+[Unit]
+Description=阅读收集抓取/转写 worker（gxreading-worker）
+Documentation=https://github.com/gxwtf/reading-collector
+After=network-online.target gxreading.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gxwtf
+Group=gxwtf
+# worker 用 `from config import ...` 的相对导入，工作目录必须是 worker/
+WorkingDirectory=/home/gxwtf/gxwtf_reading/worker
+EnvironmentFile=/home/gxwtf/gxwtf_reading/.env
+ExecStart=/usr/bin/python3 worker.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# 转写要写临时目录
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,41 @@
+# 阅读收集 · Nginx 站点配置示例
+# 放到 /etc/nginx/conf.d/reading.gxwtf.cn.conf，TLS 部分交给 certbot 补全。
+#
+# 关键点：
+#   · Host 必须透传 —— SSO 的 system 参数取的就是请求 Host
+#   · X-Forwarded-Proto 必须透传 —— 否则回调地址会拼成 http
+#   · 站点内的请求都很快（抓取在后台 worker 里跑），60s 默认超时足够
+
+server {
+    listen 80;
+    server_name reading.gxwtf.cn;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name reading.gxwtf.cn;
+
+    # ssl_certificate     /etc/letsencrypt/live/reading.gxwtf.cn/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/reading.gxwtf.cn/privkey.pem;
+
+    client_max_body_size 10m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3005;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+
+        proxy_read_timeout 60s;
+    }
+
+    # 静态资源由 Next 自己出，长期缓存交给它即可
+    access_log /var/log/nginx/reading.access.log;
+    error_log  /var/log/nginx/reading.error.log;
+}

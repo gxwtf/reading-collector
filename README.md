@@ -128,6 +128,8 @@ reading-collector/
 
 完整定义见 [prisma/schema.prisma](prisma/schema.prisma)。
 
+部署细节（systemd、Nginx、worker、排错）见 [docs/DEPLOY.md](docs/DEPLOY.md)。
+
 ## 生产部署
 
 服务器 systemd 服务名 `gxreading.service`（端口 `3005`，Nginx 反向代理 + HTTPS），
