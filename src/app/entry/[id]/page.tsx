@@ -368,9 +368,7 @@ function buildLines(raw: unknown): { start: number; end: number; text: string }[
   return lines;
 }
 
-function TranscriptView({
-  transcript,
-}: {
+: {
   transcript: { backend: string; locale: string; text: string; segments: unknown };
 }) {
   const raw = Array.isArray(transcript.segments) ? (transcript.segments as TranscriptSegment[]) : [];
