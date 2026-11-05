@@ -9,3 +9,5 @@ __pycache__/
 venv/
 .DS_Store
 .env
+docs/GLOBAL-MEMORY.md
+docs/COLLAB.md
