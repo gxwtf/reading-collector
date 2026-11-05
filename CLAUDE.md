@@ -1,85 +1,100 @@
-# 项目开发与测试规范（阅读收集）
+# 项目开发与测试规范（阅读收集 · 云端版）
+
+<important>
+This is NOT the Next.js you know. 本项目用 Next 16，API 与约定与训练数据可能不同。
+写代码前先读 `node_modules/next/dist/docs/` 里对应的指南，注意弃用提示。
+</important>
 
 ## 项目定位
 
-「阅读收集」是广学五题坊（广坊）旗下的**个人知识流水线工具**：把散落在待办里的链接
-抓成干净的 Markdown，归档进 Obsidian，再勾掉待办。视频与播客先转逐字稿再成稿。
+「阅读收集」是广学五题坊（广坊）旗下的**云端阅读库**：把链接收进来，后台抓正文 / 转写音视频，
+在线读完、打标签。数据全在 PostgreSQL，**不再有 Obsidian、Notion 或本地 Markdown 库**。
 
 - 仓库：<https://github.com/gxwtf/reading-collector>
-- 定位：**独立 CLI 工具集**，不依赖任何服务端，也不依赖付费 API
-- 与「广学英语」「作文积累本」不同：本仓库**没有 Web 服务、没有数据库**，
-  产物是 Markdown 文件（Obsidian vault），所以不需要部署到服务器
+- 线上：`reading.gxwtf.cn`（端口 3005，服务 `gxreading.service`）
+- 与「作文积累本」（`gxwtf/writing`）同构：同一套技术栈、同一套 SSO、同样的目录约定
 
 ## 技术栈
 
-- Python ≥ 3.9，**优先标准库**；3.11+ 才有 `tomllib`，低版本需 `pip install tomli`
-- 配置：`config/config.toml`（TOML）+ 环境变量覆盖
-- 外部命令：`ffmpeg` / `ffprobe` / `yt-dlp` / `whisper-cli` / `minis-mcp-cli`
-- 语音识别后端可插拔：`whispercpp`（推荐）/ `apple` / `whisper`
-- 归档目标：Obsidian（权威）+ Notion（从属镜像，可选）
+- Next.js 16（App Router）+ React 19 + TypeScript 6，包管理只用 **pnpm**
+- PostgreSQL + Prisma 7（`@prisma/adapter-pg`），库名 `gxwtf_reading`
+- Tailwind CSS 4 + shadcn 风格组件，颜色只走语义令牌
+- iron-session 9 + 广学账号 SSO
+- 后台任务：Python worker（不连数据库，只走 HTTP 任务接口）
 
 ## 核心规范
 
-- **不留硬编码路径。**任何路径、命令名、平台差异都走 `scripts/config.py`，
-  需要新的开关就在 `DEFAULTS` 里加键，并同步 `config/config.example.toml`。
-- **脚本可单独运行。**每个脚本都是独立 CLI，彼此只共用 `config`，
-  不共享内部状态；新增脚本也必须能被 `python3 scripts/xxx.py --help` 独立调用。
-- **失败要可诊断。**报错说清「缺什么」和「怎么补」，不要只抛 traceback。
-- **从属步骤不阻塞。**Notion 镜像这类步骤失败就记一笔，不能中断主流程，也不回滚已落的笔记。
-- **成功率优先于并发。**语音识别并发会限流，必须串行 + 间隔 + 重试；
-  不要为了快改成并发池。
-- 新依赖必须能 `pip install` 到纯 Python 环境；涉及 C 扩展的依赖需要在
-  `skills/video-notes/SKILL.md` 里写清平台限制（例如 `ctranslate2` 不支持 musl）。
+### 身份与数据安全
 
-### 严禁破坏数据
+- **Server Action 不接受前端传来的 `userId`。**一律服务端从会话取，`where` 里必须带 `userId`，
+  避免拿别人的 id 越权操作。
+- 待办、笔记、收藏都是用户私有数据，**没有公开分享页**；要加必须单独设计权限。
+- 删除类操作要二次确认，且只删自己的数据。
 
-除非明确要求，否则不得删除或大规模修改知识库内容。高危操作包括：
-清空 vault 目录、批量重写已归档笔记、覆盖 `config/notion-map.json`、
-对已有笔记执行 `--force` 重抓、`git clean -xdf` 打掉未提交的配置。
+### 抓取与转写
 
-执行前必须说明命令、原因、影响范围与风险，并等待人工确认。
+- **站点不干重活。**请求里只写 `Entry` + `FetchJob` 就返回，抓取一律交给 worker。
+  超过 Nginx 60s 的活不要放在请求链路里。
+- **worker 不直连数据库。**只能通过 `/api/worker/jobs*` 与站点交互，鉴权用 `INTERNAL_API_KEY`。
+- **失败要留痕。**worker 失败必须回填 `status: "failed"` 与可读的 `error`，
+  站点把它显示在页面上并给「重试」，不要静默重试到死。
+- **识别语言必须与原声一致。**`ASR_LOCALE` 选错输出是乱码，不是「效果差一点」。
+- **不用 `faster-whisper` / ctranslate2。**依赖 glibc，服务器是 musl 时导入即段错误；统一用 whisper.cpp。
 
-### 顺序铁律
+### 前端
 
-**笔记没落盘就不勾待办。**归档顺序固定为：
+- 颜色只在 `src/app/globals.css` 的 `:root` / `.dark` 里成对定义，
+  组件里禁止 `#hex`、`bg-white`、`text-black`；品牌色用 `text-brand-red`。
+- 任何前端改动都要**浅色 + 深色**各看一遍。
+- 正文渲染走 MDX，样式集中在 `.prose-reading`，不要在每个组件里零散写排版。
 
-```
-写笔记 → 重建索引 → 勾完成 → 镜像 Notion
-```
+### 提交规范
 
-任何一步失败都停在原地，不越级。
+- Conventional Commits + 中文描述，单行：`feat(收藏): 支持重复链接合并标签`、`fix(worker): 转写失败时保留原因`。
+- 一个提交只做一件事；分支持续保持 `main`。
 
-### 必须测试
+## 必须测试
 
-代码修改后不得直接结束任务：
+改完不得直接结束：
 
-1. `python3 -m compileall -q scripts` 必须无报错；
-2. 涉及待办读写、归档、转写的改动，用 examples 起一次干跑：
-   `python3 scripts/inbox.py --backend file --inbox examples/inbox-example.md`；
-3. 改了 `archive.py` 的输出格式（文件名、标签、front-matter、首页表格），
-   必须在临时 vault 里跑一遍并检查生成的 Markdown，**不要直接拿真实 vault 试**；
-4. 改了转写相关代码，至少用一个 10 分钟以内的短视频完整跑通一次。
+1. `pnpm typecheck` 必须通过；
+2. `pnpm build` 必须成功（线上用 `next start`，构建脚本固定 `next build --webpack`）；
+3. 动了 Prisma schema：本地 `pnpm db:migrate` 能跑通，且新迁移文件一起提交；
+4. 动了 worker：`python3 -m py_compile worker/*.py`，并用 `python3 worker/worker.py --dry-run` 验证能领到任务；
+5. 动了收藏/状态/重试等核心流程，手动跑一遍：收藏 → 等抓取 → 打开详情 → 标已读。
 
 ## 目录约定
 
 ```
-scripts/    可独立运行的 CLI（唯一可执行代码来源）
-skills/     agent 技能定义（SKILL.md），与运行时副本保持同步
-config/     配置样例（真实 config.toml 不入库）
-docs/       设计说明与协作约定
-examples/   输入 / 输出样例，测试时可直接用
-snippets/   Obsidian CSS 片段
+src/app/       页面与路由（App Router）
+src/actions/   Server Actions，一个业务域一个文件
+src/components/页面组件；ui/ 下是 shadcn 风格原子组件
+src/lib/       Prisma 客户端、会话、鉴权、工具
+prisma/        schema 与迁移
+worker/        Python 抓取 / 转写 worker（独立进程）
+docs/          架构与设计说明
 ```
 
-## 提交规范
+## 部署
 
-- **Conventional Commits**，类型 + 可选 scope + 中文描述，例如
-  `feat(archive): 文件名超过长度上限时保留扩展名`、`docs: 同步设计说明`。
-- 一个提交只做一件事；纯格式化改动单独提交。
-- 分支持续保持 `main`，不建长期开发分支。
+```bash
+cd ~/gxwtf_reading && git pull
+pnpm install
+pnpm exec prisma migrate deploy
+pnpm build
+sudo /usr/local/sbin/gxwtf-systemctl restart gxreading.service
+sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
+```
+
+- 数据库：`gxwtf_reading`（独立库，不要塞进 `gxwtf_writing`）
+- systemd：`gxreading.service`（3005）、`gxreading-worker.service`
+- Nginx 需透传 `Host` 与 `X-Forwarded-Proto`（SSO 的 `system` 取 Host）
+- 上线前：广学账号侧把 `reading.gxwtf.cn` 加进 system 白名单
 
 ## 未来规划
 
-- 待办后端继续可插拔：目前有 `frogtodo` 与 `file`，可加 Todoist / Things
-- 归档前的内容清洗（去广告、去导航）做成独立可配置步骤
-- 索引页支持按标签、来源多维筛选
+- 标签页与分组管理页
+- 全文搜索（Postgres 全文索引）
+- 划线批注交互
+- 浏览器书签脚本 / iOS 分享扩展
+- 旧 Obsidian 库的一次性导入脚本（Markdown → Entry）

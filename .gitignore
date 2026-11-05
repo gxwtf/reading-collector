@@ -1,13 +1,22 @@
-config/config.toml
-config/notion-map.json
-inbox.md
-*.log
+# 依赖与构建产物
+node_modules/
+.next/
 out/
+dist/
+
+# 环境与本地配置
+.env
+.env.local
+*.log
+
+# Prisma 生成物
+src/generated/
+
+# Python
 __pycache__/
 *.pyc
 .venv/
-venv/
+worker/.cache/
+
+# 系统文件
 .DS_Store
-.env
-docs/GLOBAL-MEMORY.md
-docs/COLLAB.md

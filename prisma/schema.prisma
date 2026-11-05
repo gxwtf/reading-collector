@@ -1,0 +1,204 @@
+// 广学五题坊 · 阅读收集（云端版）
+// 数据全部存在 PostgreSQL，不再依赖 Obsidian / Notion。
+// 约定与「作文积累本」（gxwtf/writing）保持一致：User 预留自增主键 + 广学账号 userId 唯一键。
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// 用户（登录时从广学账号 SSO 同步；userId 即广学账号用户 ID）
+model User {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  userName  String
+  admin     Int      @default(0)
+  email     String?
+  realName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries     Entry[]
+  collections Collection[]
+  highlights  Highlight[]
+  tagConfigs  TagConfig[]
+}
+
+/// 收集分组（一个用户可以有多个，例如「待读」「语文素材」「英语外刊」）
+model Collection {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User              @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  entries CollectionEntry[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+/// 收集分组 ↔ 条目 多对多
+model CollectionEntry {
+  id           Int      @id @default(autoincrement())
+  collectionId Int
+  entryId      Int
+  createdAt    DateTime @default(now())
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  entry      Entry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, entryId])
+  @@index([entryId])
+}
+
+/// 一条收藏（文章 / 视频 / 播客）
+/// state 是「抓取处理状态」，readState 是「阅读进度」，两者独立。
+model Entry {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  url         String    @db.Text
+  /// url 的 sha256（hex），用于唯一索引——URL 可能很长，直接给 url 建索引会超出 btree 限制
+  urlHash     String    @db.VarChar(64)
+  title       String    @db.VarChar(500)
+  /// 来源站名，如「微信公众号」「哔哩哔哩」「NYT」
+  site        String?   @db.VarChar(100)
+  author      String?   @db.VarChar(200)
+  /// article | video | podcast
+  kind        String    @default("article") @db.VarChar(20)
+  lang        String?   @db.VarChar(20)
+  excerpt     String?   @db.Text
+  /// 清洗后的正文 Markdown（文章正文 / 视频逐字稿的整理稿）
+  contentMd   String?   @db.Text
+  coverImage  String?   @db.VarChar(2048)
+  wordCount   Int?
+  durationSec Int?
+  publishedAt DateTime?
+  /// pending（待抓取）| ready（可用）| failed（抓取失败）
+  state       String    @default("pending") @db.VarChar(20)
+  /// unread | reading | done
+  readState   String    @default("unread") @db.VarChar(20)
+  favorite    Boolean   @default(false)
+  rating      Int?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User              @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  tags        EntryTag[]
+  collections CollectionEntry[]
+  transcript  Transcript?
+  highlights  Highlight[]
+  jobs        FetchJob[]
+
+  @@unique([userId, urlHash])
+  @@index([userId, state])
+  @@index([userId, readState])
+  @@index([userId, createdAt])
+  @@index([userId, favorite])
+}
+
+/// 标签（全局去重，按名称唯一；颜色/描述在 TagConfig 里按用户区分）
+model Tag {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  colorId     String   @default("blue")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entryTags EntryTag[]
+}
+
+model EntryTag {
+  id        Int      @id @default(autoincrement())
+  entryId   Int
+  tagId     Int
+  createdAt DateTime @default(now())
+
+  entry Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, tagId])
+  @@index([tagId])
+}
+
+/// 用户级标签配置（颜色、描述），与全局 Tag 名称一一对应
+model TagConfig {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  colorId     String   @default("blue")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+/// 音视频逐字稿（一条收藏至多一份）
+model Transcript {
+  id        Int      @id @default(autoincrement())
+  entryId   Int      @unique
+  /// 识别语言，必须与原声一致
+  locale    String   @db.VarChar(20)
+  /// whispercpp | apple | whisper
+  backend   String   @db.VarChar(20)
+  model     String?  @db.VarChar(100)
+  text      String   @db.Text
+  /// 带时间戳的分段，形如 [{start, end, text}]
+  segments  Json?
+  createdAt DateTime @default(now())
+
+  entry Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+}
+
+/// 划线与批注
+model Highlight {
+  id        Int      @id @default(autoincrement())
+  entryId   Int
+  userId    Int
+  quote     String   @db.Text
+  note      String?  @db.Text
+  /// 定位信息（段落序号、字符偏移等），便于在正文里回显
+  anchor    Json?
+  createdAt DateTime @default(now())
+
+  entry Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([entryId])
+  @@index([userId])
+}
+
+/// 抓取 / 转写任务队列：Web 端只建任务，Python worker 轮询领取
+model FetchJob {
+  id         Int       @id @default(autoincrement())
+  entryId    Int?
+  url        String    @db.Text
+  /// fetch（抓正文）| transcribe（转写音视频）
+  kind       String    @default("fetch") @db.VarChar(20)
+  /// pending | running | done | failed
+  status     String    @default("pending") @db.VarChar(20)
+  attempts   Int       @default(0)
+  error      String?   @db.Text
+  worker     String?   @db.VarChar(100)
+  claimedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  entry Entry? @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([entryId])
+}
