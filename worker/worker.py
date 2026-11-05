@@ -70,7 +70,6 @@ def handle(client: httpx.Client, job: dict) -> None:
                 "title": result["title"] or url,
                 "site": "音视频",
                 "author": result["author"],
-                "contentMd": _transcript_markdown(result),
                 "coverImage": result["coverImage"],
                 "durationSec": result["durationSec"],
                 "kind": result["kind"],
@@ -99,26 +98,6 @@ def handle(client: httpx.Client, job: dict) -> None:
         log(f"job {job_id} 异常：{exc}")
         traceback.print_exc()
         report(client, job_id, {"status": "failed", "error": f"worker 异常：{exc}"[:2000]})
-
-
-def _transcript_markdown(result: dict) -> str:
-    """把逐字稿按段落切成 Markdown，便于站点直接渲染。"""
-    segments = result.get("segments") or []
-    if not segments:
-        return result.get("text") or ""
-
-    lines: list[str] = []
-    buffer: list[str] = []
-    last = 0.0
-    for seg in segments:
-        buffer.append(seg.get("text", "").strip())
-        if seg.get("end", 0) - last >= 45:
-            lines.append("".join(buffer).strip())
-            buffer = []
-            last = seg.get("end", 0)
-    if buffer:
-        lines.append("".join(buffer).strip())
-    return "\n\n".join(line for line in lines if line)
 
 
 def main() -> None:

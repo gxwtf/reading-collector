@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { BookOpenText } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { logout } from "@/actions/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SearchBox } from "@/components/SearchBox";
 
 export async function Navbar() {
   const session = await getSession();
@@ -28,6 +30,9 @@ export async function Navbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3 text-sm">
+          <Suspense fallback={<span className="hidden h-8 w-48 md:block" />}>
+            <SearchBox />
+          </Suspense>
           <ThemeToggle />
           {session.isLoggedIn ? (
             <>

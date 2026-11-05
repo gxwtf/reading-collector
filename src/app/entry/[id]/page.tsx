@@ -10,6 +10,8 @@ import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { Badge } from "@/components/ui/badge";
 import { ReadingShell } from "@/components/ReadingShell";
+import { HighlightLayer } from "@/components/HighlightLayer";
+import { HighlightList } from "@/components/HighlightList";
 import { Button } from "@/components/ui/button";
 
 type Params = Promise<{ id: string }>;
@@ -142,25 +144,89 @@ export default async function EntryPage({ params }: { params: Params }) {
 
       {body ? (
         <ReadingShell>
-          <div className="prose-reading max-w-none">
-            <MDXRemote
-              source={body}
-              options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-            />
-          </div>
+          <HighlightLayer entryId={entry.id}>
+            <div className="prose-reading max-w-none">
+              <MDXRemote
+                source={body}
+                options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+              />
+            </div>
+          </HighlightLayer>
         </ReadingShell>
       ) : null}
 
-      {entry.transcript ? (
-        <section className="space-y-2 border-t border-border pt-4">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            逐字稿（{entry.transcript.backend} · {entry.transcript.locale}）
-          </h2>
-          <pre className="whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
-            {entry.transcript.text}
-          </pre>
-        </section>
-      ) : null}
+      {entry.transcript ? <TranscriptView transcript={entry.transcript} /> : null}
+
+      <section className="space-y-3 border-t border-border pt-4">
+        <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>
+        <HighlightList
+          items={entry.highlights.map((h) => ({
+            id: h.id,
+            quote: h.quote,
+            note: h.note,
+            anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
+            createdAt: h.createdAt.toLocaleDateString("zh-CN"),
+          }))}
+        />
+      </section>
     </article>
+  );
+}
+
+type TranscriptSegment = { start?: number; end?: number; text?: string };
+
+function mmss(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** 逐字稿：按 60 秒聚合成段，带时间戳；没有分段时退回纯文本 */
+function TranscriptView({
+  transcript,
+}: {
+  transcript: { backend: string; locale: string; text: string; segments: unknown };
+}) {
+  const raw = Array.isArray(transcript.segments) ? (transcript.segments as TranscriptSegment[]) : [];
+  const segments = raw.filter((s) => (s.text ?? "").trim().length > 0);
+
+  const chunks: { start: number; text: string }[] = [];
+  for (const seg of segments) {
+    const start = Number(seg.start ?? 0);
+    const text = (seg.text ?? "").trim();
+    const last = chunks[chunks.length - 1];
+    if (last && start - last.start < 60) {
+      last.text += text.startsWith(" ") || /^[a-zA-Z]/.test(text) ? ` ${text}` : text;
+    } else {
+      chunks.push({ start, text });
+    }
+  }
+
+  return (
+    <section className="space-y-3 border-t border-border pt-4">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-medium">逐字稿</h2>
+        <span className="text-xs text-muted-foreground">
+          {transcript.backend} · {transcript.locale} · {segments.length} 段
+        </span>
+      </div>
+
+      {chunks.length > 0 ? (
+        <div className="space-y-4 text-[15px] leading-8">
+          {chunks.map((c) => (
+            <div key={c.start} className="flex gap-3">
+              <span className="w-11 shrink-0 pt-1 text-xs tabular-nums text-muted-foreground">
+                {mmss(c.start)}
+              </span>
+              <p className="min-w-0 flex-1">{c.text}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <pre className="whitespace-pre-wrap break-words text-sm leading-7 text-muted-foreground">
+          {transcript.text}
+        </pre>
+      )}
+    </section>
   );
 }

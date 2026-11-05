@@ -13,6 +13,7 @@ type SearchParams = Promise<{
   favorite?: string;
   kind?: string;
   collection?: string;
+  q?: string;
 }>;
 
 export default async function HomePage({ searchParams }: { searchParams: SearchParams }) {
@@ -21,10 +22,22 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   const userId = session.userId;
 
   const collectionId = Number(sp.collection || 0) || undefined;
+  const q = (sp.q || "").trim().slice(0, 60);
   const kind = sp.kind && ["article", "video", "podcast"].includes(sp.kind) ? sp.kind : undefined;
 
   const where = {
     userId,
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: "insensitive" as const } },
+            { excerpt: { contains: q, mode: "insensitive" as const } },
+            { contentMd: { contains: q, mode: "insensitive" as const } },
+            { site: { contains: q, mode: "insensitive" as const } },
+            { transcript: { is: { text: { contains: q, mode: "insensitive" as const } } } },
+          ],
+        }
+      : {}),
     ...(sp.readState ? { readState: sp.readState } : {}),
     ...(sp.favorite ? { favorite: true } : {}),
     ...(kind ? { kind } : {}),
@@ -80,7 +93,9 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
       <div className="min-w-0 space-y-4">
         <div className="flex items-baseline justify-between">
           <h1 className="text-xl font-semibold">
-            {collectionId
+            {q
+              ? `搜索：${q}`
+              : collectionId
               ? (collections.find((c) => c.id === collectionId)?.name ?? "分组")
               : kind
                 ? { article: "文章", video: "视频", podcast: "播客" }[kind as "article" | "video" | "podcast"]
