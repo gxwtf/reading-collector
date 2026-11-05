@@ -123,6 +123,8 @@ export default async function EntryPage({ params }: { params: Params }) {
                 Array.isArray(entry.transcript.segments) ? entry.transcript.segments.length : 0
               }
               lines={buildLines(entry.transcript.segments)}
+              // B 站直链是 DASH 分片（.m4s），原生 <video> 播不了；先回退内嵌，等接入 DASH 播放器再开
+              bilibiliMode={false}
             />
           ) : (
             <>
