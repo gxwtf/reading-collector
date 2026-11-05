@@ -37,19 +37,41 @@ export function HighlightList({ items }: { items: HighlightItem[] }) {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
-  function jumpTo(anchor: HighlightItem["anchor"]) {
-    if (!anchor || typeof anchor.block !== "number") return;
-    const container = document.querySelector(".prose-reading");
-    const target = container?.children[anchor.block] as HTMLElement | undefined;
-    if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
-    target.animate(
+  function flash(el: HTMLElement | null) {
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.animate(
       [
         { backgroundColor: "rgba(163,31,36,0.18)" },
         { backgroundColor: "rgba(163,31,36,0)" },
       ],
       { duration: 1600 },
     );
+  }
+
+  /** anchor.start 是相对 .prose-reading 的字符偏移：走文本节点定位到所在元素 */
+  function jumpTo(anchor: HighlightItem["anchor"]) {
+    const root = document.querySelector(".prose-reading") as HTMLElement | null;
+    if (!root) return;
+
+    if (anchor && typeof anchor.start === "number") {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let pos = 0;
+      let node = walker.nextNode() as Text | null;
+      while (node) {
+        const len = node.data.length;
+        if (pos + len >= anchor.start) {
+          flash(node.parentElement ?? root);
+          return;
+        }
+        pos += len;
+        node = walker.nextNode() as Text | null;
+      }
+    }
+
+    if (anchor && typeof anchor.block === "number") {
+      flash((root.children[anchor.block] as HTMLElement) ?? null);
+    }
   }
 
   if (items.length === 0) {

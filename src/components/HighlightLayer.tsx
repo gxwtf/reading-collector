@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Highlighter, Loader2, X } from "lucide-react";
 import { createHighlight } from "@/actions/highlights";
 
-export type HighlightAnchor = { block?: number; start?: number; end?: number };
+export type HighlightAnchor = { start?: number; end?: number; block?: number };
 
 export type InlineHighlight = {
   id: number;
@@ -15,16 +15,17 @@ export type InlineHighlight = {
 
 type Pending = {
   quote: string;
-  anchor: { block: number; start: number; end: number } | null;
+  anchor: { start: number; end: number } | null;
   x: number;
   y: number;
   coarse: boolean;
 };
 
-/** 把 [start, end) 字符区间包成 <mark data-hl> */
-function wrapRange(block: HTMLElement, start: number, end: number, id: number) {
+/** 把 [start, end) 字符区间包成 <mark data-hl>，可跨多个文本节点 */
+function wrapRange(root: HTMLElement, start: number, end: number, id: number) {
   if (end <= start) return;
-  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const targets: { node: Text; from: number; to: number }[] = [];
   let pos = 0;
   let node = walker.nextNode() as Text | null;
@@ -41,7 +42,7 @@ function wrapRange(block: HTMLElement, start: number, end: number, id: number) {
     node = walker.nextNode() as Text | null;
   }
 
-  // 反向处理，避免 splitText 打乱前面节点的偏移
+  // 反向切分，前面的节点偏移不受影响
   for (const t of targets.reverse()) {
     if (!t.node.parentNode) continue;
     const tail = t.node.splitText(Math.min(t.to, t.node.data.length));
@@ -53,6 +54,18 @@ function wrapRange(block: HTMLElement, start: number, end: number, id: number) {
     mid.parentNode?.insertBefore(mark, mid);
     mark.appendChild(mid);
   }
+}
+
+/** 正文根节点：优先取 .prose-reading，偏移都相对它计算 */
+function contentRoot(container: HTMLElement): HTMLElement {
+  return (container.querySelector(".prose-reading") as HTMLElement | null) ?? container;
+}
+
+function offsetIn(root: HTMLElement, node: Node, offset: number): number {
+  const range = document.createRange();
+  range.selectNodeContents(root);
+  range.setEnd(node, offset);
+  return range.toString().length;
 }
 
 export function HighlightLayer({
@@ -71,12 +84,12 @@ export function HighlightLayer({
   const [saving, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
-  /** 把已存的划线画回正文 */
+  /** 把已存的划线画回正文：先校验偏移，对不上就按原文重新定位 */
   useEffect(() => {
-    const root = containerRef.current;
-    if (!root) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const root = contentRoot(container);
 
-    // 先清掉旧标记，避免重复包
     root.querySelectorAll("mark[data-hl]").forEach((m) => {
       const parent = m.parentNode;
       if (!parent) return;
@@ -85,12 +98,22 @@ export function HighlightLayer({
       (parent as HTMLElement).normalize?.();
     });
 
+    const text = root.textContent ?? "";
+
     for (const h of highlights) {
-      const anchor = h.anchor;
-      if (!anchor || typeof anchor.block !== "number") continue;
-      const block = root.children[anchor.block] as HTMLElement | undefined;
-      if (!block) continue;
-      wrapRange(block, anchor.start ?? 0, anchor.end ?? 0, h.id);
+      if (!h.quote) continue;
+      let start = h.anchor?.start ?? -1;
+      let end = h.anchor?.end ?? -1;
+
+      const exact = start >= 0 && end > start && text.slice(start, end) === h.quote;
+      if (!exact) {
+        const found = text.indexOf(h.quote);
+        if (found < 0) continue;
+        start = found;
+        end = found + h.quote.length;
+      }
+
+      wrapRange(root, start, end, h.id);
     }
   }, [highlights]);
 
@@ -98,30 +121,30 @@ export function HighlightLayer({
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
 
-    const range = selection.getRangeAt(0);
     const container = containerRef.current;
-    if (!container || !container.contains(range.commonAncestorContainer)) return;
+    if (!container) return;
+    const root = contentRoot(container);
 
-    const quote = selection.toString().trim();
-    if (quote.length < 2) return;
+    const range = selection.getRangeAt(0);
+    if (!root.contains(range.commonAncestorContainer)) return;
 
-    let node: Node | null = range.startContainer;
-    while (node && node.parentNode !== container) node = node.parentNode;
-    const block = node ? Array.prototype.indexOf.call(container.children, node) : -1;
+    const start = offsetIn(root, range.startContainer, range.startOffset);
+    const end = offsetIn(root, range.endContainer, range.endOffset);
+    if (end <= start) return;
 
-    let start = 0;
-    if (node) {
-      const pre = document.createRange();
-      pre.selectNodeContents(node as Element);
-      pre.setEnd(range.startContainer, range.startOffset);
-      start = pre.toString().length;
-    }
+    // 以 DOM 文本为准（selection.toString() 可能带入额外换行）
+    const raw = (root.textContent ?? "").slice(start, end);
+    const quote = raw.trim();
+    if (quote.length < 1) return;
+
+    const lead = raw.indexOf(quote);
+    const anchorStart = start + (lead > 0 ? lead : 0);
 
     const coarse = window.matchMedia("(pointer: coarse)").matches;
     const rect = range.getBoundingClientRect();
     setPending({
       quote: quote.slice(0, 2000),
-      anchor: block >= 0 ? { block, start, end: start + quote.length } : null,
+      anchor: { start: anchorStart, end: anchorStart + quote.length },
       x: Math.min(window.innerWidth - 280, Math.max(12, rect.left + rect.width / 2 - 120)),
       y: Math.max(60, rect.top - 56),
       coarse,
@@ -129,10 +152,9 @@ export function HighlightLayer({
     setSaved(false);
   }, []);
 
-  // 桌面：mouseup；iPad / 触屏：selectionchange + touchend（Safari 长按选择只触发这些）
+  // 桌面 mouseup；iPad/触屏走 selectionchange + touchend
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
-
     const onSelectionChange = () => {
       if (noteOpen) return;
       if (timer) clearTimeout(timer);
@@ -151,7 +173,11 @@ export function HighlightLayer({
   function save() {
     if (!pending) return;
     startTransition(async () => {
-      const res = await createHighlight(entryId, pending.quote, note, pending.anchor);
+      const res = await createHighlight(entryId, pending.quote, note, {
+        block: 0,
+        start: pending.anchor?.start ?? 0,
+        end: pending.anchor?.end ?? 0,
+      });
       if (res.ok) {
         setSaved(true);
         setPending(null);
@@ -230,7 +256,7 @@ export function HighlightLayer({
         </div>
       ) : null}
 
-      {saved ? <p className="mt-3 text-xs text-muted-foreground">已划线，可在下方「划线批注」里查看。</p> : null}
+      {saved ? <p className="mt-3 text-xs text-muted-foreground">已划线，可在右栏「划线批注」里查看。</p> : null}
     </div>
   );
 }
