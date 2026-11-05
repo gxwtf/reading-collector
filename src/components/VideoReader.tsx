@@ -6,7 +6,7 @@ import { seekUrl, type Embed } from "@/lib/embed";
 
 export type TranscriptLine = { start: number; end: number; text: string };
 
-const PLAYER_OFFSET = 96;
+const FALLBACK_OFFSET = 96;
 
 function mmss(sec: number) {
   const m = Math.floor(sec / 60);
@@ -46,6 +46,7 @@ export function VideoReader({
   const playerTime = useRef<number | null>(null);
   const playerTimeAt = useRef<number>(0);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const playerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(-1);
 
   const src = useMemo(() => {
@@ -101,11 +102,13 @@ export function VideoReader({
     [lines],
   );
 
+  /** 悬浮播放器会占掉一大块，定位时按它真实底边算，否则目标行会被盖住 */
   const scrollToLine = useCallback((index: number) => {
     const el = lineRefs.current[index];
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - PLAYER_OFFSET - 8;
-    window.scrollTo({ top, behavior: "smooth" });
+    const playerBottom = playerRef.current?.getBoundingClientRect().bottom ?? FALLBACK_OFFSET;
+    const top = el.getBoundingClientRect().top + window.scrollY - playerBottom - 16;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }, []);
 
   const jumpTo = useCallback(
@@ -134,7 +137,8 @@ export function VideoReader({
       let bestDist = Number.POSITIVE_INFINITY;
       lineRefs.current.forEach((el, i) => {
         if (!el) return;
-        const dist = Math.abs(el.getBoundingClientRect().top - PLAYER_OFFSET);
+        const base = playerRef.current?.getBoundingClientRect().bottom ?? FALLBACK_OFFSET;
+        const dist = Math.abs(el.getBoundingClientRect().top - base);
         if (dist < bestDist) {
           bestDist = dist;
           best = i;
@@ -185,7 +189,7 @@ export function VideoReader({
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-14 z-30 -mx-1 bg-background/95 px-1 py-2 backdrop-blur">
+      <div ref={playerRef} className="sticky top-14 z-30 -mx-1 bg-background/95 px-1 py-2 backdrop-blur">
         <div
           className="overflow-hidden rounded-lg border border-border bg-black shadow-lg"
           style={{ aspectRatio: embed.ratio }}
@@ -246,7 +250,7 @@ export function VideoReader({
                 className={[
                   "flex gap-3 rounded-md px-1 py-1 transition-all duration-500",
                   active
-                    ? "bg-brand-red/8 text-[17px] font-medium leading-9 text-foreground"
+                    ? "bg-brand-red/10 text-[17px] font-medium leading-9 text-foreground"
                     : "text-[15px] leading-8 text-muted-foreground/55 hover:text-muted-foreground",
                 ].join(" ")}
               >
