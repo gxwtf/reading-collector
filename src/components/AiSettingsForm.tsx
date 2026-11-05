@@ -12,9 +12,10 @@ type Props = {
   initialModel: string;
   hasKey: boolean;
   systemModel: string | null;
+  systemKeyCount: number;
 };
 
-export function AiSettingsForm({ initialMode, initialApiBase, initialModel, hasKey, systemModel }: Props) {
+export function AiSettingsForm({ initialMode, initialApiBase, initialModel, hasKey, systemModel, systemKeyCount }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<"system" | "custom">(initialMode);
   const [apiBase, setApiBase] = useState(initialApiBase);
@@ -47,7 +48,7 @@ export function AiSettingsForm({ initialMode, initialApiBase, initialModel, hasK
           <span>
             <span className="text-sm font-medium">站点默认模型</span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              {systemModel ? `当前：${systemModel}` : "站点未配置默认模型"}
+              {systemModel ? `当前：${systemModel}${systemKeyCount > 1 ? `（${systemKeyCount} 把 key 轮换）` : ""}` : "站点未配置默认模型"}
             </span>
           </span>
         </label>

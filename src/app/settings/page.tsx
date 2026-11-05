@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
-import { systemConfig } from "@/lib/llm";
+import { systemConfig, systemConfigs } from "@/lib/llm";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 
 export const metadata: Metadata = { title: "设置" };
@@ -19,6 +19,7 @@ export default async function SettingsPage() {
   });
   const stored = (user?.aiSettings ?? {}) as Stored;
   const system = systemConfig();
+  const systemKeyCount = systemConfigs().length;
 
   const mode: "system" | "custom" =
     stored.apiBase && stored.apiKey && stored.model ? "custom" : "system";
@@ -52,6 +53,7 @@ export default async function SettingsPage() {
           initialModel={stored.model ?? ""}
           hasKey={Boolean(stored.apiKey)}
           systemModel={system?.model ?? null}
+          systemKeyCount={systemKeyCount}
         />
       </section>
 

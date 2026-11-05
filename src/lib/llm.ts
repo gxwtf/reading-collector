@@ -10,36 +10,47 @@ type StoredSettings = {
   model?: string;
 };
 
-/** 站点默认模型：环境变量里的 LLM_CONFIGS（JSON 数组）或 OPENAI_* 三件套 */
-export function systemConfig(): LlmConfig | null {
+/**
+ * 站点默认模型列表：LLM_CONFIGS 里的每一项都是一把独立的 key，
+ * 前面的失败会自动换下一把（多 key 轮换 / 兜底）。
+ */
+export function systemConfigs(): LlmConfig[] {
+  const out: LlmConfig[] = [];
   const raw = process.env.LLM_CONFIGS;
+
   if (raw) {
     try {
       const arr = JSON.parse(raw) as Array<Partial<LlmConfig>>;
-      const found = arr.find((c) => c.apiBase && c.apiKey && c.model);
-      if (found) {
-        return { apiBase: found.apiBase!, apiKey: found.apiKey!, model: found.model! };
+      for (const c of arr) {
+        if (c.apiBase && c.apiKey && c.model) {
+          out.push({ apiBase: c.apiBase, apiKey: c.apiKey, model: c.model });
+        }
       }
     } catch (error) {
       console.error("解析 LLM_CONFIGS 失败", error);
     }
   }
 
-  if (process.env.OPENAI_API_KEY) {
-    return {
+  if (out.length === 0 && process.env.OPENAI_API_KEY) {
+    out.push({
       apiBase: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
       apiKey: process.env.OPENAI_API_KEY,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    };
+    });
   }
 
-  return null;
+  return out;
 }
 
-/** 当前用户实际使用的配置：自带优先，否则系统默认 */
-export async function configForUser(
+/** 展示用：第一把 key 的配置 */
+export function systemConfig(): LlmConfig | null {
+  return systemConfigs()[0] ?? null;
+}
+
+/** 当前用户可用的配置：自带优先（单条），否则站点的全部 key */
+export async function configsForUser(
   userId: number,
-): Promise<{ cfg: LlmConfig | null; source: "custom" | "system" | "none" }> {
+): Promise<{ cfgs: LlmConfig[]; source: "custom" | "system" | "none" }> {
   const user = await prisma.user.findUnique({
     where: { userId },
     select: { aiSettings: true },
@@ -48,13 +59,21 @@ export async function configForUser(
 
   if (stored?.apiBase && stored.apiKey && stored.model) {
     return {
-      cfg: { apiBase: stored.apiBase, apiKey: stored.apiKey, model: stored.model },
+      cfgs: [{ apiBase: stored.apiBase, apiKey: stored.apiKey, model: stored.model }],
       source: "custom",
     };
   }
 
-  const cfg = systemConfig();
-  return { cfg, source: cfg ? "system" : "none" };
+  const cfgs = systemConfigs();
+  return { cfgs, source: cfgs.length > 0 ? "system" : "none" };
+}
+
+/** 兼容旧调用：只取第一条 */
+export async function configForUser(
+  userId: number,
+): Promise<{ cfg: LlmConfig | null; source: "custom" | "system" | "none" }> {
+  const { cfgs, source } = await configsForUser(userId);
+  return { cfg: cfgs[0] ?? null, source };
 }
 
 /** OpenAI 兼容 chat 调用（非流式，适合一次性任务） */
