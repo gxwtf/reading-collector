@@ -131,6 +131,19 @@ reading-collector/
 
 部署细节（systemd、Nginx、worker、排错）见 [docs/DEPLOY.md](docs/DEPLOY.md)。
 
+## 开放 API
+
+脚本/快捷指令可以用 Bearer token 回灌链接（`SECRET_API_KEY` + `API_USER_ID`）：
+
+```bash
+curl -X POST https://reading.gxwtf.cn/api/v1/entries \
+  -H "Authorization: Bearer $SECRET_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"urls":["https://example.com/post"],"tags":["待读"]}'
+```
+
+详见 [docs/wiki/api.md](docs/wiki/api.md)。
+
 ## 生产部署
 
 服务器 systemd 服务名 `gxreading.service`（端口 `3005`，Nginx 反向代理 + HTTPS），
