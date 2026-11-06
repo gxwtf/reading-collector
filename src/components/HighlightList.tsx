@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { deleteHighlight } from "@/actions/highlights";
 
@@ -13,8 +13,17 @@ export type HighlightItem = {
 };
 
 /** 划线列表：点击可定位到正文对应段落 */
-export function HighlightList({ items }: { items: HighlightItem[] }) {
+export function HighlightList({ items: all }: { items: HighlightItem[] }) {
   const [pending, startTransition] = useTransition();
+  const [query, setQuery] = useState("");
+
+  const items = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return all;
+    return all.filter(
+      (h) => h.quote.toLowerCase().includes(q) || (h.note ?? "").toLowerCase().includes(q),
+    );
+  }, [all, query]);
 
   // 点正文里的高亮标记 → 滚到对应批注并闪一下
   useEffect(() => {
@@ -74,7 +83,7 @@ export function HighlightList({ items }: { items: HighlightItem[] }) {
     }
   }
 
-  if (items.length === 0) {
+  if (all.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         正文里选中一段文字，浮出的「划线」按钮就能存下摘录和批注。
@@ -83,7 +92,17 @@ export function HighlightList({ items }: { items: HighlightItem[] }) {
   }
 
   return (
-    <ul className="space-y-2">
+    <div className="space-y-2">
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="搜索划线或批注"
+        className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      />
+      {items.length === 0 ? (
+        <p className="px-1 text-xs text-muted-foreground">没有匹配的划线</p>
+      ) : null}
+      <ul className="space-y-2">
       {items.map((h) => (
         <li
           key={h.id}
@@ -112,6 +131,7 @@ export function HighlightList({ items }: { items: HighlightItem[] }) {
           </div>
         </li>
       ))}
-    </ul>
+      </ul>
+    </div>
   );
 }
