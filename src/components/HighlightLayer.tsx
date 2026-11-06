@@ -36,7 +36,9 @@ function wrapRange(root: HTMLElement, start: number, end: number, id: number) {
     const nodeEnd = pos + len;
     const from = Math.max(start, nodeStart) - nodeStart;
     const to = Math.min(end, nodeEnd) - nodeStart;
-    if (to > from) targets.push({ node, from, to });
+    // 已经落在别的划线里就不再嵌套，避免双层底色
+    const alreadyMarked = node.parentElement?.closest("mark[data-hl]");
+    if (to > from && !alreadyMarked) targets.push({ node, from, to });
     pos = nodeEnd;
     if (pos >= end) break;
     node = walker.nextNode() as Text | null;
