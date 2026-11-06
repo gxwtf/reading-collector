@@ -38,10 +38,12 @@
 
 1. 设置页开启 → 视频页出现「准备视频」
 2. `POST /api/media/<id>/prepare`：后台 `yt-dlp` 下载并合并为 `~/reading-media/<id>.mp4`
-3. `GET /api/media/<id>/file`：支持 Range 的本地流
+3. 同时用 ffmpeg（`-c copy`）切一份 HLS：`~/reading-media/<id>/index.m3u8` + `seg_*.ts`
+4. `GET /api/media/<id>/file`：mp4（Range）；`GET /api/media/<id>/hls/*`：m3u8 与分片
 4. 前端用原生 `<video>`，暂停/拖动/逐行高亮全部精确
 
-> iPad/iPhone 对本地流式 mp4 兼容性差，会自动回退内嵌播放器。
+> Safari / iPad 原生支持 HLS，会优先用 m3u8；其它浏览器用 mp4。
+> 浏览器不支持 HLS 时回退 mp4，再失败才回退内嵌播放器。
 
 ## 概括
 
