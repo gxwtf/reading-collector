@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "批注整理" };
 
-type SearchParams = Promise<{ q?: string }>;
+type SearchParams = Promise<{ q?: string; notes?: string }>;
 
 function fmt(date: Date) {
   return date.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
@@ -14,11 +14,14 @@ function fmt(date: Date) {
 
 export default async function AnnotationsPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await requireSession("/annotations");
-  const q = ((await searchParams).q ?? "").trim().slice(0, 60);
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim().slice(0, 60);
+  const onlyNotes = sp.notes === "1";
 
   const highlights = await prisma.highlight.findMany({
     where: {
       userId: session.userId,
+      ...(onlyNotes ? { note: { not: null } } : {}),
       ...(q
         ? {
             OR: [
@@ -61,7 +64,22 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
           </p>
         </div>
 
-        <form action="/annotations" className="relative">
+        <div className="flex items-center gap-2">
+          <Link
+            href={
+              onlyNotes
+                ? `/annotations${q ? `?q=${encodeURIComponent(q)}` : ""}`
+                : `/annotations?notes=1${q ? `&q=${encodeURIComponent(q)}` : ""}`
+            }
+            className={`rounded-md border px-2 py-1 text-xs ${
+              onlyNotes
+                ? "border-brand-red/40 bg-brand-red/10 text-brand-red"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            只看有批注
+          </Link>
+          <form action="/annotations" className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             name="q"
