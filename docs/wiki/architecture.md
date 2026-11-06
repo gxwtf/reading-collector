@@ -26,6 +26,14 @@
 
 失败会写 `FetchJob.error`、条目置 `failed`，页面给「重试」按钮。
 
+### 知乎
+
+知乎对未登录请求返回 403 / 跳登录页，因此 `worker/zhihu.py` 依赖 `.env` 里的
+`ZHIHU_COOKIE`（浏览器登录后复制整条 Cookie）。抓取方式：解析页面里的
+`js-initialData`，问题取前 3 个高赞回答，专栏取正文，再转 Markdown。
+
+未配置时失败原因会直接写在条目上：「知乎需要登录态…」，不会静默失败。
+
 ## 阅读与标注
 
 - 文章：`next-mdx-remote/rsc` 渲染；划线的 anchor 统一相对 `.prose-reading` 计算字符偏移，
