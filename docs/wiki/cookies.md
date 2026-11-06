@@ -30,3 +30,21 @@ GitHub、Medium、Substack、阮一峰等技术博客，直接抓。
 | 付费墙文章 | 需要该站会员 Cookie，且通常有反爬 |
 | 抖音 / TikTok 视频 | 需要签名参数，目前只支持 B 站 / YouTube 转写 |
 | 小红书笔记 | 除 Cookie 外还有风控签名，成功率不稳 |
+
+## 怎么获取（逐步）
+
+1. **在电脑浏览器登录**对应站点（iPad 没有开发者工具；电脑复制后可用「通用剪贴板」粘贴到 iPad）
+2. 打开开发者工具：Chrome / Edge 按 `F12`；Safari 先「设置 → 高级 → 显示网页开发者功能」，再 `⌥⌘I`
+3. 按下面的位置复制：
+
+| 站点 | 位置 | 复制什么 |
+| --- | --- | --- |
+| 知乎 | Network → 任意请求 → Request Headers | `Cookie` 整行（关键 `z_c0`） |
+| B 站 | Application → Cookies → `bilibili.com` | `SESSDATA` 的 Value |
+| 微博 | Network → 任意请求 → Request Headers | `Cookie` 整行（关键 `SUB`） |
+| 小红书 | Application → Cookies | `web_session`（连带 `a1`）或整行 Cookie |
+
+4. 回到本站「设置 → 站点登录态」粘贴 → 保存凭据；状态会变成「已配置」
+5. 撤销：把输入框清空再保存即可
+
+> 提示：Cookie 等同登录态，不要发给别人；一般几周到几个月过期，抓取开始报 403 时重新复制一次。
