@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/session";
 import { systemConfig, systemConfigs } from "@/lib/llm";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { PreciseVideoToggle } from "@/components/PreciseVideoToggle";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export const metadata: Metadata = { title: "设置" };
 
