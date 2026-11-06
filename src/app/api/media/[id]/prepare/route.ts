@@ -20,11 +20,14 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
   const entryId = Number(id);
   const entry = await prisma.entry.findFirst({
     where: { id: entryId, userId: session.userId },
-    select: { id: true, url: true, mediaState: true },
+    select: { id: true, url: true, mediaState: true, updatedAt: true },
   });
   if (!entry) return Response.json({ error: "not found" }, { status: 404 });
 
-  if (entry.mediaState === "pending") return Response.json({ state: "pending" });
+  // pending 超过 30 分钟视为卡死（服务重启等），允许重新准备
+  const stalePending =
+    entry.mediaState === "pending" && Date.now() - entry.updatedAt.getTime() > 30 * 60 * 1000;
+  if (entry.mediaState === "pending" && !stalePending) return Response.json({ state: "pending" });
   if (entry.mediaState === "ready") return Response.json({ state: "ready" });
 
   await mkdir(MEDIA_DIR, { recursive: true });
