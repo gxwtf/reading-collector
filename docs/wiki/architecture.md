@@ -21,7 +21,7 @@
 
 | 任务 | 流程 |
 | --- | --- |
-| `fetch` | httpx 取页面 → trafilatura 抽正文转 Markdown → 回填 `Entry.contentMd` |
+| `fetch` | httpx 取页面 → trafilatura 抽正文转 Markdown → 回填 `Entry.contentMd`；`Content-Type: application/pdf` 时改用 pypdf 抽文字 |
 | `transcribe` | **先试 B 站官方字幕**（需 `BILI_SESSDATA`）→ 拿不到再 yt-dlp 取音轨 → whisper.cpp 转写 → 存 `Transcript` |
 
 失败会写 `FetchJob.error`、条目置 `failed`，页面给「重试」按钮。
@@ -52,6 +52,18 @@
 
 > Safari / iPad 原生支持 HLS，会优先用 m3u8；其它浏览器用 mp4。
 > 浏览器不支持 HLS 时回退 mp4，再失败才回退内嵌播放器。
+
+## 导入方式
+
+| 方式 | 说明 |
+| --- | --- |
+| 单个/批量贴链接 | 从文本里正则提取 URL，自动判断类型（文章/视频/播客/文档） |
+| B 站收藏夹、合集/分P | 读接口后批量入库 |
+| RSS/Atom | 支持订阅，worker 每 30 分钟拉新 |
+| **Markdown** | 上传 `.md`/`.markdown`/`.txt` 或粘贴文本，直接入库（不抓取） |
+
+类型识别在 `src/lib/url.ts` 的 `detectKind()`：视频站、播客站、PDF/文档链接分别归到
+`video` / `podcast` / `document`，只有音视频才走转写任务。
 
 ## 概括
 
