@@ -68,6 +68,9 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
         raise TranscribeError(f"whisper 模型不存在：{WHISPER_MODEL}")
 
     lang = (locale or ASR_LOCALE).split("-")[0]
+
+    vad_model = os.environ.get("WHISPER_VAD", "")
+    vad_args = ["--vad", "-vm", vad_model] if vad_model and Path(vad_model).exists() else []
     out_base = wav.with_suffix("")
     r = _run(
         [
@@ -76,8 +79,13 @@ def _asr(wav: Path, locale: str) -> tuple[str, list[dict], str]:
             "-f", str(wav),
             "-l", lang,
             "-nt",
+            # 解码：束搜索 + 贪心温度，比默认更稳
+            "-bs", "5",
+            "-bo", "5",
+            "-tp", "0",
             "-ojf",
             "-of", str(out_base),
+            *vad_args,
         ],
     )
 
