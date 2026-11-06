@@ -56,7 +56,7 @@ export function KeyframePanel({
               <button
                 type="button"
                 onClick={() => onSeek(k.timeSec)}
-                className="tabular-nums hover:text-brand-red"
+                className="tabular-nums hover:text-brand"
               >
                 {mmss(k.timeSec)}
               </button>

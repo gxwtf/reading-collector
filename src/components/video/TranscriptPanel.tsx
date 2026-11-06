@@ -43,7 +43,7 @@ export function TranscriptPanel({
               }}
               title="跳到这一行"
               className={`w-11 shrink-0 pt-0.5 text-left text-xs tabular-nums underline-offset-2 hover:underline ${
-                active ? "font-medium text-brand-red" : "text-muted-foreground/60"
+                active ? "font-medium text-brand" : "text-muted-foreground/60"
               }`}
             >
               {mmss(line.start)}

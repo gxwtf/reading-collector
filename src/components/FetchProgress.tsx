@@ -39,7 +39,7 @@ export function FetchProgress({ pending, running, ready, failed }: Props) {
       </div>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border">
         <div
-          className="h-full rounded-full bg-brand-red transition-[width] duration-500"
+          className="h-full rounded-full bg-brand transition-[width] duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>

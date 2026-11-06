@@ -281,7 +281,7 @@ export default async function EntryPage({
                         type="submit"
                         className={
                           inGroup
-                            ? "rounded-full border border-brand-red/40 bg-brand-red/10 px-2.5 py-0.5 text-xs text-brand-red"
+                            ? "rounded-full border border-brand/40 bg-brand/10 px-2.5 py-0.5 text-xs text-brand"
                             : "rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
                         }
                       >

@@ -57,7 +57,7 @@ export function ReadingShell({ children }: Props) {
       }
     >
       <div className="fixed inset-x-0 top-14 z-30 h-0.5 bg-transparent">
-        <div className="h-full bg-brand-red transition-[width] duration-150" style={{ width: `${progress}%` }} />
+        <div className="h-full bg-brand transition-[width] duration-150" style={{ width: `${progress}%` }} />
       </div>
 
       <div className="sticky top-14 z-10 -mx-1 mb-3 flex items-center gap-1 bg-background/85 px-1 py-1.5 backdrop-blur">

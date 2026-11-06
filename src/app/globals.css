@@ -6,8 +6,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* 品牌色：与广学题库一致，业务代码只用 text-brand / bg-brand / border-brand */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --font-sans: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -253,72 +256,60 @@
 }
 
 :root {
+  /* ===== 与广学题库对齐的语义令牌（oklch）===== */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
   --radius: 0.625rem;
-  --background: #ffffff;
-  --foreground: #231815;
-  --card: #ffffff;
-  --card-foreground: #231815;
-  --popover: #ffffff;
-  --popover-foreground: #231815;
-  --primary: #a31f24;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f2f2;
-  --secondary-foreground: #231815;
-  --muted: #f4f2f2;
-  --muted-foreground: #7d7a79;
-  --accent: #f4f2f2;
-  --accent-foreground: #231815;
-  --destructive: #c22525;
-  --border: #e7e4e4;
-  --input: #e7e4e4;
-  --ring: #a31f24;
-  --chart-1: #a31f24;
-  --chart-2: #f08300;
-  --chart-3: #41b25d;
-  --chart-4: #492b93;
-  --chart-5: #0086d1;
-  --sidebar: #faf9f9;
-  --sidebar-foreground: #231815;
-  --sidebar-primary: #a31f24;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f2f2;
-  --sidebar-accent-foreground: #231815;
-  --sidebar-border: #e7e4e4;
-  --sidebar-ring: #a31f24;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+  /* 广学红 #A31F24 */
+  --brand: oklch(0.4667 0.1672 25.06);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-muted: oklch(0.95 0.021 25.06);
 }
 
 .dark {
-  --background: #14100f;
-  --foreground: #f4f2f2;
-  --card: #231815;
-  --card-foreground: #f4f2f2;
-  --popover: #231815;
-  --popover-foreground: #f4f2f2;
-  --primary: #c22525;
-  --primary-foreground: #ffffff;
-  --secondary: #403c3b;
-  --secondary-foreground: #f4f2f2;
-  --muted: #403c3b;
-  --muted-foreground: #b4b0b0;
-  --accent: #403c3b;
-  --accent-foreground: #f4f2f2;
-  --destructive: #c22525;
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 15%);
-  --ring: #c22525;
-  --chart-1: #c22525;
-  --chart-2: #f08300;
-  --chart-3: #41b25d;
-  --chart-4: #6a4fbf;
-  --chart-5: #0086d1;
-  --sidebar: #231815;
-  --sidebar-foreground: #f4f2f2;
-  --sidebar-primary: #c22525;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #403c3b;
-  --sidebar-accent-foreground: #f4f2f2;
-  --sidebar-border: rgb(255 255 255 / 10%);
-  --sidebar-ring: #c22525;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  color-scheme: dark;
+  /* 深色下提亮，保证对比度 */
+  --brand: oklch(0.735 0.152 25.06);
+  --brand-foreground: oklch(0.145 0 0);
+  --brand-muted: oklch(0.283 0.049 25.06);
 }
 
 @layer base {
@@ -444,7 +435,7 @@
 .prose-reading blockquote {
   margin-block: 1.5em;
   padding: 0.2em 0 0.2em 1em;
-  border-left: 3px solid color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--brand) 45%, transparent);
   color: var(--muted-foreground);
   font-style: normal;
 }
@@ -452,7 +443,7 @@
   margin-block: 0.5em;
 }
 .prose-reading a {
-  color: var(--color-brand-red);
+  color: var(--brand);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
@@ -534,18 +525,18 @@
 
 /* ===== 划线标记 ===== */
 .hl-mark {
-  background: color-mix(in srgb, var(--color-brand-red) 16%, transparent);
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
   color: inherit;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
   padding-bottom: 0.05em;
   cursor: pointer;
   border-radius: 2px;
 }
 .dark .hl-mark {
-  background: color-mix(in srgb, var(--color-brand-red) 26%, transparent);
+  background: color-mix(in srgb, var(--brand) 26%, transparent);
 }
 .hl-mark:active {
-  background: color-mix(in srgb, var(--color-brand-red) 32%, transparent);
+  background: color-mix(in srgb, var(--brand) 32%, transparent);
 }
 
 /* ===== 阅读器优化 ===== */
@@ -632,7 +623,7 @@
   list-style: disc;
 }
 .summary-prose li::marker {
-  color: var(--color-brand-red);
+  color: var(--brand);
 }
 .summary-prose strong {
   color: var(--foreground);
@@ -641,7 +632,7 @@
 .summary-prose blockquote {
   margin: 0.6em 0;
   padding-left: 0.7em;
-  border-left: 2px solid color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--brand) 45%, transparent);
   color: var(--foreground);
 }
 .summary-prose code {
@@ -663,11 +654,11 @@
 }
 .tr-line-active {
   color: var(--foreground);
-  background: color-mix(in srgb, var(--color-brand-red) 16%, transparent);
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
   font-weight: 600;
   font-size: 15px;
   line-height: 1.75rem;
 }
 .dark .tr-line-active {
-  background: color-mix(in srgb, var(--color-brand-red) 30%, transparent);
+  background: color-mix(in srgb, var(--brand) 30%, transparent);
 }

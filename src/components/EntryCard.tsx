@@ -45,7 +45,7 @@ export function EntryCard({ entry, selectable, selected, onToggle }: Props) {
   return (
     <article
       className={`rounded-lg border bg-card p-4 transition-colors ${
-        selected ? "border-brand-red/50 ring-1 ring-brand-red/20" : "border-border hover:border-brand-red/40"
+        selected ? "border-brand/50 ring-1 ring-brand/20" : "border-border hover:border-brand/40"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -66,7 +66,7 @@ export function EntryCard({ entry, selectable, selected, onToggle }: Props) {
         <div className="min-w-0 flex-1">
           <Link
             href={`/entry/${entry.id}`}
-            className="block truncate font-medium hover:text-brand-red"
+            className="block truncate font-medium hover:text-brand"
             title={entry.title}
           >
             {entry.title}
@@ -106,10 +106,10 @@ export function EntryCard({ entry, selectable, selected, onToggle }: Props) {
             <button
               type="submit"
               aria-label={entry.favorite ? "取消收藏" : "收藏"}
-              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-brand-red"
+              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-brand"
             >
               {entry.favorite ? (
-                <BookmarkCheck className="size-4 text-brand-red" />
+                <BookmarkCheck className="size-4 text-brand" />
               ) : (
                 <Bookmark className="size-4" />
               )}

@@ -115,7 +115,7 @@ export function HighlightList({ items: all }: { items: HighlightItem[] }) {
               onClick={() => jumpTo(h.anchor)}
               className="min-w-0 flex-1 text-left"
             >
-              <p className="border-l-2 border-brand-red/60 pl-2 text-sm leading-6">{h.quote}</p>
+              <p className="border-l-2 border-brand/60 pl-2 text-sm leading-6">{h.quote}</p>
               {h.note ? <p className="mt-1 pl-2 text-xs text-muted-foreground">批注：{h.note}</p> : null}
               <p className="mt-1 pl-2 text-[11px] text-muted-foreground">{h.createdAt}</p>
             </button>

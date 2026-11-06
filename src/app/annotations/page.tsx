@@ -73,7 +73,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
             }
             className={`rounded-md border px-2 py-1 text-xs ${
               onlyNotes
-                ? "border-brand-red/40 bg-brand-red/10 text-brand-red"
+                ? "border-brand/40 bg-brand/10 text-brand"
                 : "border-border text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -102,7 +102,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
               <div className="flex items-baseline justify-between gap-2">
                 <Link
                   href={`/entry/${entry.id}`}
-                  className="min-w-0 truncate font-medium hover:text-brand-red"
+                  className="min-w-0 truncate font-medium hover:text-brand"
                   title={entry.title}
                 >
                   {entry.title}
@@ -115,7 +115,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
               <ul className="mt-3 space-y-2">
                 {items.map((h) => (
                   <li key={h.id} className="rounded-md border border-border/60 px-3 py-2">
-                    <p className="border-l-2 border-brand-red/60 pl-2 text-sm leading-6">{h.quote}</p>
+                    <p className="border-l-2 border-brand/60 pl-2 text-sm leading-6">{h.quote}</p>
                     {h.note ? (
                       <p className="mt-1 flex gap-1.5 pl-2 text-xs text-muted-foreground">
                         <MessageSquareQuote className="mt-0.5 size-3.5 shrink-0" />

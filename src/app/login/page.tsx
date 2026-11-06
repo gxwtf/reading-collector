@@ -15,7 +15,7 @@ export default async function LoginPage() {
 
   return (
     <div className="mx-auto max-w-sm space-y-6 py-16 text-center">
-      <BookOpenText className="mx-auto size-10 text-brand-red" />
+      <BookOpenText className="mx-auto size-10 text-brand" />
       <div className="space-y-2">
         <h1 className="text-xl font-semibold">登录阅读收集</h1>
         <p className="text-sm text-muted-foreground">
@@ -29,7 +29,7 @@ export default async function LoginPage() {
         使用广学账号登录
       </a>
       <p className="text-xs text-muted-foreground">
-        还没有账号？前往 <a className="text-brand-red hover:underline" href="https://account.gxwtf.cn" target="_blank" rel="noreferrer">广学账号</a> 注册。
+        还没有账号？前往 <a className="text-brand hover:underline" href="https://account.gxwtf.cn" target="_blank" rel="noreferrer">广学账号</a> 注册。
       </p>
     </div>
   );
