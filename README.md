@@ -95,6 +95,7 @@ python3 worker.py
 | `pnpm db:generate` | 生成 Prisma Client |
 | `pnpm db:migrate` | 本地迁移（仅 localhost） |
 | `pnpm db:deploy` | 生产迁移 |
+| `sh scripts/smoke.sh [域名]` | 冒烟检查（健康接口 / 首页 / 登录页） |
 
 ## 目录结构
 
@@ -151,6 +152,7 @@ sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
 ## 测试
 
 - `pnpm typecheck`：类型检查（改完必须过）
+- `GET /api/health`：返回数据库连通性、延迟与进程 uptime，可用于监控
 - `pnpm build`：生产构建（线上用 `next start`）
 - worker：`python3 -m py_compile worker/*.py`
 
