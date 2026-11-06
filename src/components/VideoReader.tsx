@@ -1,19 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Pause, Play, RefreshCw } from "lucide-react";
 import { addKeyframe, deleteKeyframe } from "@/actions/keyframes";
 import { seekUrl, type Embed } from "@/lib/embed";
+import { mmss } from "@/lib/time";
+import { KeyframePanel } from "@/components/video/KeyframePanel";
 
 export type TranscriptLine = { start: number; end: number; text: string };
 
 const FALLBACK_OFFSET = 96;
 
-function mmss(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 type Media = { video: string; audio: string };
 
@@ -484,44 +481,16 @@ export function VideoReader({
           </div>
         </div>
 
-        <div className="space-y-2 rounded-md border border-border bg-card p-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">关键帧（{keyframes.length}）</h3>
-            <button
-              type="button"
-              onClick={() => {
-                const t = audioRef.current?.currentTime ?? videoRef.current?.currentTime ?? now;
-                void addKeyframe(entryId, t, "");
-              }}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <Plus className="size-3.5" />
-              记下当前时刻 {mmss(now)}
-            </button>
-          </div>
-          {keyframes.length > 0 ? (
-            <ul className="flex flex-wrap gap-2">
-              {keyframes.map((k) => (
-                <li key={k.id} className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs">
-                  <button type="button" onClick={() => seekTo(k.timeSec)} className="tabular-nums hover:text-brand-red">
-                    {mmss(k.timeSec)}
-                  </button>
-                  {k.note ? <span className="text-muted-foreground">{k.note}</span> : null}
-                  <button
-                    type="button"
-                    aria-label="删除关键帧"
-                    onClick={() => void deleteKeyframe(k.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-muted-foreground">播放时点「记下当前时刻」，重要位置会存成可跳转的标签。</p>
-          )}
-        </div>
+        <KeyframePanel
+          items={keyframes}
+          currentTime={now}
+          onAdd={() => {
+            const t = primary()?.currentTime ?? now;
+            void addKeyframe(entryId, t, "");
+          }}
+          onSeek={seekTo}
+          onDelete={(id) => void deleteKeyframe(id)}
+        />
 
         {pauseReason && !following ? (
           <div className="flex items-center justify-between rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">

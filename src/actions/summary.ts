@@ -5,12 +5,8 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { summarizeMarkdown } from "@/lib/summarize";
 import { aiSummary, configsForUser } from "@/lib/llm";
+import { mmss } from "@/lib/time";
 
-function mmss(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 type Segment = { start?: number; end?: number; text?: string };
 

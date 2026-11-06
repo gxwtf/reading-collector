@@ -16,6 +16,7 @@ import { ReadingShell } from "@/components/ReadingShell";
 import { HighlightLayer } from "@/components/HighlightLayer";
 import { HighlightList } from "@/components/HighlightList";
 import { VideoReader } from "@/components/VideoReader";
+import { mmss } from "@/lib/time";
 import { PrepareVideo } from "@/components/PrepareVideo";
 
 type Params = Promise<{ id: string }>;
@@ -300,11 +301,6 @@ export default async function EntryPage({
 
 type TranscriptSegment = { start?: number; end?: number; text?: string };
 
-function mmss(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 type SegLike = {
   start?: number;
