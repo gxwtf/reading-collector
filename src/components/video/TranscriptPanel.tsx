@@ -24,7 +24,7 @@ export function TranscriptPanel({
   return (
     <div
       ref={listRef}
-      className="max-h-[42vh] space-y-1 overflow-y-auto rounded-md border border-border/60 bg-muted/20 px-2 py-2"
+      className="h-[132px] space-y-0.5 overflow-y-auto rounded-md border border-border/60 bg-muted/20 px-2 py-1.5"
     >
       {lines.slice(0, visible).map((line, i) => {
         const active = i === activeLine;
