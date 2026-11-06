@@ -1,4 +1,7 @@
 // 纯函数：不依赖数据库，便于单元测试
+import { createHash } from "node:crypto";
+
+const URL_RE = /https?:\/\/[^\s<>"'）)】，。]+/gi;
 
 /** 按域名粗判类型；真正判定交给 worker */
 export function detectKind(url: string): "article" | "video" | "podcast" {
