@@ -24,11 +24,14 @@ export async function unsubscribeFeed(id: number) {
   revalidatePath("/");
 }
 
-export async function refreshFeed(id: number) {
+export async function refreshFeed(id: number): Promise<void> {
   const session = await requireSession("/");
   const feed = await prisma.feed.findFirst({ where: { id, userId: session.userId }, select: { id: true } });
-  if (!feed) return { ok: false };
-  const result = await checkFeed(id);
+  if (!feed) return;
+  try {
+    await checkFeed(id);
+  } catch (error) {
+    console.error("刷新订阅失败", (error as Error).message);
+  }
   revalidatePath("/");
-  return { ok: true, added: result.added };
 }
