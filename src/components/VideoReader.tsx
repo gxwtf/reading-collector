@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, Pause, Play, RefreshCw } from "lucide-react";
 import { addKeyframe, deleteKeyframe } from "@/actions/keyframes";
 import { seekUrl, type Embed } from "@/lib/embed";
 import { mmss } from "@/lib/time";
@@ -62,6 +62,19 @@ export function VideoReader({
   const [pauseReason, setPauseReason] = useState<"manual" | "player" | null>(null);
   // 长讲座几百行，先渲染一批，跟随/点击时再补
   const [visible, setVisible] = useState(120);
+  // 「试试去掉字幕」：默认显示，可隐藏（记住选择）
+  const [hideTranscript, setHideTranscript] = useState(false);
+
+  useEffect(() => {
+    setHideTranscript(localStorage.getItem("reading:hideTranscript") === "1");
+  }, []);
+
+  function toggleTranscript() {
+    setHideTranscript((prev) => {
+      localStorage.setItem("reading:hideTranscript", prev ? "0" : "1");
+      return !prev;
+    });
+  }
 
   const [media, setMedia] = useState<Media | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -469,6 +482,15 @@ export function VideoReader({
 
             <button
               type="button"
+              onClick={toggleTranscript}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:text-foreground"
+            >
+              {hideTranscript ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+              {hideTranscript ? "显示字幕" : "隐藏字幕"}
+            </button>
+
+            <button
+              type="button"
               onClick={() => {
                 setPauseReason(null);
                 if (following) setFollowing(false);
@@ -485,9 +507,9 @@ export function VideoReader({
         <KeyframePanel
           items={keyframes}
           currentTime={now}
-          onAdd={() => {
+          onAdd={(note) => {
             const t = primary()?.currentTime ?? now;
-            void addKeyframe(entryId, t, "");
+            void addKeyframe(entryId, t, note);
           }}
           onSeek={seekTo}
           onDelete={(id) => void deleteKeyframe(id)}
@@ -511,6 +533,7 @@ export function VideoReader({
           </div>
         ) : null}
 
+        {hideTranscript ? null : (
         <TranscriptPanel
           lines={lines}
           visible={visible}
@@ -520,6 +543,7 @@ export function VideoReader({
           onSeek={(seconds) => seekTo(seconds)}
           onExpand={() => setVisible((v) => v + 200)}
         />
+        )}
       </section>
     </div>
   );
