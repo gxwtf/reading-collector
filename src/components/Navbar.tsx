@@ -59,12 +59,20 @@ export async function Navbar() {
               <Link
                 href="/settings"
                 aria-label="设置"
-                className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground"
+                className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Settings className="size-4" />
               </Link>
-              <span className="hidden max-w-24 truncate text-sm text-muted-foreground md:inline">
+              <span className="hidden max-w-28 truncate text-sm text-muted-foreground md:inline">
                 {session.userName}
+                {session.admin ? " (admin)" : ""}
+              </span>
+              <span
+                aria-hidden
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-medium text-brand"
+                title={session.userName ?? ""}
+              >
+                {(session.userName ?? "?").slice(0, 1).toUpperCase()}
               </span>
               <form action={logout}>
                 <button
