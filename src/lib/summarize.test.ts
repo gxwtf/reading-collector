@@ -29,8 +29,10 @@ test("没有标题的长文按位置切段", () => {
   assert.ok(bullets.length <= 8, "最多八条要点");
 });
 
-test("太短的内容不硬凑要点", () => {
-  assert.equal(summarizeMarkdown("太短了"), "## 分章要点");
+test("短内容只产出一条要点", () => {
+  const out = summarizeMarkdown("太短了");
+  assert.match(out, /^## 分章要点/);
+  assert.equal(out.split("\n").filter((l) => l.startsWith("- ")).length, 1);
 });
 
 test("去掉 Markdown 链接语法", () => {
