@@ -48,7 +48,8 @@ export function VideoReader({
 
   const [seek, setSeek] = useState(0);
   const [playKey, setPlayKey] = useState(0);
-  const [following, setFollowing] = useState(false);
+  // 默认始终跟随；播放器暂停/手动滚动会自动停下
+  const [following, setFollowing] = useState(true);
   const [activeLine, setActiveLine] = useState(-1);
   const [liveSync, setLiveSync] = useState(false);
   const [pauseReason, setPauseReason] = useState<"manual" | "player" | null>(null);
@@ -363,7 +364,11 @@ export function VideoReader({
                   className="size-full"
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-                  onPlay={() => setPlaying(true)}
+                  onPlay={() => {
+                    setPlaying(true);
+                    setFollowing(true);
+                    setPauseReason(null);
+                  }}
                   onPause={() => setPlaying(false)}
                   onEnded={() => setPlaying(false)}
                 />
@@ -371,7 +376,11 @@ export function VideoReader({
                   ref={audioRef}
                   src={media.audio || undefined}
                   preload="none"
-                  onPlay={() => setPlaying(true)}
+                  onPlay={() => {
+                    setPlaying(true);
+                    setFollowing(true);
+                    setPauseReason(null);
+                  }}
                   onPause={() => setPlaying(false)}
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
@@ -554,8 +563,9 @@ export function VideoReader({
                 ref={(el) => {
                   lineRefs.current[i] = el;
                 }}
+                onClick={() => seekTo(line.start)}
                 className={[
-                  "flex gap-3 rounded-md px-1 py-1 transition-all duration-500",
+                  "flex cursor-pointer gap-3 rounded-md px-1 py-1 transition-all duration-500",
                   active
                     ? "bg-brand-red/15 text-[15px] font-semibold leading-7 text-foreground shadow-sm"
                     : "text-[13.5px] leading-6 text-muted-foreground/45 hover:text-muted-foreground",
