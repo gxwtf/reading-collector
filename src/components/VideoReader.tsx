@@ -70,6 +70,14 @@ export function VideoReader({
   const programmaticScrollAt = useRef<number>(0);
 
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const primary = () => {
+    const audio = audioRef.current;
+    const video = videoRef.current;
+    if (audio && audio.currentSrc) return audio;
+    return video;
+  };
   const playerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -166,11 +174,11 @@ export function VideoReader({
 
   const scrollToLine = useCallback((index: number) => {
     const el = lineRefs.current[index];
-    if (!el) return;
+    const list = listRef.current;
+    if (!el || !list) return;
     programmaticScrollAt.current = Date.now();
-    const playerBottom = playerRef.current?.getBoundingClientRect().bottom ?? FALLBACK_OFFSET;
-    const top = el.getBoundingClientRect().top + window.scrollY - playerBottom - 16;
-    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    const top = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
+    list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }, []);
 
   const applyLine = useCallback(
@@ -188,10 +196,8 @@ export function VideoReader({
   const seekTo = useCallback(
     (seconds: number) => {
       if (useNative) {
-        const audio = audioRef.current;
-        const video = videoRef.current;
-        if (audio) audio.currentTime = seconds;
-        if (video) video.currentTime = seconds;
+        const el = primary();
+        if (el) el.currentTime = seconds;
         setNow(seconds);
         setLiveSync(true);
       } else {
@@ -233,10 +239,9 @@ export function VideoReader({
     setPauseReason(null);
 
     if (useNative) {
-      const mediaEl = audioRef.current ?? videoRef.current;
+      const mediaEl = primary();
       if (mediaEl && mediaEl.readyState === 0) mediaEl.load();
       void mediaEl?.play().catch(() => undefined);
-      if (audioRef.current && videoRef.current) void videoRef.current.play().catch(() => undefined);
     } else {
       applyLine(seconds);
     }
@@ -249,7 +254,7 @@ export function VideoReader({
     if (!following) return;
     const tick = () => {
       const t = useNative
-        ? (audioRef.current?.currentTime ?? videoRef.current?.currentTime ?? 0)
+        ? (primary()?.currentTime ?? 0)
         : playerTime.current !== null && Date.now() - playerTimeAt.current < 5000
           ? playerTime.current
           : startTime.current + (Date.now() - startedAt.current) / 1000;
@@ -304,17 +309,13 @@ export function VideoReader({
   }, [following, playing, useNative]);
 
   const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
-    const video = videoRef.current;
-    const mediaEl = audio ?? video;
+    const mediaEl = primary();
     if (!mediaEl) return;
     if (mediaEl.paused) {
       if (mediaEl.readyState === 0) mediaEl.load();
-      void mediaEl.play();
-      if (audio && video) void video.play();
+      void mediaEl.play().catch(() => undefined);
     } else {
       mediaEl.pause();
-      if (audio && video) video.pause();
     }
   }, []);
 
@@ -356,6 +357,9 @@ export function VideoReader({
                   className="size-full"
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                  onPlay={() => setPlaying(true)}
+                  onPause={() => setPlaying(false)}
+                  onEnded={() => setPlaying(false)}
                 />
                 <audio
                   ref={audioRef}
@@ -532,7 +536,10 @@ export function VideoReader({
           </div>
         ) : null}
 
-        <div className="space-y-1.5">
+        <div
+          ref={listRef}
+          className="max-h-[42vh] space-y-1 overflow-y-auto rounded-md border border-border/60 bg-muted/20 px-2 py-2"
+        >
           {lines.slice(0, visible).map((line, i) => {
             const active = i === activeLine && following;
             return (
@@ -544,8 +551,8 @@ export function VideoReader({
                 className={[
                   "flex gap-3 rounded-md px-1 py-1 transition-all duration-500",
                   active
-                    ? "bg-brand-red/15 text-[18px] font-semibold leading-10 text-foreground shadow-sm"
-                    : "text-[15px] leading-8 text-muted-foreground/45 hover:text-muted-foreground",
+                    ? "bg-brand-red/15 text-[15px] font-semibold leading-7 text-foreground shadow-sm"
+                    : "text-[13.5px] leading-6 text-muted-foreground/45 hover:text-muted-foreground",
                 ].join(" ")}
               >
                 <button
