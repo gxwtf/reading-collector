@@ -22,6 +22,20 @@ import { PrepareVideo } from "@/components/PrepareVideo";
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ only?: string }>;
 
+function toSeconds(stamp: string): number {
+  const parts = stamp.split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] || 0;
+}
+
+/** 把概括里的 [mm:ss] 变成可点击锚点（#t=秒），由 VideoReader 接管跳转 */
+function linkTimestamps(md: string): string {
+  return md.replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, (_m, stamp: string) =>
+    `[${stamp}](#t=${toSeconds(stamp)})`,
+  );
+}
+
 async function loadEntry(id: number, userId: number) {
   return prisma.entry.findFirst({
     where: { id, userId },
