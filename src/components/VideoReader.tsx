@@ -80,7 +80,6 @@ export function VideoReader({
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [now, setNow] = useState(0);
-  const [duration, setDuration] = useState(0);
 
   const startedAt = useRef<number>(0);
   const startTime = useRef<number>(0);
@@ -256,8 +255,6 @@ export function VideoReader({
     }
   }, [applyLine, lines, useNative]);
 
-  const paused = useNative ? !playing : false;
-
   // 跟随 tick
   useEffect(() => {
     if (!following) return;
@@ -359,7 +356,6 @@ export function VideoReader({
                   preload="none"
                   className="size-full"
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
-                  onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
                   onError={() => {
                     if (hlsSupported && !hlsFailed) setHlsFailed(true);
                   }}
@@ -372,49 +368,6 @@ export function VideoReader({
                   onPause={() => setPlaying(false)}
                   onEnded={() => setPlaying(false)}
                 />
-                <audio
-                  ref={audioRef}
-                  src={media.audio || undefined}
-                  preload="none"
-                  onPlay={() => {
-                    setPlaying(true);
-                    setFollowing(true);
-                    setPauseReason(null);
-                    hasPlayed.current = true;
-                  }}
-                  onPause={() => setPlaying(false)}
-                  onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
-                  onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-                  onEnded={() => setPlaying(false)}
-                />
-
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity hover:opacity-100"
-                  aria-label={playing ? "暂停" : "播放"}
-                >
-                  <span className="rounded-full bg-black/60 p-4 text-white">
-                    {paused ? <Play className="size-6" /> : <Pause className="size-6" />}
-                  </span>
-                </button>
-
-                <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-black/60 px-3 py-2 text-white">
-                  <button type="button" onClick={togglePlay} aria-label="播放/暂停">
-                    {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
-                  </button>
-                  <span className="text-xs tabular-nums">{mmss(now)}</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={duration || 0}
-                    step={0.5}
-                    value={now}
-                    onChange={(e) => seekTo(Number(e.target.value))}
-                    className="h-1 flex-1 accent-white"
-                  />
-                  <span className="text-xs tabular-nums">{duration ? mmss(duration) : "--:--"}</span>
-                </div>
               </>
             ) : (
               <div className="flex size-full flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
