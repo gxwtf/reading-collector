@@ -83,6 +83,7 @@ export function VideoReader({
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const activeRef = useRef(-1);
+  const hasPlayed = useRef(false);
 
   const src = useMemo(() => {
     const base = seek > 0 || playKey > 0 ? seekUrl(embed, seek) : embed.base;
@@ -291,7 +292,7 @@ export function VideoReader({
 
   // 播放器暂停 → 暂停跟随（仅 YouTube 需要推断；B 站是自家播放器直接知道）
   useEffect(() => {
-    if (!following) return;
+    if (!following || !hasPlayed.current) return;
     if (useNative) {
       if (!playing) {
         setFollowing(false);
@@ -368,6 +369,7 @@ export function VideoReader({
                     setPlaying(true);
                     setFollowing(true);
                     setPauseReason(null);
+                    hasPlayed.current = true;
                   }}
                   onPause={() => setPlaying(false)}
                   onEnded={() => setPlaying(false)}
@@ -380,6 +382,7 @@ export function VideoReader({
                     setPlaying(true);
                     setFollowing(true);
                     setPauseReason(null);
+                    hasPlayed.current = true;
                   }}
                   onPause={() => setPlaying(false)}
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
