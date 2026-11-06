@@ -67,7 +67,14 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
       [
         "-y",
         "-i", target,
-        "-c", "copy",
+        // B 站给的是 AV1，Safari / HLS 都不支持，必须转 H.264
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "23",
+        "-profile:v", "main",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "128k",
         "-f", "hls",
         "-hls_time", "6",
         "-hls_playlist_type", "vod",

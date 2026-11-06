@@ -354,8 +354,7 @@ export function VideoReader({
                 <video
                   ref={videoRef}
                   src={media.video}
-                  // 精确模式是音视频合一的 mp4，不能静音；双流模式才静音让 audio 出声
-                  muted={Boolean(media.audio)}
+                  controls
                   playsInline
                   preload="none"
                   className="size-full"
