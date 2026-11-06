@@ -3,6 +3,7 @@ import { BookOpenText, Menu, Settings } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { logout } from "@/actions/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserAvatar } from "@/components/UserAvatar";
 import { SearchBox } from "@/components/SearchBox";
 
 /**
@@ -67,13 +68,7 @@ export async function Navbar() {
                 {session.userName}
                 {session.admin ? " (admin)" : ""}
               </span>
-              <span
-                aria-hidden
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-medium text-brand"
-                title={session.userName ?? ""}
-              >
-                {(session.userName ?? "?").slice(0, 1).toUpperCase()}
-              </span>
+              <UserAvatar userId={session.userId} name={session.userName} size={28} />
               <form action={logout}>
                 <button
                   type="submit"
