@@ -213,6 +213,10 @@ export function VideoReader({
 
   const seekTo = useCallback(
     (seconds: number) => {
+      // 跳转后重置估算锚点，媒体未就绪时也能跟上
+      startedAt.current = Date.now();
+      startTime.current = seconds;
+
       if (useNative) {
         const el = primary();
         if (el) el.currentTime = seconds;
