@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectKind, extractUrlsFromText, hashUrl, parseTags } from "./ingest.ts";
+import { detectKind, extractUrlsFromText, hashUrl, parseTags } from "./url.ts";
 
 test("按域名判断类型", () => {
   assert.equal(detectKind("https://www.bilibili.com/video/BV1xx"), "video");
