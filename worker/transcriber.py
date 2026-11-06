@@ -172,8 +172,100 @@ def httpx_host(url: str) -> str:
     return (urlparse(url).hostname or "").replace("www.", "")
 
 
+BILI_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+)
+
+
+def _bili_json(api: str) -> dict:
+    import json as _json
+    import urllib.request
+
+    headers = {"User-Agent": BILI_UA, "Referer": "https://www.bilibili.com/"}
+    sess = os.environ.get("BILI_SESSDATA", "").strip()
+    if sess:
+        headers["Cookie"] = f"SESSDATA={sess}"
+    req = urllib.request.Request(api, headers=headers)
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return _json.loads(resp.read())
+
+
+def try_bilibili_subtitle(url: str, locale: str | None = None) -> dict | None:
+    """B 站官方字幕：有登录态（BILI_SESSDATA）才有数据；拿不到就返回 None 走转写。"""
+    if "bilibili.com" not in url:
+        return None
+    m = re.search(r"(BV[0-9A-Za-z]+)", url)
+    if not m:
+        return None
+    bvid = m.group(1)
+
+    try:
+        view = _bili_json(f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}")
+        data = view.get("data") or {}
+        pages = data.get("pages") or []
+        page_no = int(re.search(r"[?&]p=(\d+)", url).group(1)) if re.search(r"[?&]p=(\d+)", url) else 1
+        cid = pages[page_no - 1]["cid"] if pages and len(pages) >= page_no else data.get("cid")
+        if not cid:
+            return None
+
+        player = _bili_json(
+            f"https://api.bilibili.com/x/player/v2?bvid={bvid}&cid={cid}"
+        )
+        subs = ((player.get("data") or {}).get("subtitle") or {}).get("subtitles") or []
+        if not subs:
+            return None
+
+        want = (locale or "").split("-")[0].lower()
+        chosen = None
+        for s in subs:
+            lan = (s.get("lan") or "").lower()
+            if want and want in lan:
+                chosen = s
+                break
+        chosen = chosen or subs[0]
+
+        sub_url = chosen.get("subtitle_url") or ""
+        if sub_url.startswith("//"):
+            sub_url = "https:" + sub_url
+        body = _bili_json(sub_url).get("body") or []
+        segments = [
+            {
+                "start": float(item.get("from") or 0),
+                "end": float(item.get("to") or 0),
+                "text": (item.get("content") or "").strip(),
+            }
+            for item in body
+        ]
+        text = " ".join(seg["text"] for seg in segments if seg["text"])
+        if len(text) < 40:
+            return None
+
+        return {
+            "text": text,
+            "segments": segments,
+            "locale": chosen.get("lan") or (locale or "zh-CN"),
+            "backend": "bilibili",
+            "model": None,
+            "durationSec": int(data.get("duration") or 0) or None,
+            "title": clean_title(data.get("title") or ""),
+            "author": (data.get("owner") or {}).get("name"),
+            "coverImage": data.get("pic"),
+            "kind": "video",
+            "site": "哔哩哔哩",
+        }
+    except Exception as exc:  # noqa: BLE001 - 拿不到就回退
+        print(f"[subtitle] 官方字幕不可用：{exc}", flush=True)
+        return None
+
+
 def transcribe(url: str, locale: str | None = None) -> dict:
     """返回 {text, segments, locale, backend, model, durationSec, title, author, coverImage, kind}"""
+    official = try_bilibili_subtitle(url, locale)
+    if official:
+        print("[subtitle] 使用 B 站官方字幕", flush=True)
+        return official
+
     TMP_ROOT.mkdir(parents=True, exist_ok=True)
     meta = _fetch_meta(url)
 
