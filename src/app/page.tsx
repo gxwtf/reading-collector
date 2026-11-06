@@ -151,8 +151,15 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         />
 
         <AddEntryForm collections={collections.map((c) => ({ id: c.id, name: c.name }))} />
-        <BilibiliFavImport />
-        <MarkdownImport />
+        <details className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+          <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
+            更多导入方式（B 站收藏夹 / 合集 / RSS / Markdown）
+          </summary>
+          <div className="mt-3 space-y-3">
+            <BilibiliFavImport />
+            <MarkdownImport />
+          </div>
+        </details>
         <FeedList />
 
         <EntryList
