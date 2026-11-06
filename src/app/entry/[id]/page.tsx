@@ -238,7 +238,11 @@ export default async function EntryPage({
             {entry.summary ? (
               <div className="summary-prose mt-2">
                 <MDXRemote
-                  source={entry.summary}
+                  source={
+                    entry.kind === "video" || entry.kind === "podcast"
+                      ? linkTimestamps(entry.summary)
+                      : entry.summary
+                  }
                   options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
                 />
               </div>
