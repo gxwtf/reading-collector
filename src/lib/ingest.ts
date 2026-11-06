@@ -47,7 +47,12 @@ export async function ingestUrls(options: {
         data: { userId, url, urlHash, title: url, kind },
       });
       await prisma.fetchJob.create({
-        data: { entryId: entry.id, url, kind: kind === "article" ? "fetch" : "transcribe" },
+        // 只有音视频走转写，其余（文章/PDF/文档）都走抓取
+        data: {
+          entryId: entry.id,
+          url,
+          kind: kind === "video" || kind === "podcast" ? "transcribe" : "fetch",
+        },
       });
       entryId = entry.id;
       added += 1;
