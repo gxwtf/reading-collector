@@ -1,6 +1,6 @@
 "use client";
 
-import type { MutableRefObject, RefObject } from "react";
+import type { RefObject } from "react";
 import { mmss } from "@/lib/time";
 
 export type TranscriptLine = { start: number; end: number; text: string };
@@ -11,7 +11,6 @@ export function TranscriptPanel({
   visible,
   activeLine,
   listRef,
-  lineRefs,
   onSeek,
   onExpand,
 }: {
@@ -19,7 +18,6 @@ export function TranscriptPanel({
   visible: number;
   activeLine: number;
   listRef: RefObject<HTMLDivElement | null>;
-  lineRefs: MutableRefObject<(HTMLParagraphElement | null)[]>;
   onSeek: (seconds: number) => void;
   onExpand: () => void;
 }) {
@@ -33,9 +31,7 @@ export function TranscriptPanel({
         return (
           <p
             key={line.start}
-            ref={(el) => {
-              lineRefs.current[i] = el;
-            }}
+            data-i={i}
             onClick={() => onSeek(line.start)}
             className={["tr-line flex gap-3 rounded-md px-1 py-1", active ? "tr-line-active" : ""].join(" ")}
           >

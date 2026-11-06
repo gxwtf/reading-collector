@@ -88,7 +88,6 @@ export function VideoReader({
   const playerState = useRef<number | null>(null);
   const playerStateAt = useRef<number>(0);
 
-  const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
   const primary = () => {
@@ -182,8 +181,8 @@ export function VideoReader({
   );
 
   const scrollToLine = useCallback((index: number) => {
-    const el = lineRefs.current[index];
     const list = listRef.current;
+    const el = list?.querySelector<HTMLElement>(`[data-i="${index}"]`);
     if (!el || !list) return;
 
     // 用 rect 差值算：offsetTop 依赖定位祖先，这里不能假设
@@ -239,8 +238,9 @@ export function VideoReader({
     if (li < 0) {
       let best = 0;
       let bestDist = Number.POSITIVE_INFINITY;
-      lineRefs.current.forEach((el, i) => {
-        if (!el) return;
+      listRef.current?.querySelectorAll<HTMLElement>("[data-i]").forEach((el) => {
+        const i = Number(el.dataset.i ?? -1);
+        if (i < 0) return;
         const base = playerRef.current?.getBoundingClientRect().bottom ?? FALLBACK_OFFSET;
         const dist = Math.abs(el.getBoundingClientRect().top - base);
         if (dist < bestDist) {
@@ -500,7 +500,6 @@ export function VideoReader({
           visible={visible}
           activeLine={activeLine}
           listRef={listRef}
-          lineRefs={lineRefs}
           onSeek={(seconds) => seekTo(seconds)}
           onExpand={() => setVisible((v) => v + 200)}
         />
