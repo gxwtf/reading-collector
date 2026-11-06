@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { BookOpenText, Menu, Settings } from "lucide-react";
+import { BookOpenText, Menu } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { logout } from "@/actions/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { UserAvatar } from "@/components/UserAvatar";
+import { UserMenu } from "@/components/UserMenu";
 import { SearchBox } from "@/components/SearchBox";
 
 /**
@@ -56,28 +56,12 @@ export async function Navbar() {
           <ThemeToggle />
 
           {session.isLoggedIn ? (
-            <>
-              <Link
-                href="/settings"
-                aria-label="设置"
-                className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <Settings className="size-4" />
-              </Link>
-              <span className="hidden max-w-28 truncate text-sm text-muted-foreground md:inline">
-                {session.userName}
-                {session.admin ? " (admin)" : ""}
-              </span>
-              <UserAvatar userId={session.userId} name={session.userName} size={28} />
-              <form action={logout}>
-                <button
-                  type="submit"
-                  className="rounded-md border border-border px-2.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  退出
-                </button>
-              </form>
-            </>
+            <UserMenu
+              userId={session.userId}
+              userName={session.userName}
+              admin={session.admin}
+              logout={logout}
+            />
           ) : (
             <Link
               href="/login"
