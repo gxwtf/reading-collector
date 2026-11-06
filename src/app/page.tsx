@@ -79,6 +79,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
   return (
     <div className="grid gap-6 md:grid-cols-[200px_1fr]">
+      <div className="hidden md:block">
       <Sidebar
         collections={collections.map((c) => ({ id: c.id, name: c.name, count: c._count.entries }))}
         counts={{
@@ -91,6 +92,25 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         }}
         active={{ collection: collectionId, kind, readState: sp.readState, favorite: Boolean(sp.favorite) }}
       />
+      </div>
+
+      <details className="rounded-lg border border-border bg-card p-3 md:hidden">
+        <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground">筛选 / 分组</summary>
+        <div className="mt-3">
+      <Sidebar
+        collections={collections.map((c) => ({ id: c.id, name: c.name, count: c._count.entries }))}
+        counts={{
+          total,
+          unread,
+          favorite: favoriteCount,
+          article: kindCount("article"),
+          video: kindCount("video"),
+          podcast: kindCount("podcast"),
+        }}
+        active={{ collection: collectionId, kind, readState: sp.readState, favorite: Boolean(sp.favorite) }}
+      />
+        </div>
+      </details>
 
       <div className="min-w-0 space-y-4">
         <div className="flex items-baseline justify-between">
