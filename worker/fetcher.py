@@ -61,8 +61,8 @@ def _is_zhihu(url: str) -> bool:
     return host == "zhihu.com" or host.endswith(".zhihu.com")
 
 
-def _fetch_pdf(url: str) -> dict:
-    """PDF：下载后抽文字（需要 pypdf），失败给出明确原因。"""
+def _pdf_from_bytes(url: str, content: bytes) -> dict:
+    """把 PDF 字节抽成文字（需要 pypdf）。"""
     try:
         from pypdf import PdfReader
     except ImportError as exc:
@@ -71,18 +71,7 @@ def _fetch_pdf(url: str) -> dict:
     import io
 
     try:
-        resp = httpx.get(
-            url,
-            follow_redirects=True,
-            timeout=HTTP_TIMEOUT * 2,
-            headers={"User-Agent": USER_AGENT},
-        )
-        resp.raise_for_status()
-    except httpx.HTTPError as exc:
-        raise FetchError(f"PDF 下载失败：{exc}") from exc
-
-    try:
-        reader = PdfReader(io.BytesIO(resp.content))
+        reader = PdfReader(io.BytesIO(content))
         pages = [(p.extract_text() or "").strip() for p in reader.pages[:200]]
     except Exception as exc:
         raise FetchError(f"PDF 解析失败：{exc}") from exc
@@ -110,7 +99,12 @@ def _fetch_pdf(url: str) -> dict:
 def fetch_article(url: str) -> dict:
     """返回 {title, site, author, excerpt, contentMd, coverImage, lang, wordCount, publishedAt}"""
     if url.lower().split("?")[0].endswith(".pdf"):
-        return _fetch_pdf(url)
+        try:
+            resp = httpx.get(url, follow_redirects=True, timeout=HTTP_TIMEOUT * 2, headers={"User-Agent": USER_AGENT})
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise FetchError(f"PDF 下载失败：{exc}") from exc
+        return _pdf_from_bytes(url, resp.content)
 
     if _is_zhihu(url):
         from zhihu import fetch_zhihu
@@ -140,6 +134,9 @@ def fetch_article(url: str) -> dict:
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         raise FetchError(f"请求失败：{exc}") from exc
+
+    if "application/pdf" in (resp.headers.get("content-type") or ""):
+        return _pdf_from_bytes(url, resp.content)
 
     html = resp.text
     if len(html) < 500:

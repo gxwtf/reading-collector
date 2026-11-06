@@ -29,7 +29,7 @@ export function detectKind(url: string): Kind {
   }
 
   if (/\.pdf$/i.test(path)) return "document";
-  if (/(arxiv\.org\/pdf|docs\.google\.com|yuque\.com|feishu\.cn\/docs)/.test(`${host}${path}`)) {
+  if (/(arxiv\.org\/pdf|docs\.google\.com|yuque\.com|feishu\.cn\/docs|\/pdf\/)/.test(`${host}${path}`)) {
     return "document";
   }
   if (VIDEO_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return "video";
