@@ -25,7 +25,11 @@ fi
 
 printf '\n== 代码异味扫描 ==\n'
 for pat in "TODO" "FIXME" "console\\.log" "as never"; do
-  n=$(rg -c "$pat" src worker --glob '!*.test.ts' 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')
+  if command -v rg >/dev/null 2>&1; then
+    n=$(rg -c "$pat" src worker --glob '!*.test.ts' 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')
+  else
+    n=$(grep -rE "$pat" src worker --exclude='*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
+  fi
   printf '   %-14s %s 处\n' "$pat" "${n:-0}"
 done
 

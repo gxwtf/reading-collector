@@ -13,8 +13,13 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
 DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 LAST=$(git log --oneline -5 2>/dev/null | sed 's/^/    /')
 
+# 优先 ripgrep，没有就退回 grep（服务器上常见）
 count_odor() {
-  rg -c "$1" src worker --glob '!*.test.ts' 2>/dev/null | awk -F: '{s+=$2} END {print s+0}'
+  if command -v rg >/dev/null 2>&1; then
+    rg -c "$1" src worker --glob '!*.test.ts' 2>/dev/null | awk -F: '{s+=$2} END {print s+0}'
+  else
+    grep -rE "$1" src worker --exclude='*.test.ts' 2>/dev/null | wc -l | tr -d ' '
+  fi
 }
 TODO_N=$(count_odor "TODO")
 FIXME_N=$(count_odor "FIXME")
@@ -22,7 +27,11 @@ LOG_N=$(count_odor "console\\.log")
 NEVER_N=$(count_odor "as never")
 
 BIGGEST=$(wc -l src/**/*.tsx src/**/*.ts 2>/dev/null | sort -rn | sed -n '2p' | awk '{print $2" ("$1" 行)"}')
-TEST_N=$(rg -c "^test\\(" src --glob '*.test.ts' 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')
+if command -v rg >/dev/null 2>&1; then
+  TEST_N=$(rg -c "^test\\(" src --glob '*.test.ts' 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')
+else
+  TEST_N=$(grep -rhE "^test\\(" src --include='*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
+fi
 
 CHECK=""
 if [ "$RUN_CHECK" = "1" ]; then
