@@ -53,15 +53,42 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
   );
 
   child.on("exit", (code) => {
-    void prisma.entry
-      .update({
-        where: { id: entryId },
-        data:
-          code === 0
-            ? { mediaState: "ready", mediaPath: target }
-            : { mediaState: "failed", mediaError: `yt-dlp 退出码 ${code}` },
-      })
-      .catch(() => undefined);
+    if (code !== 0) {
+      void prisma.entry
+        .update({ where: { id: entryId }, data: { mediaState: "failed", mediaError: `yt-dlp 退出码 ${code}` } })
+        .catch(() => undefined);
+      return;
+    }
+
+    // 再切一份 HLS：Safari / iPad 只能稳播 m3u8，Chrome 继续用 mp4
+    const hlsDir = `${MEDIA_DIR}/${entryId}`;
+    const ff = spawn(
+      "ffmpeg",
+      [
+        "-y",
+        "-i", target,
+        "-c", "copy",
+        "-f", "hls",
+        "-hls_time", "6",
+        "-hls_playlist_type", "vod",
+        "-hls_segment_filename", `${hlsDir}/seg_%03d.ts`,
+        `${hlsDir}/index.m3u8`,
+      ],
+      { detached: true, stdio: "ignore", env: { ...process.env } },
+    );
+
+    ff.on("exit", (ffCode) => {
+      void prisma.entry
+        .update({
+          where: { id: entryId },
+          data:
+            ffCode === 0
+              ? { mediaState: "ready", mediaPath: target }
+              : { mediaState: "ready", mediaPath: target, mediaError: "HLS 切片失败，仅 mp4 可用" },
+        })
+        .catch(() => undefined);
+    });
+    ff.unref();
   });
 
   child.unref();

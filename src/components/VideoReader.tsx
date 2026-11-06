@@ -42,16 +42,15 @@ export function VideoReader({
   precise?: boolean;
   keyframes?: { id: number; timeSec: number; note: string | null }[];
 }) {
-  // iPad / iPhone 的媒体栈对本地流式 mp4 兼容性差，直接回退内嵌播放器
-  const [iosFallback, setIosFallback] = useState(false);
+  // Safari / iPad 原生支持 HLS，其它浏览器继续用 mp4
+  const [hlsSupported, setHlsSupported] = useState(false);
+  const [hlsFailed, setHlsFailed] = useState(false);
   useEffect(() => {
-    if (typeof navigator === "undefined") return;
-    const ua = navigator.userAgent;
-    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (ios) setIosFallback(true);
+    const probe = document.createElement("video");
+    setHlsSupported(Boolean(probe.canPlayType("application/vnd.apple.mpegurl")));
   }, []);
 
-  const useNative = embed.provider === "bilibili" && precise && !iosFallback;
+  const useNative = embed.provider === "bilibili" && precise;
 
   const [seek, setSeek] = useState(0);
   const [playKey, setPlayKey] = useState(0);
@@ -123,9 +122,10 @@ export function VideoReader({
   // 精确播放：本地 mp4 直接给 <video>
   useEffect(() => {
     if (!useNative) return;
-    setMedia({ video: `/api/media/${entryId}/file`, audio: "" });
+    const src = hlsSupported && !hlsFailed ? `/api/media/${entryId}/hls/index.m3u8` : `/api/media/${entryId}/file`;
+    setMedia({ video: src, audio: "" });
     setMediaError(null);
-  }, [entryId, useNative]);
+  }, [entryId, useNative, hlsSupported, hlsFailed]);
 
   // YouTube postMessage
   useEffect(() => {
@@ -361,6 +361,9 @@ export function VideoReader({
                   className="size-full"
                   onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                  onError={() => {
+                    if (hlsSupported && !hlsFailed) setHlsFailed(true);
+                  }}
                   onPlay={() => {
                     setPlaying(true);
                     setFollowing(true);
