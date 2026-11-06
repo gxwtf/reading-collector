@@ -160,15 +160,15 @@ export default async function EntryPage({
             <PrepareVideo entryId={entry.id} state={entry.mediaState} />
           ) : null}
 
-          {embed && entry.transcript ? (
+          {embed ? (
             <VideoReader
               embed={embed}
               title={entry.title}
               entryId={entry.id}
-              backend={entry.transcript.backend}
-              locale={entry.transcript.locale}
+              backend={entry.transcript?.backend ?? "pending"}
+              locale={entry.transcript?.locale ?? ""}
               segmentCount={
-                Array.isArray(entry.transcript.segments) ? entry.transcript.segments.length : 0
+                Array.isArray(entry.transcript?.segments) ? entry.transcript!.segments.length : 0
               }
               lines={buildLines(entry.transcript.segments)}
               precise={preciseReady}

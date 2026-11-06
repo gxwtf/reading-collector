@@ -13,6 +13,25 @@ export type IngestResult = { added: number; skipped: number };
  * 批量入库：去重、投抓取/转写任务、打标签、放进分组。
  * Server Action 和 /api/v1 共用这一份逻辑。
  */
+/** b23.tv 之类的短链先跳一次拿到规范地址，否则播放器认不出 BV 号 */
+async function resolveShortLink(url: string): Promise<string> {
+  try {
+    const u = new URL(url);
+    const shortHosts = ["b23.tv", "bili2233.cn"];
+    if (!shortHosts.includes(u.hostname.replace(/^www\./, ""))) return url;
+  } catch {
+    return url;
+  }
+
+  try {
+    const res = await fetch(url, { redirect: "follow", method: "HEAD" });
+    const final = res.url;
+    return final && final.startsWith("http") ? final : url;
+  } catch {
+    return url;
+  }
+}
+
 export async function ingestUrls(options: {
   userId: number;
   urls: string[];
@@ -24,12 +43,13 @@ export async function ingestUrls(options: {
   let added = 0;
   let skipped = 0;
 
-  for (const url of urls) {
-    if (!/^https?:\/\//i.test(url)) {
+  for (const raw of urls) {
+    if (!/^https?:\/\//i.test(raw)) {
       skipped += 1;
       continue;
     }
 
+    const url = await resolveShortLink(raw);
     const urlHash = hashUrl(url);
     const existing = await prisma.entry.findUnique({
       where: { userId_urlHash: { userId, urlHash } },
