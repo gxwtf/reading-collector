@@ -251,6 +251,23 @@ export function VideoReader({
     [applyLine, useNative],
   );
 
+  // 概括里的 [mm:ss] 渲染成 #t=秒 链接，点击后跳到对应位置
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null;
+      const link = el?.closest?.('a[href^="#t="]') as HTMLAnchorElement | null;
+      if (!link) return;
+      e.preventDefault();
+      const sec = Number((link.getAttribute("href") ?? "").slice(3));
+      if (!Number.isFinite(sec)) return;
+      seekTo(sec);
+      setFollowing(true);
+      setPauseReason(null);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [seekTo]);
+
   const startFollow = useCallback(() => {
     let li = activeRef.current;
     if (li < 0) {
