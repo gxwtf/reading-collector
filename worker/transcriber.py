@@ -273,6 +273,25 @@ def try_bilibili_subtitle(url: str, locale: str | None = None) -> dict | None:
 
 def transcribe(url: str, locale: str | None = None) -> dict:
     """返回 {text, segments, locale, backend, model, durationSec, title, author, coverImage, kind}"""
+    # 1) 第三方工具（yt-dlp）抓现成字幕
+    from subtitles import fetch_subtitles
+
+    fetched = fetch_subtitles(url, locale)
+    if fetched:
+        print(f"[subtitle] 使用 yt-dlp 字幕（{fetched['locale']}）", flush=True)
+        fetched.update(
+            {
+                "durationSec": None,
+                "title": None,
+                "author": None,
+                "coverImage": None,
+                "kind": "video",
+                "site": _site_of(url),
+            }
+        )
+        return fetched
+
+    # 2) B 站官方接口（需要 BILI_SESSDATA）
     official = try_bilibili_subtitle(url, locale)
     if official:
         print("[subtitle] 使用 B 站官方字幕", flush=True)
