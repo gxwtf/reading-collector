@@ -191,11 +191,21 @@ export function VideoReader({
     const delta = elRect.top - listRect.top;
     const target = list.scrollTop + delta - list.clientHeight / 2 + elRect.height / 2;
 
-    try {
-      list.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
-    } catch {
-      list.scrollTop = Math.max(0, target);
-    }
+    // 不用 behavior:"smooth" —— WebKit/低电模式会忽略，改为自绘缓动
+    const to = Math.max(0, target);
+    const from = list.scrollTop;
+    const delta = to - from;
+    if (Math.abs(delta) < 4) return;
+    const startedAt = performance.now();
+    const duration = 320;
+
+    const step = (now: number) => {
+      const p = Math.min(1, (now - startedAt) / duration);
+      const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      list.scrollTop = from + delta * eased;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }, []);
 
   const applyLine = useCallback(
