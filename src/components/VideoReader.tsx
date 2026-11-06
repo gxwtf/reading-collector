@@ -62,6 +62,7 @@ export function VideoReader({
   const [pauseReason, setPauseReason] = useState<"manual" | "player" | null>(null);
   // 长讲座几百行，先渲染一批，跟随/点击时再补
   const [visible, setVisible] = useState(120);
+  const [clockTick, setClockTick] = useState(0);
   // 「试试去掉字幕」：默认显示，可隐藏（记住选择）
   const [hideTranscript, setHideTranscript] = useState(false);
 
@@ -97,6 +98,14 @@ export function VideoReader({
     const video = videoRef.current;
     if (audio && audio.currentSrc) return audio;
     return video;
+  };
+
+  /** 当前播放秒数：本地媒体读真实值；iframe 没有接口，用估算或当前行 */
+  const currentSeconds = () => {
+    const el = primary();
+    if (el && el.currentSrc) return el.currentTime;
+    if (following) return startTime.current + (Date.now() - startedAt.current) / 1000;
+    return lines[activeRef.current]?.start ?? 0;
   };
   const playerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -488,10 +497,9 @@ export function VideoReader({
 
         <KeyframePanel
           items={keyframes}
-          currentTime={now}
+          currentTime={useNative ? now : (clockTick >= 0 ? currentSeconds() : now)}
           onAdd={(note) => {
-            const t = primary()?.currentTime ?? now;
-            void addKeyframe(entryId, t, note);
+            void addKeyframe(entryId, currentSeconds(), note);
           }}
           onSeek={seekTo}
           onDelete={(id) => void deleteKeyframe(id)}
