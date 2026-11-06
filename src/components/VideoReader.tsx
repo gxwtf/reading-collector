@@ -206,6 +206,10 @@ export function VideoReader({
       if (p < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+    // 有些 WebView 在后台/低电模式会把 rAF 挂起，兜底直接落位
+    setTimeout(() => {
+      if (Math.abs(list.scrollTop - to) > 4) list.scrollTop = to;
+    }, 420);
   }, []);
 
   const applyLine = useCallback(
