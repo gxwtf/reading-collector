@@ -37,6 +37,16 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
             { contentMd: { contains: q, mode: "insensitive" as const } },
             { site: { contains: q, mode: "insensitive" as const } },
             { transcript: { is: { text: { contains: q, mode: "insensitive" as const } } } },
+            {
+              highlights: {
+                some: {
+                  OR: [
+                    { quote: { contains: q, mode: "insensitive" as const } },
+                    { note: { contains: q, mode: "insensitive" as const } },
+                  ],
+                },
+              },
+            },
           ],
         }
       : {}),
