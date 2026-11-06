@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RefreshCw } from "lucide-react";
+import { Pause, Play, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { addKeyframe, deleteKeyframe } from "@/actions/keyframes";
 import { seekUrl, type Embed } from "@/lib/embed";
 
 export type TranscriptLine = { start: number; end: number; text: string };
@@ -30,7 +31,8 @@ export function VideoReader({
   locale,
   segmentCount,
   lines,
-  bilibiliMode = true,
+  precise = false,
+  keyframes = [],
 }: {
   embed: Embed;
   title: string;
@@ -39,9 +41,10 @@ export function VideoReader({
   locale: string;
   segmentCount: number;
   lines: TranscriptLine[];
-  bilibiliMode?: boolean;
+  precise?: boolean;
+  keyframes?: { id: number; timeSec: number; note: string | null }[];
 }) {
-  const useNative = embed.provider === "bilibili" && bilibiliMode;
+  const useNative = embed.provider === "bilibili" && precise;
 
   const [seek, setSeek] = useState(0);
   const [playKey, setPlayKey] = useState(0);
@@ -79,9 +82,17 @@ export function VideoReader({
     return `${base}&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
   }, [embed, seek, playKey]);
 
-  // B 站直链
+  // 精确播放：本地 mp4 直接给 <video>
   useEffect(() => {
     if (!useNative) return;
+    setMedia({ video: `/api/media/${entryId}/file`, audio: "" });
+    setMediaError(null);
+  }, [entryId, useNative]);
+
+  // B 站直链（非精确模式暂未启用）
+  useEffect(() => {
+    if (useNative) return;
+    if (embed.provider !== "bilibili") return;
     let cancelled = false;
     setMediaError(null);
     fetch(`/api/media/${entryId}`)
@@ -222,12 +233,10 @@ export function VideoReader({
     setPauseReason(null);
 
     if (useNative) {
-      if (audioRef.current?.readyState === 0) {
-        audioRef.current.load();
-        videoRef.current?.load();
-      }
-      void audioRef.current?.play().catch(() => undefined);
-      void videoRef.current?.play().catch(() => undefined);
+      const mediaEl = audioRef.current ?? videoRef.current;
+      if (mediaEl && mediaEl.readyState === 0) mediaEl.load();
+      void mediaEl?.play().catch(() => undefined);
+      if (audioRef.current && videoRef.current) void videoRef.current.play().catch(() => undefined);
     } else {
       applyLine(seconds);
     }
@@ -240,7 +249,7 @@ export function VideoReader({
     if (!following) return;
     const tick = () => {
       const t = useNative
-        ? (audioRef.current?.currentTime ?? 0)
+        ? (audioRef.current?.currentTime ?? videoRef.current?.currentTime ?? 0)
         : playerTime.current !== null && Date.now() - playerTimeAt.current < 5000
           ? playerTime.current
           : startTime.current + (Date.now() - startedAt.current) / 1000;
@@ -297,17 +306,15 @@ export function VideoReader({
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     const video = videoRef.current;
-    if (!audio) return;
-    if (audio.paused) {
-      if (audio.readyState === 0) {
-        audio.load();
-        video?.load();
-      }
-      void audio.play();
-      void video?.play();
+    const mediaEl = audio ?? video;
+    if (!mediaEl) return;
+    if (mediaEl.paused) {
+      if (mediaEl.readyState === 0) mediaEl.load();
+      void mediaEl.play();
+      if (audio && video) void video.play();
     } else {
-      audio.pause();
-      video?.pause();
+      mediaEl.pause();
+      if (audio && video) video.pause();
     }
   }, []);
 
@@ -352,7 +359,7 @@ export function VideoReader({
                 />
                 <audio
                   ref={audioRef}
-                  src={media.audio}
+                  src={media.audio || undefined}
                   preload="none"
                   onPlay={() => setPlaying(true)}
                   onPause={() => setPlaying(false)}
@@ -466,6 +473,45 @@ export function VideoReader({
               {following ? "停止跟随" : "跟随播放"}
             </button>
           </div>
+        </div>
+
+        <div className="space-y-2 rounded-md border border-border bg-card p-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">关键帧（{keyframes.length}）</h3>
+            <button
+              type="button"
+              onClick={() => {
+                const t = audioRef.current?.currentTime ?? videoRef.current?.currentTime ?? now;
+                void addKeyframe(entryId, t, "");
+              }}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+              记下当前时刻 {mmss(now)}
+            </button>
+          </div>
+          {keyframes.length > 0 ? (
+            <ul className="flex flex-wrap gap-2">
+              {keyframes.map((k) => (
+                <li key={k.id} className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs">
+                  <button type="button" onClick={() => seekTo(k.timeSec)} className="tabular-nums hover:text-brand-red">
+                    {mmss(k.timeSec)}
+                  </button>
+                  {k.note ? <span className="text-muted-foreground">{k.note}</span> : null}
+                  <button
+                    type="button"
+                    aria-label="删除关键帧"
+                    onClick={() => void deleteKeyframe(k.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">播放时点「记下当前时刻」，重要位置会存成可跳转的标签。</p>
+          )}
         </div>
 
         {pauseReason && !following ? (

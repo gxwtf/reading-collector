@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { systemConfig, systemConfigs } from "@/lib/llm";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
+import { PreciseVideoToggle } from "@/components/PreciseVideoToggle";
 
 export const metadata: Metadata = { title: "设置" };
 
@@ -15,9 +16,10 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { userId: session.userId },
-    select: { aiSettings: true },
+    select: { aiSettings: true, prefs: true },
   });
   const stored = (user?.aiSettings ?? {}) as Stored;
+  const prefs = (user?.prefs ?? {}) as { preciseVideo?: boolean };
   const system = systemConfig();
   const systemKeyCount = systemConfigs().length;
 
@@ -55,6 +57,13 @@ export default async function SettingsPage() {
           systemModel={system?.model ?? null}
           systemKeyCount={systemKeyCount}
         />
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-5">
+        <h2 className="text-sm font-medium">视频</h2>
+        <div className="mt-3">
+          <PreciseVideoToggle initial={Boolean(prefs.preciseVideo)} />
+        </div>
       </section>
 
       <section className="rounded-lg border border-border bg-card p-5 text-sm text-muted-foreground">

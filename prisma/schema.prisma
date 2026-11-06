@@ -21,12 +21,15 @@ model User {
   realName  String?
   /// 用户自带模型（BYOK）：{ mode: 'system' | 'custom', apiBase?, apiKey?, model? }
   aiSettings Json?
+  /// 偏好：{ preciseVideo?: boolean }
+  prefs      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   entries     Entry[]
   collections Collection[]
   highlights  Highlight[]
+  keyframes   Keyframe[]
   tagConfigs  TagConfig[]
 }
 
@@ -80,6 +83,10 @@ model Entry {
   contentMd   String?   @db.Text
   /// 自动概括（要点列表，Markdown）
   summary     String?   @db.Text
+  /// 精确播放：本地转码后的 mp4 状态 none | pending | ready | failed
+  mediaState  String    @default("none") @db.VarChar(20)
+  mediaPath   String?   @db.VarChar(500)
+  mediaError  String?   @db.Text
   coverImage  String?   @db.VarChar(2048)
   wordCount   Int?
   durationSec Int?
@@ -99,6 +106,7 @@ model Entry {
   collections CollectionEntry[]
   transcript  Transcript?
   highlights  Highlight[]
+  keyframes   Keyframe[]
   jobs        FetchJob[]
 
   @@unique([userId, urlHash])
@@ -182,6 +190,21 @@ model Highlight {
 
   @@index([entryId])
   @@index([userId])
+}
+
+/// 视频关键帧（用户手动标记的关键时刻）
+model Keyframe {
+  id        Int      @id @default(autoincrement())
+  entryId   Int
+  userId    Int
+  timeSec   Float
+  note      String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+
+  entry Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([entryId])
 }
 
 /// 抓取 / 转写任务队列：Web 端只建任务，Python worker 轮询领取

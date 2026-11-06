@@ -16,8 +16,10 @@ import { ReadingShell } from "@/components/ReadingShell";
 import { HighlightLayer } from "@/components/HighlightLayer";
 import { HighlightList } from "@/components/HighlightList";
 import { VideoReader } from "@/components/VideoReader";
+import { PrepareVideo } from "@/components/PrepareVideo";
 
 type Params = Promise<{ id: string }>;
+type Search = Promise<{ only?: string }>;
 
 async function loadEntry(id: number, userId: number) {
   return prisma.entry.findFirst({
@@ -26,6 +28,7 @@ async function loadEntry(id: number, userId: number) {
       tags: { include: { tag: true } },
       transcript: true,
       highlights: { orderBy: { createdAt: "desc" } },
+      keyframes: { orderBy: { timeSec: "asc" } },
       jobs: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
@@ -38,10 +41,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: entry?.title ?? "条目" };
 }
 
-export default async function EntryPage({ params }: { params: Params }) {
+export default async function EntryPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Search;
+}) {
   const { id } = await params;
   const entryId = Number(id);
   if (!Number.isInteger(entryId)) notFound();
+
+  const sp = await searchParams;
+  const onlySummary = sp.only === "summary";
 
   const session = await requireSession(`/entry/${entryId}`);
   const entry = await loadEntry(entryId, session.userId);
@@ -56,6 +68,13 @@ export default async function EntryPage({ params }: { params: Params }) {
   const body = entry.contentMd ?? "";
   const embed = getEmbed(entry.url, entry.kind);
   const lastJob = entry.jobs[0];
+
+  const prefs = (await prisma.user.findUnique({
+    where: { userId: session.userId },
+    select: { prefs: true },
+  }))?.prefs as { preciseVideo?: boolean } | null;
+  const preciseReady = Boolean(prefs?.preciseVideo) && entry.mediaState === "ready";
+  const preciseEnabled = Boolean(prefs?.preciseVideo);
 
   return (
     <article className="space-y-6">
@@ -109,9 +128,22 @@ export default async function EntryPage({ params }: { params: Params }) {
         </div>
       ) : null}
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="flex justify-end">
+        <Link
+          href={onlySummary ? `/entry/${entry.id}` : `/entry/${entry.id}?only=summary`}
+          className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          {onlySummary ? "显示原文" : "只看概括"}
+        </Link>
+      </div>
+
+      <div className={onlySummary ? "grid gap-6" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]"}>
         {/* 左栏：原文 / 播放器 / 逐字稿 */}
-        <div className="min-w-0 space-y-6">
+        <div className={onlySummary ? "hidden" : "min-w-0 space-y-6"}>
+          {embed && entry.transcript && preciseEnabled && entry.mediaState !== "ready" ? (
+            <PrepareVideo entryId={entry.id} state={entry.mediaState} />
+          ) : null}
+
           {embed && entry.transcript ? (
             <VideoReader
               embed={embed}
@@ -123,8 +155,12 @@ export default async function EntryPage({ params }: { params: Params }) {
                 Array.isArray(entry.transcript.segments) ? entry.transcript.segments.length : 0
               }
               lines={buildLines(entry.transcript.segments)}
-              // B 站直链是 DASH 分片（.m4s），原生 <video> 播不了；先回退内嵌，等接入 DASH 播放器再开
-              bilibiliMode={false}
+              precise={preciseReady}
+              keyframes={entry.keyframes.map((k) => ({
+                id: k.id,
+                timeSec: k.timeSec,
+                note: k.note,
+              }))}
             />
           ) : (
             <>
