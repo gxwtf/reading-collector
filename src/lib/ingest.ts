@@ -1,42 +1,11 @@
-import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db";
+import { detectKind, hashUrl } from "./url";
 
-/** 按域名粗判类型；真正判定交给 worker */
-export function detectKind(url: string): "article" | "video" | "podcast" {
-  let host = "";
-  try {
-    host = new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "article";
-  }
-  if (/(bilibili\.com|youtu\.be|youtube\.com|vimeo\.com)/.test(host)) return "video";
-  if (/(xiaoyuzhoufm\.com|podcasts\.apple\.com|spotify\.com)/.test(host)) return "podcast";
-  return "article";
-}
+export { detectKind, hashUrl, parseTags, extractUrlsFromText } from "./url";
 
-export function hashUrl(url: string): string {
-  return createHash("sha256").update(url).digest("hex");
-}
 
-export function parseTags(raw: string): string[] {
-  return Array.from(
-    new Set(
-      raw
-        .split(/[,，、]/)
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0 && t.length <= 30),
-    ),
-  ).slice(0, 10);
-}
 
-const URL_RE = /https?:\/\/[^\s<>"'）)】，。]+/gi;
 
-/** 从一段文本里抠链接（去重、限 100 条） */
-export function extractUrlsFromText(text: string, limit = 100): string[] {
-  const found = text.match(URL_RE) ?? [];
-  const cleaned = found.map((u) => u.replace(/[.,;:!?]+$/, ""));
-  return Array.from(new Set(cleaned)).slice(0, limit);
-}
 
 export type IngestResult = { added: number; skipped: number };
 
