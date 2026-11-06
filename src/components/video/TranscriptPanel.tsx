@@ -21,6 +21,14 @@ export function TranscriptPanel({
   onSeek: (seconds: number) => void;
   onExpand: () => void;
 }) {
+  if (lines.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+        转写中，完成后这里会出现逐字稿；现在可以直接播放视频。
+      </p>
+    );
+  }
+
   return (
     <div
       ref={listRef}

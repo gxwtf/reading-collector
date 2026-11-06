@@ -170,7 +170,7 @@ export default async function EntryPage({
               segmentCount={
                 Array.isArray(entry.transcript?.segments) ? entry.transcript!.segments.length : 0
               }
-              lines={buildLines(entry.transcript.segments)}
+              lines={entry.transcript ? buildLines(entry.transcript.segments) : []}
               precise={preciseReady}
               keyframes={entry.keyframes.map((k) => ({
                 id: k.id,
@@ -180,23 +180,6 @@ export default async function EntryPage({
             />
           ) : (
             <>
-              {embed ? (
-                <div className="sticky top-[4.25rem] z-20">
-                  <div
-                    className="overflow-hidden rounded-lg border border-border bg-muted shadow-lg"
-                    style={{ aspectRatio: embed.ratio }}
-                  >
-                    <iframe
-                      src={embed.base}
-                      title={entry.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="size-full"
-                    />
-                  </div>
-                </div>
-              ) : null}
 
               {entry.state === "pending" ? (
                 <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
