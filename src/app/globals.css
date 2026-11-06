@@ -651,3 +651,23 @@
   background: var(--muted);
   color: var(--foreground);
 }
+
+/* ===== 视频逐行高亮（用显式类名，避免 Tailwind 任意透明度被裁） ===== */
+.tr-line {
+  transition: color 0.4s ease, background-color 0.4s ease, font-size 0.3s ease;
+  color: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+  background: transparent;
+  font-size: 13.5px;
+  line-height: 1.6rem;
+  cursor: pointer;
+}
+.tr-line-active {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--color-brand-red) 16%, transparent);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.75rem;
+}
+.dark .tr-line-active {
+  background: color-mix(in srgb, var(--color-brand-red) 30%, transparent);
+}

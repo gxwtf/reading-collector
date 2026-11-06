@@ -44,7 +44,16 @@ export function VideoReader({
   precise?: boolean;
   keyframes?: { id: number; timeSec: number; note: string | null }[];
 }) {
-  const useNative = embed.provider === "bilibili" && precise;
+  // iPad / iPhone 的媒体栈对本地流式 mp4 兼容性差，直接回退内嵌播放器
+  const [iosFallback, setIosFallback] = useState(false);
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    const ua = navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (ios) setIosFallback(true);
+  }, []);
+
+  const useNative = embed.provider === "bilibili" && precise && !iosFallback;
 
   const [seek, setSeek] = useState(0);
   const [playKey, setPlayKey] = useState(0);
@@ -570,12 +579,7 @@ export function VideoReader({
                   lineRefs.current[i] = el;
                 }}
                 onClick={() => seekTo(line.start)}
-                className={[
-                  "flex cursor-pointer gap-3 rounded-md px-1 py-1 transition-all duration-500",
-                  active
-                    ? "bg-brand-red/15 text-[15px] font-semibold leading-7 text-foreground shadow-sm"
-                    : "text-[13.5px] leading-6 text-muted-foreground/45 hover:text-muted-foreground",
-                ].join(" ")}
+                className={["tr-line flex gap-3 rounded-md px-1 py-1", active ? "tr-line-active" : ""].join(" ")}
               >
                 <button
                   type="button"
