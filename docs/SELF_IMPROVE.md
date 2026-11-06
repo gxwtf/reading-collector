@@ -58,3 +58,17 @@
 - 每次大功能落地后
 - 定时任务（如需要）：`minis-scheduled create --prompt "跑一轮自我改进循环" --interval 6h`
   （iOS 上 app 不常驻，定时只在 app 存活时可靠触发；重要检查请用 Apple Shortcuts 自动化）
+
+## 自我提示词（self-prompt）
+
+循环的「该做什么」不用人想，脚本会把仓库状态压成一段任务提示：
+
+```sh
+sh scripts/selfprompt.sh          # 只输出提示
+sh scripts/selfprompt.sh --run    # 顺带跑测试/类型检查，把结果写进提示
+```
+
+它会收集：分支与未提交改动、最近 5 次提交、测试用例数、异味计数、最大文件，
+然后按「失败项 → 未收尾改动 → 异味 → 过大文件 → 缺测试」排出候选任务和约束。
+
+用法：把输出整段粘给 agent（或让它自己跑这条命令），agent 按提示执行一轮。
