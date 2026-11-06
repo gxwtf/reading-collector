@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Loader2, X } from "lucide-react";
 import { createEntries } from "@/actions/entries";
+import { subscribeFeed } from "@/actions/feeds";
 import { mmss } from "@/lib/time";
 
 type Item = { bvid: string; title: string; url: string; duration: number; upper: string };
@@ -130,6 +131,19 @@ export function BilibiliFavImport() {
               读取
             </button>
           </div>
+
+          {mode === "rss" && items ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await subscribeFeed(input.trim());
+                setDone(res.ok ? "已订阅，之后每 30 分钟自动检查新条目" : res.error ?? "订阅失败");
+              }}
+              className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              订阅这个 feed（自动拉新）
+            </button>
+          ) : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {done ? <p className="text-sm text-muted-foreground">{done}</p> : null}

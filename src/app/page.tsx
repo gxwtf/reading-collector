@@ -5,6 +5,7 @@ import { AddEntryForm } from "@/components/AddEntryForm";
 import { EntryList } from "@/components/EntryList";
 import { FetchProgress } from "@/components/FetchProgress";
 import { BilibiliFavImport } from "@/components/BilibiliFavImport";
+import { FeedList } from "@/components/FeedList";
 import { Sidebar } from "@/components/Sidebar";
 
 export const metadata: Metadata = { title: "我的收藏" };
@@ -120,6 +121,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
         <AddEntryForm collections={collections.map((c) => ({ id: c.id, name: c.name }))} />
         <BilibiliFavImport />
+        <FeedList />
 
         <EntryList
           entries={entries.map((entry) => ({

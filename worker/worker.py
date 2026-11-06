@@ -116,11 +116,26 @@ def main() -> None:
 
     log(f"worker 启动：{WORKER_NAME} → {BASE_URL}")
     idle = POLL_INTERVAL
+    last_feed_check = 0.0
+
+    def check_feeds(client: httpx.Client) -> None:
+        try:
+            r = client.post(f"{BASE_URL}/api/cron/feeds", headers=HEADERS, timeout=120)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("checked"):
+                    log(f"RSS 检查 {data['checked']} 个订阅")
+        except Exception as exc:  # noqa: BLE001
+            log(f"RSS 检查失败：{exc}")
 
     with httpx.Client(follow_redirects=True) as client:
         while True:
             job = claim(client)
             if not job:
+                # 空闲时每 30 分钟检查一次 RSS 订阅
+                if time.time() - last_feed_check > 1800:
+                    last_feed_check = time.time()
+                    check_feeds(client)
                 if args.once:
                     log("没有待处理任务")
                     return
