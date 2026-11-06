@@ -274,8 +274,10 @@ export function VideoReader({
     }
 
     const tick = () => {
-      const t = useNative
-        ? (primary()?.currentTime ?? 0)
+      const el = primary();
+      const nativeReady = useNative && el && el.readyState >= 1;
+      const t = nativeReady
+        ? el!.currentTime
         : playerTime.current !== null && Date.now() - playerTimeAt.current < 5000
           ? playerTime.current
           : startTime.current + (Date.now() - startedAt.current) / 1000;
