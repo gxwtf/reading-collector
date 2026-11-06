@@ -308,16 +308,13 @@ export function VideoReader({
     return () => clearInterval(timer);
   }, [following, playing, useNative]);
 
-  const mediaRefHasAudio = () => {
-    // 本地 mp4 / 有独立 audio 流时都需要出声
-    return !media || media.audio === "";
-  };
-
   const togglePlay = useCallback(() => {
     const mediaEl = primary();
     if (!mediaEl) return;
-    if (mediaEl instanceof HTMLVideoElement && !mediaRefHasAudio()) {
+    if (mediaEl instanceof HTMLVideoElement && media?.audio === "") {
+      // 本地 mp4 自带音轨，确保不静音
       mediaEl.muted = false;
+      mediaEl.volume = 1;
     }
     if (mediaEl.paused) {
       if (mediaEl.readyState === 0) mediaEl.load();
