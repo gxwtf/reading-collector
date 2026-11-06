@@ -185,8 +185,18 @@ export function VideoReader({
     const el = lineRefs.current[index];
     const list = listRef.current;
     if (!el || !list) return;
-    const top = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
-    list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+
+    // 用 rect 差值算：offsetTop 依赖定位祖先，这里不能假设
+    const listRect = list.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const delta = elRect.top - listRect.top;
+    const target = list.scrollTop + delta - list.clientHeight / 2 + elRect.height / 2;
+
+    try {
+      list.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    } catch {
+      list.scrollTop = Math.max(0, target);
+    }
   }, []);
 
   const applyLine = useCallback(
