@@ -308,9 +308,17 @@ export function VideoReader({
     return () => clearInterval(timer);
   }, [following, playing, useNative]);
 
+  const mediaRefHasAudio = () => {
+    // 本地 mp4 / 有独立 audio 流时都需要出声
+    return !media || media.audio === "";
+  };
+
   const togglePlay = useCallback(() => {
     const mediaEl = primary();
     if (!mediaEl) return;
+    if (mediaEl instanceof HTMLVideoElement && !mediaRefHasAudio()) {
+      mediaEl.muted = false;
+    }
     if (mediaEl.paused) {
       if (mediaEl.readyState === 0) mediaEl.load();
       void mediaEl.play().catch(() => undefined);
@@ -351,7 +359,8 @@ export function VideoReader({
                 <video
                   ref={videoRef}
                   src={media.video}
-                  muted
+                  // 精确模式是音视频合一的 mp4，不能静音；双流模式才静音让 audio 出声
+                  muted={Boolean(media.audio)}
                   playsInline
                   preload="none"
                   className="size-full"
