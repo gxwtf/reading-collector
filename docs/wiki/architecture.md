@@ -22,7 +22,7 @@
 | 任务 | 流程 |
 | --- | --- |
 | `fetch` | httpx 取页面 → trafilatura 抽正文转 Markdown → 回填 `Entry.contentMd` |
-| `transcribe` | yt-dlp 取音轨 → ffmpeg 转 16k wav → whisper.cpp 转写 → 存 `Transcript`（分段 + 词级时间戳） |
+| `transcribe` | **先试 B 站官方字幕**（需 `BILI_SESSDATA`）→ 拿不到再 yt-dlp 取音轨 → whisper.cpp 转写 → 存 `Transcript` |
 
 失败会写 `FetchJob.error`、条目置 `failed`，页面给「重试」按钮。
 

@@ -204,6 +204,8 @@ def try_bilibili_subtitle(url: str, locale: str | None = None) -> dict | None:
     """B 站官方字幕：有登录态（BILI_SESSDATA）才有数据；拿不到就返回 None 走转写。"""
     if "bilibili.com" not in url:
         return None
+    if not os.environ.get("BILI_SESSDATA", "").strip():
+        print("[subtitle] 未配置 BILI_SESSDATA，跳过官方字幕（B 站接口需要登录态）", flush=True)
     m = re.search(r"(BV[0-9A-Za-z]+)", url)
     if not m:
         return None
@@ -223,6 +225,7 @@ def try_bilibili_subtitle(url: str, locale: str | None = None) -> dict | None:
         )
         subs = ((player.get("data") or {}).get("subtitle") or {}).get("subtitles") or []
         if not subs:
+            print("[subtitle] 该视频没有官方字幕，回退语音识别", flush=True)
             return None
 
         want = (locale or "").split("-")[0].lower()
