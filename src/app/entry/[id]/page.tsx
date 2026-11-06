@@ -18,6 +18,7 @@ import { HighlightList } from "@/components/HighlightList";
 import { VideoReader } from "@/components/VideoReader";
 import { mmss } from "@/lib/time";
 import { PrepareVideo } from "@/components/PrepareVideo";
+import { SummaryPanel } from "@/components/SummaryPanel";
 
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ only?: string }>;
@@ -152,7 +153,7 @@ export default async function EntryPage({
         </Link>
       </div>
 
-      <div className={onlySummary ? "grid gap-6" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]"}>
+      <div className={onlySummary ? "grid gap-6" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]"}>
         {/* 左栏：原文 / 播放器 / 逐字稿 */}
         <div className={onlySummary ? "hidden" : "min-w-0 space-y-6"}>
           {embed && entry.transcript && preciseEnabled && entry.mediaState !== "ready" ? (
@@ -250,16 +251,10 @@ export default async function EntryPage({
             </div>
 
             {entry.summary ? (
-              <div className="summary-prose mt-2">
-                <MDXRemote
-                  source={
-                    entry.kind === "video" || entry.kind === "podcast"
-                      ? linkTimestamps(entry.summary)
-                      : entry.summary
-                  }
-                  options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-                />
-              </div>
+              <SummaryPanel
+                markdown={entry.summary}
+                seekable={entry.kind === "video" || entry.kind === "podcast"}
+              />
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
                 {entry.state === "pending" ? "抓取完成后自动生成。" : "还没有概括，点「重算」生成。"}
