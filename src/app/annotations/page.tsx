@@ -87,7 +87,8 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
             placeholder="搜索批注或划线"
             className="h-9 w-56 rounded-md border border-input bg-background pl-7 pr-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           />
-        </form>
+          </form>
+        </div>
       </div>
 
       {highlights.length === 0 ? (
