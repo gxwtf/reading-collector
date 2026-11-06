@@ -32,6 +32,20 @@ def _guess_site(url: str, html: str) -> str:
         "36kr.com": "36 氪",
         "nytimes.com": "纽约时报",
         "thepaper.cn": "澎湃新闻",
+        "weibo.com": "微博",
+        "xiaohongshu.com": "小红书",
+        "douban.com": "豆瓣",
+        "medium.com": "Medium",
+        "substack.com": "Substack",
+        "github.com": "GitHub",
+        "notion.so": "Notion",
+        "yuque.com": "语雀",
+        "feishu.cn": "飞书",
+        "docs.google.com": "Google Docs",
+        "arxiv.org": "arXiv",
+        "douyin.com": "抖音",
+        "xigua.com": "西瓜视频",
+        "weixin.qq.com": "微信公众号",
     }
     return known.get(httpx.URL(url).host or "", host)
 
@@ -47,8 +61,57 @@ def _is_zhihu(url: str) -> bool:
     return host == "zhihu.com" or host.endswith(".zhihu.com")
 
 
+def _fetch_pdf(url: str) -> dict:
+    """PDF：下载后抽文字（需要 pypdf），失败给出明确原因。"""
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:
+        raise FetchError("PDF 抓取需要 pypdf：pip install pypdf") from exc
+
+    import io
+
+    try:
+        resp = httpx.get(
+            url,
+            follow_redirects=True,
+            timeout=HTTP_TIMEOUT * 2,
+            headers={"User-Agent": USER_AGENT},
+        )
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise FetchError(f"PDF 下载失败：{exc}") from exc
+
+    try:
+        reader = PdfReader(io.BytesIO(resp.content))
+        pages = [(p.extract_text() or "").strip() for p in reader.pages[:200]]
+    except Exception as exc:
+        raise FetchError(f"PDF 解析失败：{exc}") from exc
+
+    text = "\n\n".join(p for p in pages if p)
+    if len(text) < 120:
+        raise FetchError("PDF 里抽不到文字（可能是扫描件）")
+
+    title = url.rsplit("/", 1)[-1].replace(".pdf", "")[:120]
+    body = f"# {title}\n\n{text}"
+    return {
+        "title": title,
+        "site": "PDF",
+        "author": None,
+        "lang": None,
+        "excerpt": text[:160],
+        "contentMd": body,
+        "coverImage": None,
+        "wordCount": len(re.sub(r"\s+", "", text)),
+        "publishedAt": None,
+        "kind": "document",
+    }
+
+
 def fetch_article(url: str) -> dict:
     """返回 {title, site, author, excerpt, contentMd, coverImage, lang, wordCount, publishedAt}"""
+    if url.lower().split("?")[0].endswith(".pdf"):
+        return _fetch_pdf(url)
+
     if _is_zhihu(url):
         from zhihu import fetch_zhihu
 

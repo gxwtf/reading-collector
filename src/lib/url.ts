@@ -3,16 +3,37 @@ import { createHash } from "node:crypto";
 
 const URL_RE = /https?:\/\/[^\s<>"'）)】，。]+/gi;
 
-/** 按域名粗判类型；真正判定交给 worker */
-export function detectKind(url: string): "article" | "video" | "podcast" {
+export type Kind = "article" | "video" | "podcast" | "document";
+
+const VIDEO_HOSTS = [
+  "bilibili.com", "b23.tv", "youtube.com", "youtu.be", "vimeo.com",
+  "youku.com", "iqiyi.com", "v.qq.com", "mgtv.com", "douyin.com",
+  "tiktok.com", "xigua.com", "weibo.com/tv", "twitter.com", "x.com",
+];
+
+const PODCAST_HOSTS = [
+  "xiaoyuzhoufm.com", "podcasts.apple.com", "spotify.com",
+  "soundcloud.com", "anchor.fm", "podbean.com", "overcast.fm",
+];
+
+/** 按域名/后缀粗判类型；真正判定交给 worker */
+export function detectKind(url: string): Kind {
   let host = "";
+  let path = "";
   try {
-    host = new URL(url).hostname.replace(/^www\./, "");
+    const u = new URL(url);
+    host = u.hostname.replace(/^www\./, "");
+    path = u.pathname;
   } catch {
     return "article";
   }
-  if (/(bilibili\.com|youtu\.be|youtube\.com|vimeo\.com)/.test(host)) return "video";
-  if (/(xiaoyuzhoufm\.com|podcasts\.apple\.com|spotify\.com)/.test(host)) return "podcast";
+
+  if (/\.pdf$/i.test(path)) return "document";
+  if (/(arxiv\.org\/pdf|docs\.google\.com|yuque\.com|feishu\.cn\/docs)/.test(`${host}${path}`)) {
+    return "document";
+  }
+  if (VIDEO_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return "video";
+  if (PODCAST_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return "podcast";
   return "article";
 }
 
