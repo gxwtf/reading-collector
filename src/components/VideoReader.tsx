@@ -88,7 +88,6 @@ export function VideoReader({
   const playerTimeAt = useRef<number>(0);
   const playerState = useRef<number | null>(null);
   const playerStateAt = useRef<number>(0);
-  const programmaticScrollAt = useRef<number>(0);
 
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -178,7 +177,6 @@ export function VideoReader({
     const el = lineRefs.current[index];
     const list = listRef.current;
     if (!el || !list) return;
-    programmaticScrollAt.current = Date.now();
     const top = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
     list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }, []);
@@ -278,22 +276,6 @@ export function VideoReader({
     const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
   }, [following, lineAt, scrollToLine, useNative]);
-
-  // 手动滚动 → 暂停跟随
-  useEffect(() => {
-    if (!following) return;
-    const onScroll = () => {
-      if (Date.now() - programmaticScrollAt.current < 1200) return;
-      setFollowing(false);
-      setPauseReason("manual");
-    };
-    window.addEventListener("wheel", onScroll, { passive: true });
-    window.addEventListener("touchmove", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("wheel", onScroll);
-      window.removeEventListener("touchmove", onScroll);
-    };
-  }, [following]);
 
   // 播放器暂停 → 暂停跟随（仅 YouTube 需要推断；B 站是自家播放器直接知道）
   useEffect(() => {
