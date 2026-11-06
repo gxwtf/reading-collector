@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, Pause, Play, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, Pause, Play, RefreshCw, Upload } from "lucide-react";
 import { addKeyframe, deleteKeyframe } from "@/actions/keyframes";
+import { useRouter } from "next/navigation";
 import { seekUrl, type Embed } from "@/lib/embed";
 import { mmss } from "@/lib/time";
 import { KeyframePanel } from "@/components/video/KeyframePanel";
@@ -62,6 +63,9 @@ export function VideoReader({
   // 长讲座几百行，先渲染一批，跟随/点击时再补
   const [visible, setVisible] = useState(120);
   const [clockTick, setClockTick] = useState(0);
+  const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   // 「试试去掉字幕」：默认显示，可隐藏（记住选择）
   const [hideTranscript, setHideTranscript] = useState(false);
 
@@ -435,6 +439,39 @@ export function VideoReader({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-medium">逐字稿</h2>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".vtt,.srt,text/vtt,application/x-subrip"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(true);
+                const fd = new FormData();
+                fd.set("file", file);
+                const res = await fetch(`/api/entries/${entryId}/subtitle`, { method: "POST", body: fd });
+                const data = await res.json().catch(() => ({}));
+                setUploading(false);
+                e.target.value = "";
+                if (res.ok) {
+                  router.refresh();
+                } else {
+                  alert(data.error ?? "上传失败");
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              title="导入第三方字幕文件（VTT / SRT）"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:text-foreground disabled:opacity-50"
+            >
+              <Upload className="size-3.5" />
+              {uploading ? "上传中…" : "上传字幕"}
+            </button>
+
             <span>
               {backend} · {locale} · {segmentCount} 段
               {following ? (useNative || liveSync ? " · 实时同步" : " · 估算同步") : ""}
