@@ -66,7 +66,45 @@ def _ids(url: str) -> dict:
     return out
 
 
+def _fetch_via_extractor(url: str) -> dict | None:
+    """可选：本地 zhihu-proxy 提取器（自动处理 x-zse-96 签名与风控挑战）。
+    配 ZHIHU_EXTRACTOR_URL=http://127.0.0.1:8964 后启用。
+    """
+    base = os.environ.get("ZHIHU_EXTRACTOR_URL", "").strip().rstrip("/")
+    if not base:
+        return None
+    cookie = os.environ.get("ZHIHU_COOKIE", "").strip()
+
+    try:
+        resp = httpx.get(
+            f"{base}/extract",
+            params={"url": url, "format": "md"},
+            headers={"x-zhihu-cookie": cookie} if cookie else {},
+            timeout=60,
+        )
+        if resp.status_code != 200:
+            return None
+        body = resp.text.strip()
+        if len(body) < 120:
+            return None
+        first = body.splitlines()[0]
+        return {
+            "title": first.lstrip("# ").strip() or "知乎",
+            "contentMd": body,
+            "author": None,
+            "site": "知乎",
+            "excerpt": body[:120],
+            "contentHtml": None,
+        }
+    except Exception:
+        return None
+
+
 def fetch_zhihu(url: str) -> dict:
+    extracted = _fetch_via_extractor(url)
+    if extracted:
+        return extracted
+
     cookie = os.environ.get("ZHIHU_COOKIE", "").strip()
     if not cookie:
         raise ZhihuError(
