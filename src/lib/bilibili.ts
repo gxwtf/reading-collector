@@ -131,10 +131,14 @@ export async function fetchCollection(videoUrl: string): Promise<CollectionResul
     return {
       kind: "parts",
       title: data.title,
-      items: pages.map((p) => ({
-        title: `${data.title} P${p.page} ${p.part}`,
-        url: `https://www.bilibili.com/video/${bvid}?p=${p.page}`,
-      })),
+      items: pages.map((p) => {
+        // B 站的分 P 标题经常把整片标题重复一遍，去掉后取剩下的部分
+        const extra = (p.part || "").replace(data.title, "").trim();
+        return {
+          title: extra ? `P${p.page} ${extra}` : `P${p.page}`,
+          url: `https://www.bilibili.com/video/${bvid}?p=${p.page}`,
+        };
+      }),
     };
   }
 
