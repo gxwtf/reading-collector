@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { logout } from "@/actions/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
+import { NavLinks } from "@/components/NavLinks";
 import { SearchBox } from "@/components/SearchBox";
 
 /**
@@ -13,22 +14,6 @@ import { SearchBox } from "@/components/SearchBox";
 export async function Navbar() {
   const session = await getSession();
 
-  const navLinks = (
-    <>
-      <Link href="/" className="px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-        全部
-      </Link>
-      <Link href="/?readState=unread" className="px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-        未读
-      </Link>
-      <Link href="/?favorite=1" className="px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-        收藏
-      </Link>
-      <Link href="/annotations" className="px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-        批注
-      </Link>
-    </>
-  );
 
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-border bg-background/85 backdrop-blur">
@@ -38,15 +23,17 @@ export async function Navbar() {
           <span>阅读收集</span>
         </Link>
 
-        <nav className="ml-2 hidden items-center gap-1 sm:flex">{navLinks}</nav>
+        <nav className="ml-2 hidden items-center gap-1 sm:flex">
+          <NavLinks />
+        </nav>
 
         {/* 移动端菜单 */}
         <details className="group relative sm:hidden">
           <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground">
             <Menu className="size-4" />
           </summary>
-          <div className="absolute left-0 top-11 z-50 flex w-36 flex-col gap-1 rounded-xl bg-card ring-1 ring-foreground/10 p-2 shadow-lg">
-            {navLinks}
+          <div className="absolute left-0 top-11 z-50 flex w-40 flex-col gap-1 rounded-2xl border border-border bg-card p-2 shadow-lg">
+            <NavLinks />
           </div>
         </details>
 

@@ -15,7 +15,7 @@ export async function FeedList() {
   if (feeds.length === 0) return null;
 
   return (
-    <section className="rounded-xl bg-card ring-1 ring-foreground/10 p-4">
+    <section className="rounded-2xl border border-border bg-card p-4">
       <h2 className="flex items-center gap-1.5 text-sm font-medium">
         <Rss className="size-4" />
         RSS 订阅（{feeds.length}）

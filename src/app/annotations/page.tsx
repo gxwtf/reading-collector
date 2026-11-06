@@ -98,7 +98,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
       ) : (
         <div className="space-y-4">
           {Array.from(groups.values()).map(({ entry, items }) => (
-            <section key={entry.id} className="rounded-xl bg-card ring-1 ring-foreground/10 p-4">
+            <section key={entry.id} className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-baseline justify-between gap-2">
                 <Link
                   href={`/entry/${entry.id}`}
