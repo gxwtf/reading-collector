@@ -32,7 +32,7 @@ export async function Navbar() {
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-3 px-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold text-brand">
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold text-foreground">
           <BookOpenText className="size-5 text-brand" />
           <span>阅读收集</span>
         </Link>
