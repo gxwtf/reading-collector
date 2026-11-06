@@ -80,3 +80,67 @@ export function parseMediaId(input: string): string | null {
   const m = trimmed.match(/[?&]fid=(\d+)/) || trimmed.match(/media_id=(\d+)/);
   return m ? m[1] : null;
 }
+
+export type CollectionItem = { title: string; url: string };
+export type CollectionResult = {
+  kind: "season" | "parts" | "single";
+  title: string;
+  items: CollectionItem[];
+};
+
+/** 解析一个视频链接：多 P 分集 / UP 主合集 / 单集 */
+export async function fetchCollection(videoUrl: string): Promise<CollectionResult> {
+  const bvid = videoUrl.match(/BV[0-9A-Za-z]+/)?.[0];
+  if (!bvid) throw new Error("链接里没有 BV 号");
+
+  const res = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
+    headers: headers(),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`B 站接口返回 ${res.status}`);
+
+  const json = (await res.json()) as {
+    code: number;
+    message?: string;
+    data?: {
+      title: string;
+      pages?: { page: number; part: string }[];
+      ugc_season?: {
+        title: string;
+        sections?: { episodes: { bvid: string; title: string }[] }[];
+      };
+    };
+  };
+
+  if (json.code !== 0) throw new Error(json.message || "读取失败");
+  const data = json.data!;
+
+  const season = data.ugc_season;
+  if (season?.sections?.length) {
+    const items = season.sections.flatMap((s) =>
+      s.episodes.map((e) => ({
+        title: e.title,
+        url: `https://www.bilibili.com/video/${e.bvid}`,
+      })),
+    );
+    return { kind: "season", title: season.title, items };
+  }
+
+  const pages = data.pages ?? [];
+  if (pages.length > 1) {
+    return {
+      kind: "parts",
+      title: data.title,
+      items: pages.map((p) => ({
+        title: `${data.title} P${p.page} ${p.part}`,
+        url: `https://www.bilibili.com/video/${bvid}?p=${p.page}`,
+      })),
+    };
+  }
+
+  return {
+    kind: "single",
+    title: data.title,
+    items: [{ title: data.title, url: `https://www.bilibili.com/video/${bvid}` }],
+  };
+}

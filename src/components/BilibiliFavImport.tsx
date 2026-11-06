@@ -18,20 +18,34 @@ export function BilibiliFavImport() {
   const [loading, startLoad] = useTransition();
   const [importing, startImport] = useTransition();
   const [done, setDone] = useState("");
+  const [mode, setMode] = useState<"fav" | "collection">("fav");
 
   function load() {
     setError("");
     setDone("");
     startLoad(async () => {
-      const res = await fetch(`/api/bilibili/fav?mediaId=${encodeURIComponent(input)}`);
+      const endpoint =
+        mode === "fav"
+          ? `/api/bilibili/fav?mediaId=${encodeURIComponent(input)}`
+          : `/api/bilibili/collection?url=${encodeURIComponent(input)}`;
+      const res = await fetch(endpoint);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "读取失败");
         setItems(null);
         return;
       }
-      setItems(data.items as Item[]);
-      setSelected(new Set((data.items as Item[]).map((i) => i.url)));
+      const list = (data.items as { title: string; url: string; duration?: number; bvid?: string; upper?: string }[]).map(
+        (i) => ({
+          bvid: i.bvid ?? "",
+          title: i.title,
+          url: i.url,
+          duration: Number(i.duration ?? 0),
+          upper: i.upper ?? "",
+        }),
+      );
+      setItems(list);
+      setSelected(new Set(list.map((i) => i.url)));
     });
   }
 
@@ -68,11 +82,37 @@ export function BilibiliFavImport() {
 
       {open ? (
         <div className="mt-3 space-y-3">
+          <div className="flex gap-1 rounded-md border border-border p-0.5 text-xs">
+            {[
+              ["fav", "收藏夹"],
+              ["collection", "合集 / 分P"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setMode(value as "fav" | "collection");
+                  setItems(null);
+                  setError("");
+                }}
+                className={`rounded px-2 py-1 ${
+                  mode === value ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="收藏夹链接，或 media_id（如 123456）"
+              placeholder={
+                mode === "fav"
+                  ? "收藏夹链接，或 media_id（如 123456）"
+                  : "合集里任意一集的链接，如 https://www.bilibili.com/video/BV1xx"
+              }
               className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             />
             <button
@@ -141,7 +181,9 @@ export function BilibiliFavImport() {
           ) : null}
 
           <p className="text-[11px] text-muted-foreground">
-            私密收藏夹需要在服务器 <code>.env</code> 里配 <code>BILI_SESSDATA</code>；公开收藏夹直接可读。
+            {mode === "fav"
+              ? "私密收藏夹需要在服务器 .env 里配 BILI_SESSDATA；公开收藏夹直接可读。"
+              : "贴合集里任意一集的链接即可，会自动识别整个合集（或该视频的多 P 分集）。"}
           </p>
         </div>
       ) : null}
