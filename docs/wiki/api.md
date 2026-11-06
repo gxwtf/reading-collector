@@ -62,3 +62,4 @@ curl https://reading.gxwtf.cn/api/v1/entries?limit=20 \
 | `/api/worker/jobs*` | worker 领任务/回填（`INTERNAL_API_KEY`） |
 | `/api/bilibili/fav`、`/api/bilibili/collection` | 收藏夹 / 合集读取（需登录态） |
 | `GET /api/rss?url=` | 解析 RSS/Atom 条目（需登录态） |
+| `POST /api/cron/feeds` | 检查到期订阅并入库（`INTERNAL_API_KEY`，worker 每 30 分钟调用） |
