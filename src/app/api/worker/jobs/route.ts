@@ -43,5 +43,27 @@ export async function GET(request: Request) {
     return NextResponse.json({ job: null });
   }
 
-  return NextResponse.json({ job: rows[0] });
+  const job = rows[0];
+
+  // 把该条目所属用户的站点登录态一起下发，worker 按需注入环境变量
+  let cookies: Record<string, string> = {};
+  if (job.entryId) {
+    const entry = await prisma.entry.findUnique({
+      where: { id: job.entryId },
+      select: { user: { select: { credentials: true } } },
+    });
+    const creds = (entry?.user?.credentials ?? {}) as Record<string, string>;
+    const map: Record<string, string> = {
+      zhihu: "ZHIHU_COOKIE",
+      bilibili: "BILI_SESSDATA",
+      weibo: "WEIBO_COOKIE",
+      xiaohongshu: "XHS_COOKIE",
+    };
+    for (const [k, env] of Object.entries(map)) {
+      const v = (creds[k] ?? "").trim();
+      if (v) cookies[env] = v;
+    }
+  }
+
+  return NextResponse.json({ job: { ...job, cookies } });
 }

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import traceback
@@ -59,6 +60,10 @@ def report(client: httpx.Client, job_id: int, payload: dict) -> bool:
 
 
 def handle(client: httpx.Client, job: dict) -> None:
+    # 站点登录态由站点按条目所属用户下发，这里只在本进程内临时生效
+    for env, value in (job.get("cookies") or {}).items():
+        os.environ[env] = value
+
     job_id = job["id"]
     url = job["url"]
     kind = job.get("kind", "fetch")

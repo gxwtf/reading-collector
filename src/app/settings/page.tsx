@@ -7,6 +7,7 @@ import { systemConfig, systemConfigs } from "@/lib/llm";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { PreciseVideoToggle } from "@/components/PreciseVideoToggle";
 import { UserAvatar } from "@/components/UserAvatar";
+import { CredentialsForm } from "@/components/CredentialsForm";
 
 export const metadata: Metadata = { title: "设置" };
 
@@ -17,10 +18,17 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { userId: session.userId },
-    select: { aiSettings: true, prefs: true },
+    select: { aiSettings: true, prefs: true, credentials: true },
   });
   const stored = (user?.aiSettings ?? {}) as Stored;
   const prefs = (user?.prefs ?? {}) as { preciseVideo?: boolean };
+  const creds = (user?.credentials ?? {}) as Record<string, string>;
+  const configured = {
+    zhihu: Boolean(creds.zhihu),
+    bilibili: Boolean(creds.bilibili),
+    weibo: Boolean(creds.weibo),
+    xiaohongshu: Boolean(creds.xiaohongshu),
+  };
   const system = systemConfig();
   const systemKeyCount = systemConfigs().length;
 

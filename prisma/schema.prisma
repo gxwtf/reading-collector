@@ -23,6 +23,8 @@ model User {
   aiSettings Json?
   /// 偏好：{ preciseVideo?: boolean }
   prefs      Json?
+  /// 各站登录态：{ zhihu?: string, bilibili?: string, weibo?: string, xiaohongshu?: string }
+  credentials Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -125,12 +125,19 @@ def fetch_article(url: str) -> dict:
         raise FetchError("worker 缺少 trafilatura，请先 pip install -r requirements.txt") from exc
 
     try:
-        resp = httpx.get(
-            url,
-            follow_redirects=True,
-            timeout=HTTP_TIMEOUT,
-            headers={"User-Agent": USER_AGENT, "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"},
-        )
+        import os
+
+        headers = {"User-Agent": USER_AGENT, "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"}
+        host = urlparse(url).hostname or ""
+        cookie = ""
+        if "weibo.com" in host:
+            cookie = os.environ.get("WEIBO_COOKIE", "")
+        elif "xiaohongshu.com" in host:
+            cookie = os.environ.get("XHS_COOKIE", "")
+        if cookie:
+            headers["Cookie"] = cookie
+
+        resp = httpx.get(url, follow_redirects=True, timeout=HTTP_TIMEOUT, headers=headers)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         raise FetchError(f"请求失败：{exc}") from exc
