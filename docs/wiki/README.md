@@ -12,6 +12,7 @@
 - [架构与数据流](architecture.md)
 - [数据库结构](database.md)
 - [开放 API](api.md)
+- [需要登录态的站点](cookies.md)
 - [构建与部署](deployment.md)
 
 ## 功能一览
@@ -19,7 +20,7 @@
 | 模块 | 说明 |
 | --- | --- |
 | 收藏 | 单条/批量导入、B 站收藏夹、B 站合集与分 P |
-| 抓取 | 文章正文（httpx + trafilatura）、音视频转写（yt-dlp + whisper.cpp） |
+| 抓取 | 文章正文（httpx + trafilatura）、PDF（pypdf）、音视频转写（yt-dlp + whisper.cpp） |
 | 阅读 | 两栏布局、只看概括、字号/行宽、深浅色 |
 | 标注 | 正文划线 + 批注、视频关键帧 |
 | 概括 | AI 生成「一句话结论 / 分章要点 / 金句」，可 BYOK |

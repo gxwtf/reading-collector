@@ -149,6 +149,11 @@ curl -X POST https://reading.gxwtf.cn/api/v1/entries \
 
 详见 [docs/wiki/api.md](docs/wiki/api.md)。
 
+## 需要登录态的站点
+
+知乎、B 站官方字幕、微博、小红书需要登录态。在站内「设置 → 站点登录态」粘贴一次 Cookie 即可，
+详见 [docs/wiki/cookies.md](docs/wiki/cookies.md)。
+
 ## 生产部署
 
 服务器 systemd 服务名 `gxreading.service`（端口 `3005`，Nginx 反向代理 + HTTPS），
