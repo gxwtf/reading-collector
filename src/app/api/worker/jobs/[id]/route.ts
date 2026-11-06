@@ -2,6 +2,7 @@
 // body: { status: "done" | "failed", error?, entry?: {...}, transcript?: {...} }
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { verifyWorkerRequest } from "@/lib/session";
 
 type JobResult = {
@@ -99,7 +100,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
           backend: t.backend,
           model: t.model || null,
           text: t.text,
-          segments: (t.segments ?? null) as never,
+          segments: t.segments == null ? Prisma.JsonNull : (t.segments as Prisma.InputJsonValue),
         },
         create: {
           entryId: job.entryId,
@@ -107,7 +108,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
           backend: t.backend,
           model: t.model || null,
           text: t.text,
-          segments: (t.segments ?? null) as never,
+          segments: t.segments == null ? Prisma.JsonNull : (t.segments as Prisma.InputJsonValue),
         },
       });
     }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { requireSession } from "@/lib/session";
 
 export type PrefsState = { ok: boolean; message?: string };
@@ -15,7 +16,7 @@ export async function savePrefs(
 
   await prisma.user.update({
     where: { userId: session.userId },
-    data: { prefs: { preciseVideo } as never },
+    data: { prefs: { preciseVideo } as Prisma.InputJsonValue },
   });
 
   revalidatePath("/settings");

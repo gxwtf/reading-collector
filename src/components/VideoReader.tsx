@@ -108,29 +108,6 @@ export function VideoReader({
     setMediaError(null);
   }, [entryId, useNative]);
 
-  // B 站直链（非精确模式暂未启用）
-  useEffect(() => {
-    if (useNative) return;
-    if (embed.provider !== "bilibili") return;
-    let cancelled = false;
-    setMediaError(null);
-    fetch(`/api/media/${entryId}`)
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data?.error ?? "取直链失败");
-        return data as Media;
-      })
-      .then((data) => {
-        if (!cancelled) setMedia({ video: data.video, audio: data.audio });
-      })
-      .catch((error) => {
-        if (!cancelled) setMediaError((error as Error).message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [entryId, useNative]);
-
   // YouTube postMessage
   useEffect(() => {
     if (embed.provider !== "youtube") return;
@@ -442,17 +419,10 @@ export function VideoReader({
                     <p>{mediaError}</p>
                     <button
                       type="button"
-                      onClick={() => {
-                        setMedia(null);
-                        setMediaError(null);
-                        fetch(`/api/media/${entryId}`)
-                          .then((r) => r.json())
-                          .then((d) => setMedia({ video: d.video, audio: d.audio }))
-                          .catch((e) => setMediaError((e as Error).message));
-                      }}
+                      onClick={() => window.location.reload()}
                       className="rounded border border-border px-2 py-1"
                     >
-                      重试
+                      刷新重试
                     </button>
                   </>
                 ) : (

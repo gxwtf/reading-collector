@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { requireSession } from "@/lib/session";
 
 export type HighlightState = { ok: boolean; error?: string };
@@ -30,7 +31,7 @@ export async function createHighlight(
       userId: session.userId,
       quote: text,
       note: note.trim().slice(0, 1000) || null,
-      anchor: (anchor ?? undefined) as never,
+      ...(anchor ? { anchor: anchor as Prisma.InputJsonValue } : {}),
     },
   });
 

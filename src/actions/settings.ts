@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { requireSession } from "@/lib/session";
 import { configForUser, systemConfig, chat } from "@/lib/llm";
 
@@ -44,7 +45,7 @@ export async function saveAiSettings(
 
   await prisma.user.update({
     where: { userId: session.userId },
-    data: { aiSettings: next as never },
+    data: { aiSettings: next as Prisma.InputJsonValue },
   });
 
   revalidatePath("/settings");

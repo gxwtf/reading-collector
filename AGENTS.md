@@ -98,3 +98,16 @@ sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
 - 划线批注交互
 - 浏览器书签脚本 / iOS 分享扩展
 - 旧 Obsidian 库的一次性导入脚本（Markdown → Entry）
+
+## 媒体与第三方播放器（2026-11 补）
+
+- B 站/YouTube 的内嵌 iframe **读不到播放状态**，只有 YouTube 有官方 IFrame API；
+  所以「暂停即停滚动」这类精确联动必须走**本地 mp4 + 原生 `<video>`**。
+- 精确播放的产物放在 `~/reading-media/<entryId>.mp4`，由 `/api/media/<id>/file` 提供 Range 流；
+  准备任务走 `POST /api/media/<id>/prepare`，状态写在 `Entry.mediaState`。
+- B 站直链（`yt-dlp -g`）是 DASH 分片（`.m4s`），**不能直接丢给 `<video>`**；
+  要长时间播放只能本地转码或接 DASH 播放器。
+- 服务端直链代理必须补 `Referer: https://www.bilibili.com/` 与浏览器 UA，否则 CDN 返回 403。
+- iPad/iPhone 对本地流式 mp4 兼容性差：`VideoReader` 会在 iOS 上自动回退内嵌播放器。
+- 逐字稿/歌词行用显式 CSS 类（`.tr-line` / `.tr-line-active`），不要用 `bg-xxx/15`
+  这类任意透明度，Tailwind 可能不生成。
