@@ -18,7 +18,7 @@ export function BilibiliFavImport() {
   const [loading, startLoad] = useTransition();
   const [importing, startImport] = useTransition();
   const [done, setDone] = useState("");
-  const [mode, setMode] = useState<"fav" | "collection">("fav");
+  const [mode, setMode] = useState<"fav" | "collection" | "rss">("fav");
 
   function load() {
     setError("");
@@ -27,7 +27,9 @@ export function BilibiliFavImport() {
       const endpoint =
         mode === "fav"
           ? `/api/bilibili/fav?mediaId=${encodeURIComponent(input)}`
-          : `/api/bilibili/collection?url=${encodeURIComponent(input)}`;
+          : mode === "collection"
+            ? `/api/bilibili/collection?url=${encodeURIComponent(input)}`
+            : `/api/rss?url=${encodeURIComponent(input)}`;
       const res = await fetch(endpoint);
       const data = await res.json();
       if (!res.ok) {
@@ -71,7 +73,7 @@ export function BilibiliFavImport() {
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <Download className="size-4" />
-          从 B 站收藏夹导入
+          批量导入（B 站收藏夹 / 合集 / RSS）
         </button>
         {open ? (
           <button type="button" onClick={() => setOpen(false)} aria-label="关闭" className="text-muted-foreground">
@@ -86,12 +88,13 @@ export function BilibiliFavImport() {
             {[
               ["fav", "收藏夹"],
               ["collection", "合集 / 分P"],
+              ["rss", "RSS"],
             ].map(([value, label]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => {
-                  setMode(value as "fav" | "collection");
+                  setMode(value as "fav" | "collection" | "rss");
                   setItems(null);
                   setError("");
                 }}
@@ -111,7 +114,9 @@ export function BilibiliFavImport() {
               placeholder={
                 mode === "fav"
                   ? "收藏夹链接，或 media_id（如 123456）"
-                  : "合集里任意一集的链接，如 https://www.bilibili.com/video/BV1xx"
+                  : mode === "collection"
+                    ? "合集里任意一集的链接，如 https://www.bilibili.com/video/BV1xx"
+                    : "RSS / Atom 链接，如 https://sspai.com/feed"
               }
               className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             />
@@ -183,7 +188,9 @@ export function BilibiliFavImport() {
           <p className="text-[11px] text-muted-foreground">
             {mode === "fav"
               ? "私密收藏夹需要在服务器 .env 里配 BILI_SESSDATA；公开收藏夹直接可读。"
-              : "贴合集里任意一集的链接即可，会自动识别整个合集（或该视频的多 P 分集）。"}
+              : mode === "collection"
+                ? "贴合集里任意一集的链接即可，会自动识别整个合集（或该视频的多 P 分集）。"
+                : "RSS 只给节选也能用：导入后 worker 会抓原文，做「全文解锁」。"}
           </p>
         </div>
       ) : null}
