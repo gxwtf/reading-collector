@@ -23,6 +23,9 @@ export async function Navbar() {
       <Link href="/?favorite=1" className="px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
         收藏
       </Link>
+      <Link href="/annotations" className="px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        批注
+      </Link>
     </>
   );
 
