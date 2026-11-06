@@ -266,6 +266,11 @@ export function VideoReader({
   // 跟随 tick
   useEffect(() => {
     if (!following) return;
+    if (!startedAt.current) {
+      startedAt.current = Date.now();
+      startTime.current = lines[0]?.start ?? 0;
+    }
+
     const tick = () => {
       const t = useNative
         ? (primary()?.currentTime ?? 0)
