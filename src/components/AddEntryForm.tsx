@@ -13,7 +13,7 @@ export function AddEntryForm({ collections }: { collections: CollectionOption[] 
   const [state, action, pending] = useActionState(createEntries, initialState);
 
   return (
-    <form action={action} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <form action={action} className="rounded-xl bg-card ring-1 ring-foreground/10 p-4 shadow-sm">
       <textarea
         name="urls"
         required

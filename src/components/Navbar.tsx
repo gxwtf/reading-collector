@@ -33,7 +33,7 @@ export async function Navbar() {
     <header className="sticky top-0 z-50 h-14 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-3 px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold text-brand">
-          <BookOpenText className="size-5" />
+          <BookOpenText className="size-5 text-brand" />
           <span>阅读收集</span>
         </Link>
 
@@ -44,7 +44,7 @@ export async function Navbar() {
           <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground">
             <Menu className="size-4" />
           </summary>
-          <div className="absolute left-0 top-11 z-50 flex w-36 flex-col gap-1 rounded-lg border border-border bg-card p-2 shadow-lg">
+          <div className="absolute left-0 top-11 z-50 flex w-36 flex-col gap-1 rounded-xl bg-card ring-1 ring-foreground/10 p-2 shadow-lg">
             {navLinks}
           </div>
         </details>

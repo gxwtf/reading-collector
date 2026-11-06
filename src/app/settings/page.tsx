@@ -43,7 +43,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <section className="rounded-lg border border-border bg-card p-5">
+      <section className="rounded-xl bg-card ring-1 ring-foreground/10 p-5">
         <h2 className="text-sm font-medium">概括用的模型</h2>
         <p className="mt-1 mb-4 text-xs text-muted-foreground">
           不填就用站点默认；填了就走你自己的接口，调用量与费用都在你自己的账号下。
@@ -59,14 +59,14 @@ export default async function SettingsPage() {
         />
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-5">
+      <section className="rounded-xl bg-card ring-1 ring-foreground/10 p-5">
         <h2 className="text-sm font-medium">视频</h2>
         <div className="mt-3">
           <PreciseVideoToggle initial={Boolean(prefs.preciseVideo)} />
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-5 text-sm text-muted-foreground">
+      <section className="rounded-xl bg-card ring-1 ring-foreground/10 p-5 text-sm text-muted-foreground">
         <h2 className="text-sm font-medium text-foreground">当前账号</h2>
         <p className="mt-2">广学账号：{session.userName ?? "—"}</p>
         <p>用户 ID：{session.userId}</p>

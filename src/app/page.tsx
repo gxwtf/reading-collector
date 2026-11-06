@@ -104,7 +104,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
       />
       </div>
 
-      <details className="rounded-lg border border-border bg-card p-3 md:hidden">
+      <details className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 md:hidden">
         <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground">筛选 / 分组</summary>
         <div className="mt-3">
       <Sidebar

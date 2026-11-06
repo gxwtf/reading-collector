@@ -66,7 +66,7 @@ export function BilibiliFavImport() {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-4">
       <div className="flex items-center justify-between">
         <button
           type="button"
