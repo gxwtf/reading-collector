@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 
 import httpx
+from urllib.parse import urlparse
 
 from config import HTTP_TIMEOUT, USER_AGENT
 
@@ -41,8 +42,26 @@ def _meta(html: str, prop: str) -> str | None:
     return m.group(1).strip() or None if m else None
 
 
+def _is_zhihu(url: str) -> bool:
+    host = urlparse(url).hostname or ""
+    return host == "zhihu.com" or host.endswith(".zhihu.com")
+
+
 def fetch_article(url: str) -> dict:
     """返回 {title, site, author, excerpt, contentMd, coverImage, lang, wordCount, publishedAt}"""
+    if _is_zhihu(url):
+        from zhihu import fetch_zhihu
+
+        data = fetch_zhihu(url)
+        body = data.get("contentMd") or ""
+        data.setdefault("kind", "article")
+        data["wordCount"] = len(re.sub(r"\s+", "", re.sub(r"[#>*`\[\]()!\-]", "", body)))
+        data["lang"] = "zh-CN"
+        data.setdefault("coverImage", None)
+        data.setdefault("publishedAt", None)
+        data.setdefault("excerpt", re.sub(r"\s+", " ", body)[:160])
+        return data
+
     try:
         import trafilatura
     except ImportError as exc:  # pragma: no cover
