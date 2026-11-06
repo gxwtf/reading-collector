@@ -69,6 +69,16 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-xl bg-card ring-1 ring-foreground/10 p-5">
+        <h2 className="text-sm font-medium">站点登录态</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          知乎、B 站官方字幕、微博、小红书需要登录态。填一次即可，之后这些站点的链接会自动带上。
+        </p>
+        <div className="mt-3">
+          <CredentialsForm configured={configured} />
+        </div>
+      </section>
+
+      <section className="rounded-xl bg-card ring-1 ring-foreground/10 p-5">
         <h2 className="text-sm font-medium">视频</h2>
         <div className="mt-3">
           <PreciseVideoToggle initial={Boolean(prefs.preciseVideo)} />
