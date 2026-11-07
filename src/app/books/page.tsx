@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Download, ExternalLink } from "lucide-react";
 
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
