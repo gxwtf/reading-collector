@@ -32,7 +32,9 @@ async function loadFont(): Promise<ArrayBuffer> {
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const text = (params.get("text") ?? "").trim().slice(0, 300);
+  const rawText = (params.get("text") ?? "").trim().slice(0, 300);
+  // 去掉原文自带的引号，避免和卡片上的装饰引号重复
+  const text = rawText.replace(/^[\u201C\u201D"']+/, "").replace(/[\u201C\u201D"']+$/, "").trim();
   const title = (params.get("title") ?? "").trim().slice(0, 60);
   const site = (params.get("site") ?? "").trim().slice(0, 20);
   const theme = params.get("theme") === "dark" ? "dark" : "light";
@@ -78,10 +80,11 @@ export async function GET(request: Request) {
         <div
           style={{
             display: "flex",
+            alignItems: "center",
             marginTop: 4,
             flexGrow: 1,
             fontSize: size,
-            lineHeight: 1.62,
+            lineHeight: 1.7,
             letterSpacing: 1,
             color: fg,
           }}
