@@ -22,7 +22,7 @@ digest = hashlib.md5(f"{USER}:{REALM}:{PWD}".encode()).hexdigest()
 config = {
     "host": "127.0.0.1",
     "port": PORT,
-    "provider_mapping": {"/dav": ROOT, "/": ROOT},
+    "provider_mapping": {"/dav": ROOT},
     "http_authenticator": {
         "domain_controller": SimpleDomainController,
         "accept_basic": True,
