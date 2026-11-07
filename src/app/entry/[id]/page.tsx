@@ -9,6 +9,7 @@ import { requireSession } from "@/lib/session";
 import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { regenerateSummary } from "@/actions/summary";
+import { toggleShare } from "@/actions/share";
 import { getEmbed } from "@/lib/embed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,6 +152,25 @@ export default async function EntryPage({
         >
           {onlySummary ? "显示原文" : "只看概括"}
         </Link>
+
+        <form action={toggleShare.bind(null, entry.id)}>
+          <button
+            type="submit"
+            className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            {entry.shareToken ? "取消分享" : "分享"}
+          </button>
+        </form>
+        {entry.shareToken ? (
+          <a
+            href={`/s/${entry.shareToken}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-brand hover:underline"
+          >
+            公开链接
+          </a>
+        ) : null}
       </div>
 
       <div className={onlySummary ? "grid gap-6" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]"}>

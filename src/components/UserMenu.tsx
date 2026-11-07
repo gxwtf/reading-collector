@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bookmark, LogOut, MessageSquareQuote, Settings } from "lucide-react";
+import { Bookmark, LogOut, MessageSquareQuote, Settings, Tag } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 
 /**
@@ -76,6 +76,14 @@ export function UserMenu({
           >
             <MessageSquareQuote className="size-4" />
             批注整理
+          </Link>
+          <Link
+            href="/tags"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
+          >
+            <Tag className="size-4" />
+            标签管理
           </Link>
           <Link
             href="/settings"

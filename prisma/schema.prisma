@@ -86,6 +86,8 @@ model Entry {
   contentMd   String?   @db.Text
   /// 自动概括（要点列表，Markdown）
   summary     String?   @db.Text
+  /// 公开分享令牌（只读页面 /s/<token>），为空表示未分享
+  shareToken  String?   @unique
   /// 精确播放：本地转码后的 mp4 状态 none | pending | ready | failed
   mediaState  String    @default("none") @db.VarChar(20)
   mediaPath   String?   @db.VarChar(500)

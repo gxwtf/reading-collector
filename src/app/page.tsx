@@ -6,6 +6,7 @@ import { EntryList } from "@/components/EntryList";
 import { FetchProgress } from "@/components/FetchProgress";
 import { BilibiliFavImport } from "@/components/BilibiliFavImport";
 import { MarkdownImport } from "@/components/MarkdownImport";
+import { OpmlImport } from "@/components/OpmlImport";
 import { FeedList } from "@/components/FeedList";
 import { Sidebar } from "@/components/Sidebar";
 
@@ -158,6 +159,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           <div className="mt-3 space-y-3">
             <BilibiliFavImport />
             <MarkdownImport />
+            <OpmlImport />
           </div>
         </details>
         <FeedList />
