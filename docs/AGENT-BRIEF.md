@@ -104,22 +104,28 @@ brief 里必须显式列出禁止行为，否则 agent 会「出于谨慎」去�
 
 远程 agent 的能力边界要提前写进 brief，避免它尝试后失败、或者假装成功。
 
-### 4.1 远程 agent 不能做的事
+### 4.1 远程 agent 现在可以做的事
 
-- **不能 `sudo`**：任何需要 root 的操作（改系统配置、装系统包、动 systemd 单元、改 nginx 主配置）一律不做。
-- **不能 `git push`**：远程只允许本地改动与本地提交（若 brief 允许），推送由端上执行。
+- **可以自行 `git add` / `git commit` / `git push`**：服务器上的 SSH key 对 `gxwtf/reading-collector` 有写权限，远程 agent 能自己提交并推送到 `main`。brief 里可以直接要求「提交并推送」，不必再留给端上。push 被拒时按 `git pull --rebase origin main` 再 push，最多重试两次。
+- **可以重启服务**：`sudo -n systemctl restart gxreading` 与 `sudo -n systemctl restart gxreading-worker` 已在 NOPASSWD 白名单内，无需密码即可执行。查状态用 `sudo -n systemctl is-active gxreading` / `gxreading-worker`。
+
+### 4.2 远程 agent 仍然不能做的事
+
+- **不能装系统包**：`apt` / `apt-get` 一律不执行。
+- **不能改 nginx**：站点配置、反代、证书相关文件都不动。
+- **不能改 sudoers**：不新增、不修改任何提权规则。
+- **不能动数据库**：不跑迁移、不删数据、不改表结构等不可逆操作。
 - 不能看界面：无法打开浏览器验证视觉效果，UI 类任务只能靠代码与构建结果验收。
 - 不能问用户：没有交互通道，遇到歧义只能按 brief 字面执行或在 `done` 里说明。
 
-### 4.2 必须留在端上的事
+### 4.3 必须留在端上的事
 
-- 需要 `sudo` 的操作（服务重启、系统级配置、权限修复）。
-- `git push`、发 PR、打 tag、发布。
+- 装系统包、改 nginx、改 sudoers、数据库迁移与删数据等上面列出的禁止项。
+- 发 PR、打 tag、发布等超出「提交并推送」的动作。
 - 需要肉眼看界面 / 截图对比的验收。
 - 需要向用户确认需求、取舍、命名的地方。
-- 数据库迁移、删数据等不可逆操作。
 
-### 4.3 `--max-steps` 参考值
+### 4.4 `--max-steps` 参考值
 
 步数给太少会逼出「3 步收工」，给太多会让 agent 有余力乱探索。按任务形态给：
 
