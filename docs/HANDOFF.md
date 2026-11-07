@@ -21,8 +21,9 @@
 
 - 书库已收敛为**根目录单一副本**：`~/reading-books/*.epub|pdf` 为唯一真身，`Readest/books/<hash>/` 走硬链接，`library.json` 由脚本生成
 - 一条龙：`sh worker/sync_library.sh`（扫描 → 书名/作者清洗 → 元数据+封面 → 发布 → 去重 → 孤儿清理），上传即触发，另有定时任务
-- 四层计数一致（2026-11-08 实测）：根目录 10 / DB 10 / Readest 目录 10 / library.json 10
-- 服务：`gxreading`、`gxreading-worker`、`gxreading-dav`、`readest`、`nginx` 均 active
+- 四层计数一致（2026-11-08 实测）：根目录 10 / DB 10 / Readest 目录 10 / library.json 10；`sync_library.sh` 复跑新增 0、孤儿 0
+- 服务：`gxreading`、`gxreading-worker`、`gxreading-dav`、`readest`、`nginx` 均 active；`pnpm typecheck` 通过
+- 进行中（未提交）：EPUB 导入（`jszip` 解包 + `turndown` 转 Markdown，`/api/entries/epub` + `src/lib/{epub,entry-import}.ts`），Markdown 导入已抽到 `saveTextEntry` 复用
 
 ## 已上线功能（本次会话）
 
