@@ -66,7 +66,7 @@ export async function syncAnx(): Promise<number> {
         where: { id: existing.id },
         data: {
           title: b.title?.trim() || existing.title,
-          author: author && author !== "Unknown" ? author : existing.author,
+          author: author ? (author === "Unknown" ? null : author) : existing.author,
           epubPercent: percent,
         },
       });
