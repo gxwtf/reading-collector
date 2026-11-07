@@ -1,0 +1,11 @@
+[Unit]
+Description=dream：每日凌晨自动整理
+After=network-online.target gxreading.service
+
+[Service]
+Type=oneshot
+User=gxwtf
+WorkingDirectory=/home/gxwtf/gxwtf_reading
+EnvironmentFile=/home/gxwtf/.config/agent-cloud/env
+ExecStart=/bin/sh /home/gxwtf/dream/dream.sh
+TimeoutStartSec=300

@@ -1,0 +1,10 @@
+[Unit]
+Description=每天 00:05 运行 dream
+
+[Timer]
+OnCalendar=*-*-* 00:05:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target
