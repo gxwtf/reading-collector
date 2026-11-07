@@ -152,6 +152,60 @@ def pdf_meta(path: Path):
     return meta
 
 
+FONT_CANDIDATES = [
+    "/home/gxwtf/.fonts/simsun.ttf",
+    "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+]
+
+
+def make_placeholder(book_id: int, title: str, author: str) -> str:
+    """没有封面的书（PDF/扫描件）生成一张纯色卡片，避免列表里一片空白。"""
+    from PIL import ImageDraw, ImageFont
+
+    W, H = 600, 900
+    im = Image.new("RGB", (W, H), (250, 247, 242))
+    d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, W, 12], fill=(163, 31, 36))
+
+    font = None
+    for path in FONT_CANDIDATES:
+        if os.path.exists(path):
+            try:
+                font = ImageFont.truetype(path, 46)
+                small = ImageFont.truetype(path, 28)
+                break
+            except OSError:
+                font = None
+    if font is None:
+        font = ImageFont.load_default()
+        small = font
+
+    text = title or f"Book {book_id}"
+    # 按宽度折行
+    lines, cur = [], ""
+    for ch in text:
+        if d.textlength(cur + ch, font=font) > W - 96:
+            lines.append(cur)
+            cur = ch
+        else:
+            cur += ch
+    lines.append(cur)
+    lines = lines[:8]
+
+    y = 240
+    for line in lines:
+        d.text((48, y), line, font=font, fill=(32, 30, 28))
+        y += 62
+    if author:
+        d.text((48, y + 24), author, font=small, fill=(120, 112, 104))
+    d.text((48, H - 72), "阅读收集", font=small, fill=(163, 31, 36))
+
+    COVERS.mkdir(parents=True, exist_ok=True)
+    name = f"{book_id}.jpg"
+    im.save(COVERS / name, "JPEG", quality=84)
+    return name
+
+
 def save_cover(book_id: int, data: bytes) -> str:
     COVERS.mkdir(parents=True, exist_ok=True)
     try:
@@ -194,6 +248,8 @@ def main():
                 desc = re.sub(r"<[^>]+>", "", html.unescape(desc)).strip()[:2000] or None
 
             cover_file = save_cover(bid, cover) if cover else None
+            if not cover_file:
+                cover_file = make_placeholder(bid, new_title, new_author or "")
 
             conn.execute(
                 '''update "Book" set title=%s, author=%s, description=%s, publisher=%s,

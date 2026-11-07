@@ -26,7 +26,7 @@ VERSION = "reader-1"
 def db_rows():
     sql = (
         'select coalesce(json_agg(json_build_object('
-        "'title', title, 'author', author, 'format', format, 'file', \"fileName\""
+        "'id', id, 'title', title, 'author', author, 'format', format, 'file', \"fileName\""
         ')), \'[]\') from "Book"'
     )
     out = subprocess.run(["psql", DB, "-tAc", sql], capture_output=True, text=True, check=True).stdout
@@ -79,6 +79,21 @@ def main():
             except OSError:
                 shutil.copy2(src, dst)
 
+        # Readest 的封面约定：books/<hash>/cover.png（它自己也是 JPEG 数据塞在 .png 里）
+        cover_hash = ""
+        cover_src = None
+        for cand in (f"covers/{row['id']}.jpg", f"covers/{row['id']}.png"):
+            cp = os.path.join(BOOKS_DIR, cand)
+            if os.path.exists(cp):
+                cover_src = cp
+                break
+        if cover_src:
+            with open(cover_src, "rb") as f:
+                cdata = f.read()
+            with open(os.path.join(target_dir, "cover.png"), "wb") as f:
+                f.write(cdata)
+            cover_hash = hashlib.md5(cdata).hexdigest()
+
         cfg_path = os.path.join(target_dir, "config.json")
         if not os.path.exists(cfg_path):
             with open(cfg_path, "w", encoding="utf-8") as f:
@@ -104,6 +119,7 @@ def main():
             "originalFilename": base,
             "sourceTitle": row["title"],
             "author": row.get("author") or "",
+            **({"coverHash": cover_hash, "coverUpdatedAt": now} if cover_hash else {}),
             "metadata": {
                 "title": row["title"],
                 "author": row.get("author") or "",
@@ -115,7 +131,11 @@ def main():
             "updatedAt": now,
             "progress": None,
         }
-        if h not in by_hash:
+        if h in by_hash:
+            if cover_hash:
+                by_hash[h]["coverHash"] = cover_hash
+                by_hash[h]["coverUpdatedAt"] = now
+        else:
             by_hash[h] = entry
             added += 1
             print(f"+ {row['title'][:36]} → books/{h[:10]}…")
