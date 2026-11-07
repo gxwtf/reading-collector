@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { readFile, readdir, stat } from "node:fs/promises";
+import { link, mkdir, readFile, readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 
 import { prisma } from "@/lib/db";
@@ -101,7 +101,7 @@ async function walkBooks(dir: string, depth = 0): Promise<string[]> {
 
   const out: string[] = [];
   for (const e of entries) {
-    if (e.name.startsWith(".")) continue;
+    if (e.name.startsWith(".") || e.name === "_library") continue;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
       out.push(...(await walkBooks(full, depth + 1)));
@@ -144,9 +144,38 @@ export async function syncBooks() {
 
   // 书先入库，再用 Anx 的 SQLite 覆盖真实书名/作者并导入划线
   await syncAnx().catch(() => 0);
+  await publishLibrary().catch(() => 0);
 
   const refreshed = await prisma.book.findMany({ where: { fileName: { in: files.map((f) => path.relative(BOOKS_DIR, f)) } } });
   return refreshed.sort((a, b) => a.title.localeCompare(b.title, "zh"));
+}
+
+/* ---------------------------------------------------------------- 扁平镜像 */
+
+/**
+ * Readest / Anx 的书分散在各自目录里（Readest/books/<hash>/、anx/data/file/），
+ * 手机上一个个翻太麻烦。这里把所有书硬链接到 _library/<书名>.<格式>，
+ * 一个文件夹就是全部书，WebDAV 里点进去直接下载。
+ */
+export async function publishLibrary() {
+  const mirror = path.join(BOOKS_DIR, "_library");
+  await mkdir(mirror, { recursive: true }).catch(() => null);
+
+  const books = await prisma.book.findMany();
+  for (const b of books) {
+    const src = path.join(BOOKS_DIR, b.fileName);
+    const safe = b.title.replace(/[/\\:*?"<>|]/g, "_").slice(0, 80) || `book-${b.id}`;
+    const dst = path.join(mirror, `${safe}.${b.format}`);
+
+    try {
+      const [a, c] = await Promise.all([stat(src), stat(dst).catch(() => null)]);
+      if (c && c.size === a.size) continue; // 已经有了
+      if (c) await unlink(dst).catch(() => null);
+      await link(src, dst);
+    } catch {
+      /* 跨设备或权限问题就跳过 */
+    }
+  }
 }
 
 /* ---------------------------------------------------------------- 部分 MD5 区间 */
