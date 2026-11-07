@@ -83,9 +83,18 @@ def main():
                         pass
 
         dst = os.path.join(target_dir, base)
-        if not os.path.exists(dst):
+        need_link = True
+        if os.path.exists(dst):
             try:
-                os.link(src, dst)
+                same = os.stat(dst).st_ino == os.stat(src).st_ino
+            except OSError:
+                same = False
+            need_link = not same
+            if need_link:
+                os.remove(dst)
+        if need_link:
+            try:
+                os.link(src, dst)          # 硬链接：同一份数据，两处路径
             except OSError:
                 shutil.copy2(src, dst)
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=补齐书籍元数据、发布到 Readest 云书库并去重
+After=gxreading.service
+
+[Service]
+Type=oneshot
+User=gxwtf
+WorkingDirectory=/home/gxwtf/gxwtf_reading
+EnvironmentFile=/home/gxwtf/gxwtf_reading/.env
+Environment=READEST_BOOKS_DIR=/home/gxwtf/reading-books
+ExecStart=/home/gxwtf/venv_reading/bin/python worker/enrich_books.py
+ExecStart=/usr/bin/python3 worker/publish_readest.py
+ExecStart=/bin/sh -c 'psql "$DATABASE_URL" -q -f worker/dedupe.sql'
