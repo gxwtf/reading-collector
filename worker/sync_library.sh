@@ -24,6 +24,7 @@ fi
 
 $PY worker/enrich_books.py
 /usr/bin/python3 worker/publish_readest.py
+/usr/bin/python3 worker/prune_readest.py
 psql "$DATABASE_URL" -q -f worker/dedupe.sql
 
 echo "library synced at $(date '+%H:%M:%S')"
