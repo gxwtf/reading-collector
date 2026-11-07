@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -39,6 +40,19 @@ export async function POST(req: Request) {
       fileSize: BigInt(buf.length),
     },
   });
+
+  // 上传完成立刻跑一遍清洗/发布，最多 10 分钟后再由 timer 兜底
+  try {
+    const child = spawn("/bin/sh", [path.join(process.cwd(), "worker/sync_library.sh")], {
+      cwd: process.cwd(),
+      detached: true,
+      stdio: "ignore",
+      env: process.env,
+    });
+    child.unref();
+  } catch {
+    /* 失败不影响上传结果 */
+  }
 
   return Response.json({ id: row.id, title: row.title, size: buf.length });
 }

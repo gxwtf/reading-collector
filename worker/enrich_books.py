@@ -256,11 +256,31 @@ def main():
             if not cover_file:
                 cover_file = make_placeholder(bid, new_title, new_author or "")
 
+            # 文件也改成干净名字（根目录那份；Readest 目录由 publish 处理）
+            old_path = BOOKS_DIR / file_name
+            new_name = f"{re.sub(r'[/\\\\:*?\"<>|]', '_', new_title)[:90]}.{fmt.lower()}"
+            if old_path.name != new_name and old_path.exists():
+                new_path = BOOKS_DIR / new_name
+                try:
+                    if new_path.exists():
+                        # 同名文件已存在：大小相同视为重复上传，删掉这条记录与多余文件
+                        if new_path.stat().st_size == old_path.stat().st_size:
+                            conn.execute('delete from "Book" where id=%s', (bid,))
+                            old_path.unlink(missing_ok=True)
+                            print(f"{bid:>3} 重复，已忽略 {new_title[:24]}")
+                            continue
+                        new_path.unlink()
+                    os.rename(old_path, new_path)
+                    file_name = new_name
+                except OSError:
+                    pass
+
             conn.execute(
-                '''update "Book" set title=%s, author=%s, description=%s, publisher=%s,
+                '''update "Book" set "fileName"=%s, title=%s, author=%s, description=%s, publisher=%s,
                    published=%s, language=%s, isbn=%s, "pageCount"=coalesce(%s,"pageCount"),
                    "coverFile"=coalesce(%s,"coverFile") where id=%s''',
                 (
+                    file_name,
                     new_title,
                     new_author,
                     desc,
