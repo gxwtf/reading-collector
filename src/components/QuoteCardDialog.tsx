@@ -6,6 +6,7 @@ import { Download, Loader2, X } from "lucide-react";
 const FONTS = [
   { key: "song", label: "宋体" },
   { key: "kai", label: "楷体" },
+  { key: "yuan", label: "圆体" },
   { key: "hei", label: "黑体" },
 ] as const;
 
