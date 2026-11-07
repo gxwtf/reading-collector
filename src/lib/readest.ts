@@ -1,10 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { readdir, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { prisma } from "@/lib/db";
 
-const SUPPORTED = new Set(["epub", "pdf", "cbz", "cbr", "mobi", "azw3", "fb2"]);
+const SUPPORTED = new Set(["epub", "pdf", "cbz", "cbr", "mobi", "azw3", "fb2", "txt"]);
 
 export const BOOKS_DIR = process.env.READEST_BOOKS_DIR || "/home/gxwtf/reading-books";
 
@@ -60,40 +60,88 @@ export function bookType(ext: string): string {
   return ext.toUpperCase();
 }
 
-/** 扫描书库目录并 upsert 到 Book 表，返回按文件名排序的记录 */
-export async function syncBooks() {
-  let names: string[] = [];
+/* ---------------------------------------------------------------- 书库扫描 */
+
+type LibBook = {
+  hash?: string;
+  title?: string;
+  sourceTitle?: string;
+  author?: string;
+  format?: string;
+};
+
+/** Readest 通过 WebDAV 同步时会写 library.json，里面有真正的书名与作者 */
+async function readLibraryMeta(): Promise<Map<string, LibBook>> {
+  const map = new Map<string, LibBook>();
+  const candidates = [
+    path.join(BOOKS_DIR, "Readest", "library.json"),
+    path.join(BOOKS_DIR, "library.json"),
+  ];
+  for (const file of candidates) {
+    try {
+      const raw = JSON.parse(await readFile(file, "utf8")) as { books?: LibBook[] };
+      for (const b of raw.books ?? []) if (b.hash) map.set(b.hash, b);
+    } catch {
+      /* 没有就是没有 */
+    }
+  }
+  return map;
+}
+
+/** 递归列出书库里的书（Readest 会放在 Readest/books/<hash>/xxx.epub） */
+async function walkBooks(dir: string, depth = 0): Promise<string[]> {
+  if (depth > 4) return [];
+  let entries;
   try {
-    names = await readdir(BOOKS_DIR);
+    entries = await readdir(dir, { withFileTypes: true });
   } catch {
     return [];
   }
 
-  const files = names.filter((n) => SUPPORTED.has(extOf(n)) && !n.startsWith("."));
-  const out = [];
+  const out: string[] = [];
+  for (const e of entries) {
+    if (e.name.startsWith(".")) continue;
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      out.push(...(await walkBooks(full, depth + 1)));
+    } else if (SUPPORTED.has(extOf(e.name))) {
+      out.push(full);
+    }
+  }
+  return out;
+}
 
-  for (const fileName of files) {
-    const full = path.join(BOOKS_DIR, fileName);
+/** 扫书库并 upsert 到 Book 表，返回按书名排序的记录 */
+export async function syncBooks() {
+  const [files, meta] = await Promise.all([walkBooks(BOOKS_DIR), readLibraryMeta()]);
+  const rows = [];
+
+  for (const full of files) {
     const info = await stat(full);
     if (!info.isFile()) continue;
-    const ext = extOf(fileName);
-    const title = fileName.replace(/\.[^.]+$/, "");
+
+    const rel = path.relative(BOOKS_DIR, full);
+    const ext = extOf(rel);
+    const hash = path.basename(path.dirname(full));
+    const lib = meta.get(hash);
+    const fallback = path.basename(rel).replace(/\.[^.]+$/, "");
 
     const row = await prisma.book.upsert({
-      where: { fileName },
+      where: { fileName: rel },
       update: { fileSize: BigInt(info.size) },
       create: {
         userId: SYNC_USER_ID,
-        fileName,
-        title,
+        fileName: rel,
+        title: lib?.title || lib?.sourceTitle || fallback,
+        author: lib?.author ?? null,
         format: ext,
         fileSize: BigInt(info.size),
       },
     });
-    out.push(row);
+    rows.push(row);
   }
 
-  return out.sort((a, b) => a.title.localeCompare(b.title, "zh"));
+  return rows.sort((a, b) => a.title.localeCompare(b.title, "zh"));
 }
 
 /* ---------------------------------------------------------------- 部分 MD5 区间 */

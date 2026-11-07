@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen, ExternalLink } from "lucide-react";
 
+import { BookUploader } from "@/components/BookUploader";
+
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { syncBooks } from "@/lib/readest";
@@ -43,6 +45,8 @@ export default async function BooksPage() {
           打开阅读器
         </a>
       </div>
+
+      <BookUploader />
 
       <p className="text-xs text-muted-foreground">
         还没连过阅读器？
