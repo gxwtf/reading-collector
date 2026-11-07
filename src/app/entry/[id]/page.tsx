@@ -9,7 +9,7 @@ import { requireSession } from "@/lib/session";
 import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { regenerateSummary } from "@/actions/summary";
-import { toggleShare } from "@/actions/share";
+import { ShareButton } from "@/components/ShareButton";
 import { getEmbed } from "@/lib/embed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -145,32 +145,14 @@ export default async function EntryPage({
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-2">
         <Link
           href={onlySummary ? `/entry/${entry.id}` : `/entry/${entry.id}?only=summary`}
-          className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+          className="rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           {onlySummary ? "显示原文" : "只看概括"}
         </Link>
-
-        <form action={toggleShare.bind(null, entry.id)}>
-          <button
-            type="submit"
-            className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            {entry.shareToken ? "取消分享" : "分享"}
-          </button>
-        </form>
-        {entry.shareToken ? (
-          <a
-            href={`/s/${entry.shareToken}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-brand hover:underline"
-          >
-            公开链接
-          </a>
-        ) : null}
+        <ShareButton entryId={entry.id} token={entry.shareToken} />
       </div>
 
       <div className={onlySummary ? "grid gap-6" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]"}>
