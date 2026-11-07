@@ -10,10 +10,21 @@ const ITEMS = [
   { label: "批注", href: "/annotations", match: (p: string) => p.startsWith("/annotations") },
 ];
 
-/** 顶部导航：选中项用品牌红下划线（对齐新版题库） */
-export function NavLinks() {
+/**
+ * 顶部导航：对齐广学题库 —— 纯文字链接（text-sm font-medium），
+ * 不用下划线、不用胶囊底色，当前项只靠字色区分。
+ * variant="mobile" 用于移动端展开菜单，纵向排列。
+ */
+export function NavLinks({
+  variant = "desktop",
+  onNavigate,
+}: {
+  variant?: "desktop" | "mobile";
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const params = useSearchParams();
+  const mobile = variant === "mobile";
 
   return (
     <>
@@ -23,11 +34,12 @@ export function NavLinks() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={on ? "page" : undefined}
+            onClick={onNavigate}
             className={[
-              "relative px-3 py-2 text-sm transition-colors",
-              on
-                ? "font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[13px] after:h-0.5 after:rounded-full after:bg-brand"
-                : "text-muted-foreground hover:text-foreground",
+              "text-sm font-medium transition-colors",
+              mobile ? "py-1.5" : "py-2",
+              on ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             ].join(" ")}
           >
             {item.label}
