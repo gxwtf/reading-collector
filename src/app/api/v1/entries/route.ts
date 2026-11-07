@@ -54,12 +54,37 @@ export async function GET(request: NextRequest) {
   const userId = apiUserId();
   if (!userId) return Response.json({ error: "未配置 API_USER_ID" }, { status: 500 });
 
-  const limit = Math.min(100, Number(new URL(request.url).searchParams.get("limit") ?? 20));
+  const params = new URL(request.url).searchParams;
+  const limit = Math.min(100, Number(params.get("limit") ?? 20));
+  const q = (params.get("q") ?? "").trim().slice(0, 60);
+
   const entries = await prisma.entry.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: "insensitive" as const } },
+              { excerpt: { contains: q, mode: "insensitive" as const } },
+              { contentMd: { contains: q, mode: "insensitive" as const } },
+              { site: { contains: q, mode: "insensitive" as const } },
+              { highlights: { some: { OR: [{ quote: { contains: q } }, { note: { contains: q } }] } } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
-    select: { id: true, title: true, url: true, kind: true, readState: true, state: true, createdAt: true },
+    select: {
+      id: true,
+      title: true,
+      url: true,
+      site: true,
+      kind: true,
+      readState: true,
+      state: true,
+      createdAt: true,
+    },
   });
 
   return Response.json({ entries });
