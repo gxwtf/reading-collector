@@ -250,6 +250,8 @@ export default async function EntryPage({
           <section className="space-y-3 rounded-xl border border-border bg-card p-4">
             <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>
             <HighlightList
+              entryTitle={entry.title}
+              entrySite={entry.site}
               items={entry.highlights.map((h) => ({
                 id: h.id,
                 quote: h.quote,
