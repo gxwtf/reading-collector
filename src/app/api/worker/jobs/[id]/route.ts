@@ -22,6 +22,7 @@ type JobResult = {
     publishedAt?: string;
     kind?: string;
   };
+  tags?: string[];
   transcript?: {
     locale: string;
     backend: string;
@@ -51,6 +52,22 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!job) return NextResponse.json({ error: "job not found" }, { status: 404 });
 
   try {
+    // 自动打标结果：补到条目上（已存在的标签跳过）
+    if (body.status === "done" && body.tags?.length && job.entryId) {
+      for (const name of body.tags.slice(0, 3)) {
+        const tagName = name.trim().slice(0, 12);
+        if (!tagName) continue;
+        const tag = await prisma.tag.upsert({
+          where: { name: tagName },
+          update: {},
+          create: { name: tagName },
+        });
+        await prisma.entryTag
+          .create({ data: { entryId: job.entryId, tagId: tag.id } })
+          .catch(() => undefined);
+      }
+    }
+
     if (body.status === "failed") {
       await prisma.fetchJob.update({
         where: { id: jobId },

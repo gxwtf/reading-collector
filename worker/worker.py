@@ -31,6 +31,7 @@ from config import (
 from fetcher import FetchError, fetch_article
 from transcriber import TranscribeError, transcribe
 from ai_summary import ai_summary
+from autotag import suggest as suggest_tags
 
 HEADERS = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
 
@@ -97,6 +98,21 @@ def handle(client: httpx.Client, job: dict) -> None:
             article = fetch_article(url)
             article["summary"] = ai_summary(article.get("contentMd") or "", "article")
             payload = {"status": "done", "entry": article}
+
+        # 自动打标：正文/逐字稿都在手，成本很低
+        try:
+            source_text = (
+                (payload.get("entry") or {}).get("contentMd")
+                or (payload.get("transcript") or {}).get("text")
+                or ""
+            )
+            existing = job.get("existingTags") or []
+            tags = suggest_tags(source_text, existing, (payload.get("entry") or {}).get("title") or "")
+            if tags:
+                payload["tags"] = tags
+                log(f"job {job_id} 自动标签：{', '.join(tags)}")
+        except Exception as exc:  # 打标失败不影响入库
+            log(f"job {job_id} 打标跳过：{exc}")
 
         if report(client, job_id, payload):
             log(f"job {job_id} 完成")

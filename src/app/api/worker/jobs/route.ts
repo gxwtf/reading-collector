@@ -47,10 +47,14 @@ export async function GET(request: Request) {
 
   // 把该条目所属用户的站点登录态一起下发，worker 按需注入环境变量
   let cookies: Record<string, string> = {};
+  let existingTags: string[] = [];
   if (job.entryId) {
     const entry = await prisma.entry.findUnique({
       where: { id: job.entryId },
-      select: { user: { select: { credentials: true } } },
+      select: {
+        user: { select: { credentials: true } },
+        tags: { select: { tag: { select: { name: true } } } },
+      },
     });
     const creds = (entry?.user?.credentials ?? {}) as Record<string, string>;
     const map: Record<string, string> = {
@@ -63,7 +67,10 @@ export async function GET(request: Request) {
       const v = (creds[k] ?? "").trim();
       if (v) cookies[env] = v;
     }
+
+    // 已用过的标签，让模型优先复用
+    existingTags = (entry?.tags ?? []).map((t) => t.tag.name);
   }
 
-  return NextResponse.json({ job: { ...job, cookies } });
+  return NextResponse.json({ job: { ...job, cookies, existingTags } });
 }
