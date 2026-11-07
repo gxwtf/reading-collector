@@ -71,6 +71,16 @@ def main():
         base = os.path.basename(row["file"])
         target_dir = os.path.join(LIB_DIR, "books", h)
         os.makedirs(target_dir, exist_ok=True)
+        # 同一本书只留一份：删掉旧文件名留下的副本（改书名后会出现）
+        for other in os.listdir(target_dir):
+            if other in ("config.json", "cover.png") or other.lower().endswith(
+                (".epub", ".pdf", ".mobi", ".azw3", ".fb2", ".cbz")
+            ):
+                if not other.endswith(base):
+                    try:
+                        os.remove(os.path.join(target_dir, other))
+                    except OSError:
+                        pass
 
         dst = os.path.join(target_dir, base)
         if not os.path.exists(dst):
