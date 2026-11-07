@@ -90,7 +90,21 @@ async function readLibraryMeta(): Promise<Map<string, LibBook>> {
 }
 
 /** 递归列出书库里的书（Readest 会放在 Readest/books/<hash>/xxx.epub） */
-async function walkBooks(dir: string, depth = 0): Promise<string[]> {
+async function mirrorInodeSet(): Promise<Set<bigint | number>> {
+  const mirror = path.join(BOOKS_DIR, "_library");
+  const set = new Set<bigint | number>();
+  try {
+    for (const name of await readdir(mirror)) {
+      const info = await stat(path.join(mirror, name)).catch(() => null);
+      if (info) set.add(info.ino);
+    }
+  } catch {
+    /* 没有镜像目录 */
+  }
+  return set;
+}
+
+async function walkBooks(dir: string, depth = 0, mirrorInodes: Set<bigint | number> = new Set()): Promise<string[]> {
   if (depth > 4) return [];
   let entries;
   try {
@@ -101,16 +115,12 @@ async function walkBooks(dir: string, depth = 0): Promise<string[]> {
 
   const out: string[] = [];
   for (const e of entries) {
-    if (e.name.startsWith(".") || e.name === "_library") continue;
+    // 跳过隐藏文件，以及给 Readest 准备的下划线镜像（_library/_书名.epub）
+    if (e.name.startsWith(".") || e.name.startsWith("_")) continue;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
-      out.push(...(await walkBooks(full, depth + 1)));
+      out.push(...(await walkBooks(full, depth + 1, mirrorInodes)));
     } else if (SUPPORTED.has(extOf(e.name))) {
-      // 根目录里给 Readest 用的硬链接镜像（nlink > 1）不计入库，避免重复
-      if (depth === 0) {
-        const info = await stat(full).catch(() => null);
-        if (info && info.nlink > 1) continue;
-      }
       out.push(full);
     }
   }
@@ -146,6 +156,11 @@ export async function syncBooks() {
     });
     rows.push(row);
   }
+
+  // 清掉磁盘上已经不存在的记录（重命名/移动后不留幽灵条目）
+  await prisma.book
+    .deleteMany({ where: { fileName: { notIn: files.map((f) => path.relative(BOOKS_DIR, f)) } } })
+    .catch(() => null);
 
   // 书先入库，再用 Anx 的 SQLite 覆盖真实书名/作者并导入划线
   await syncAnx().catch(() => 0);
