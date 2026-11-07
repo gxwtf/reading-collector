@@ -91,7 +91,8 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
   return (
     <div className="grid gap-6 md:grid-cols-[200px_1fr]">
-      <div className="hidden md:block">
+      {/* 横屏时侧栏跟随（grid 高度等于内容高度，需 self-start 才吸得住） */}
+      <div className="hidden md:sticky md:top-20 md:block md:self-start">
       <Sidebar
         collections={collections.map((c) => ({ id: c.id, name: c.name, count: c._count.entries }))}
         counts={{

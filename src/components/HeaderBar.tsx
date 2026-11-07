@@ -34,7 +34,7 @@ export function HeaderBar({ isLoggedIn, userId, userName, admin, logout }: Props
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4 lg:gap-8">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-bold text-foreground">
           <BookOpenText className="size-5 text-brand" />

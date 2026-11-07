@@ -94,8 +94,9 @@ export default async function EntryPage({
   const preciseEnabled = Boolean(prefs?.preciseVideo);
 
   return (
-    <article className="space-y-6">
-      <div className="flex items-center justify-between">
+    <article className="space-y-4">
+      {/* 顶部一行打包：返回 + 正文操作。横屏（高度只有 768）时这段每省一行，正文就多露一截 */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -103,34 +104,40 @@ export default async function EntryPage({
           <ArrowLeft className="size-4" />
           返回列表
         </Link>
-        <a
-          href={entry.url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          原文
-          <ExternalLink className="size-3.5" />
-        </a>
+        <div className="flex items-center gap-2">
+          <Link
+            href={onlySummary ? `/entry/${entry.id}` : `/entry/${entry.id}?only=summary`}
+            className="inline-flex items-center rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {onlySummary ? "显示原文" : "只看概括"}
+          </Link>
+          <ShareButton entryId={entry.id} token={entry.shareToken} />
+          <a
+            href={entry.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            原文
+            <ExternalLink className="size-3.5" />
+          </a>
+        </div>
       </div>
 
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold leading-snug">{entry.title}</h1>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        {/* 元信息与标签合并成一行：横屏高度只有 768，少一行就多露一行正文 */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
           {entry.site ? <span>{entry.site}</span> : null}
           {entry.author ? <span>{entry.author}</span> : null}
           {entry.wordCount ? <span>{entry.wordCount} 字</span> : null}
           <span>收藏于 {entry.createdAt.toLocaleDateString("zh-CN")}</span>
-        </p>
-        {entry.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {entry.tags.map((t) => (
-              <Badge key={t.tagId} variant="secondary" className="font-normal">
-                {t.tag.name}
-              </Badge>
-            ))}
-          </div>
-        ) : null}
+          {entry.tags.map((t) => (
+            <Badge key={t.tagId} variant="secondary" className="font-normal">
+              {t.tag.name}
+            </Badge>
+          ))}
+        </div>
       </header>
 
       {entry.state === "failed" ? (
@@ -144,16 +151,6 @@ export default async function EntryPage({
           </form>
         </div>
       ) : null}
-
-      <div className="flex items-center justify-end gap-2">
-        <Link
-          href={onlySummary ? `/entry/${entry.id}` : `/entry/${entry.id}?only=summary`}
-          className="rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {onlySummary ? "显示原文" : "只看概括"}
-        </Link>
-        <ShareButton entryId={entry.id} token={entry.shareToken} />
-      </div>
 
       <div className={onlySummary ? "grid gap-6" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]"}>
         {/* 左栏：原文 / 播放器 / 逐字稿 */}
