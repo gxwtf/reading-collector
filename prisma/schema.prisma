@@ -13,20 +13,20 @@ datasource db {
 
 /// 用户（登录时从广学账号 SSO 同步；userId 即广学账号用户 ID）
 model User {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  userName  String
-  admin     Int      @default(0)
-  email     String?
-  realName  String?
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  userName    String
+  admin       Int      @default(0)
+  email       String?
+  realName    String?
   /// 用户自带模型（BYOK）：{ mode: 'system' | 'custom', apiBase?, apiKey?, model? }
-  aiSettings Json?
+  aiSettings  Json?
   /// 偏好：{ preciseVideo?: boolean }
-  prefs      Json?
+  prefs       Json?
   /// 各站登录态：{ zhihu?: string, bilibili?: string, weibo?: string, xiaohongshu?: string }
   credentials Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   entries     Entry[]
   collections Collection[]
@@ -251,4 +251,83 @@ model FetchJob {
 
   @@index([status, createdAt])
   @@index([entryId])
+}
+
+/// ── Readest / Grimmory 同步 ─────────────────────────────────────────────
+/// 书库里的书（文件放在 READEST_BOOKS_DIR，由 WebDAV 服务对外提供）
+model Book {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  /// 相对 READEST_BOOKS_DIR 的路径，唯一
+  fileName     String    @unique
+  title        String
+  author       String?
+  /// epub | pdf | cbz | mobi | azw3 | fb2
+  format       String
+  /// 文件字节数（Readest 用 fileSizeKb = fileSize / 1024 向下取整匹配）
+  fileSize     BigInt
+  readStatus   String?
+  epubCfi      String?
+  epubHref     String?
+  epubPercent  Float?
+  pdfPage      Int?
+  pdfPercent   Float?
+  lastReadTime DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  annotations BookAnnotation[]
+  bookmarks   BookBookmark[]
+  sessions    ReadingSession[]
+
+  @@index([userId])
+}
+
+/// 划线 / 标注（Readest 的 annotation）
+model BookAnnotation {
+  id           Int      @id @default(autoincrement())
+  bookId       Int
+  book         Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  cfi          String
+  text         String
+  color        String?
+  /// highlight | underline | strikethrough | squiggly
+  style        String?
+  note         String?
+  chapterTitle String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([bookId, cfi, text])
+  @@index([bookId])
+}
+
+/// 书签
+model BookBookmark {
+  id         Int      @id @default(autoincrement())
+  bookId     Int
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  cfi        String?
+  pageNumber Int?
+  title      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([bookId])
+}
+
+/// 阅读会话（Readest 每次阅读上报一条）
+model ReadingSession {
+  id              Int      @id @default(autoincrement())
+  bookId          Int
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  startTime       DateTime
+  endTime         DateTime
+  durationSeconds Int
+  startProgress   Float?
+  endProgress     Float?
+  createdAt       DateTime @default(now())
+
+  @@index([bookId])
 }
