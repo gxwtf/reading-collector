@@ -13,6 +13,7 @@
 - [数据库结构](database.md)
 - [开放 API](api.md)
 - [需要登录态的站点](cookies.md)
+- [MCP 服务](mcp.md)
 - [改进路线](roadmap.md)
 - [构建与部署](deployment.md)
 
