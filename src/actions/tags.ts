@@ -24,7 +24,7 @@ export async function renameTag(tagId: number, formData: FormData) {
         .catch(() => undefined);
     }
     await prisma.entryTag.deleteMany({ where: { tagId } });
-    await prisma.tagConfig.deleteMany({ where: { tagId } }).catch(() => undefined);
+    await prisma.tagConfig.deleteMany({ where: { name: tag.name } }).catch(() => undefined);
     await prisma.tag.delete({ where: { id: tagId } });
   } else {
     await prisma.tag.update({ where: { id: tagId }, data: { name } });
