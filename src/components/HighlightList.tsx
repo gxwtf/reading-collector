@@ -13,7 +13,15 @@ export type HighlightItem = {
 };
 
 /** 划线列表：点击可定位到正文对应段落 */
-export function HighlightList({ items: all }: { items: HighlightItem[] }) {
+export function HighlightList({
+  items: all,
+  entryTitle,
+  entrySite,
+}: {
+  items: HighlightItem[];
+  entryTitle?: string;
+  entrySite?: string | null;
+}) {
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
 
@@ -119,7 +127,16 @@ export function HighlightList({ items: all }: { items: HighlightItem[] }) {
               {h.note ? <p className="mt-1 pl-2 text-xs text-muted-foreground">批注：{h.note}</p> : null}
               <p className="mt-1 pl-2 text-[11px] text-muted-foreground">{h.createdAt}</p>
             </button>
-            <button
+            <a
+                    href={`/api/quote-card?text=${encodeURIComponent(h.quote)}&title=${encodeURIComponent(entryTitle ?? "")}&site=${encodeURIComponent(entrySite ?? "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-muted-foreground hover:text-brand"
+                    title="生成金句图"
+                  >
+                    生成图
+                  </a>
+                  <button
               type="button"
               disabled={pending}
               aria-label="删除这条划线"
