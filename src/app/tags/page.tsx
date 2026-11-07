@@ -11,10 +11,10 @@ export default async function TagsPage() {
 
   const tags = await prisma.tag.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { entries: true } } },
+    include: { _count: { select: { entryTags: true } } },
   });
 
-  const mine = tags.filter((t) => t._count.entries > 0);
+  const mine = tags.filter((t) => t._count.entryTags > 0);
 
   return (
     <div className="space-y-5">
@@ -50,7 +50,7 @@ export default async function TagsPage() {
                 </button>
               </form>
 
-              <span className="text-xs tabular-nums text-muted-foreground">{t._count.entries} 条</span>
+              <span className="text-xs tabular-nums text-muted-foreground">{t._count.entryTags} 条</span>
 
               <form action={deleteTag.bind(null, t.id)}>
                 <button

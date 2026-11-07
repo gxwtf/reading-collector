@@ -5,9 +5,9 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 
 /** 改名；若目标名已存在则合并（把关联迁过去再删旧标签） */
-export async function renameTag(tagId: number, rawName: string) {
-  const session = await requireSession("/tags");
-  const name = rawName.trim().slice(0, 12);
+export async function renameTag(tagId: number, formData: FormData) {
+  await requireSession("/tags");
+  const name = String(formData.get("name") ?? "").trim().slice(0, 12);
   if (!name) return;
 
   const tag = await prisma.tag.findUnique({ where: { id: tagId }, select: { id: true, name: true } });
