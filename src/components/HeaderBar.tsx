@@ -20,6 +20,8 @@ type Props = {
  * 全站统一 header：桌面 56px 高，左侧品牌 + 导航，右侧菜单 / 搜索 / 主题 / 账号。
  * 布局与间距对齐广学题库（品牌 text-lg font-bold，导航 space-x-6 纯文字，无下划线）。
  * 移动端菜单按钮与账号同侧，展开为通栏纵向列表并把内容顶下去（同题库，不用浮层卡片）。
+ *
+ * 断点：<640 手机（汉堡菜单）／640–1023 iPad 竖屏（导航横排 + 紧凑搜索）／≥1024 桌面。
  */
 export function HeaderBar({ isLoggedIn, userId, userName, admin, logout }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,23 +35,23 @@ export function HeaderBar({ isLoggedIn, userId, userName, admin, logout }: Props
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-8 px-4">
+      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4 lg:gap-8">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-bold text-foreground">
           <BookOpenText className="size-5 text-brand" />
-          <span>阅读收集</span>
+          <span className="whitespace-nowrap">阅读收集</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 sm:flex">
+        <nav className="hidden shrink-0 items-center gap-5 sm:flex lg:gap-6">
           <NavLinks />
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 items-center gap-2">
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label={menuOpen ? "收起菜单" : "打开菜单"}
             aria-expanded={menuOpen}
-            className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground sm:hidden"
+            className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground sm:hidden"
           >
             <Menu className="size-5" />
           </button>
@@ -63,7 +65,7 @@ export function HeaderBar({ isLoggedIn, userId, userName, admin, logout }: Props
           ) : (
             <Link
               href="/login"
-              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
+              className="shrink-0 whitespace-nowrap rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
             >
               登录
             </Link>

@@ -142,7 +142,7 @@ export function HighlightList({
               disabled={pending}
               aria-label="删除这条划线"
               onClick={() => startTransition(() => deleteHighlight(h.id))}
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 hover:text-destructive"
             >
               <Trash2 className="size-3.5" />
             </button>

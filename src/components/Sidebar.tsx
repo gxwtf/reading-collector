@@ -94,7 +94,7 @@ export function Sidebar({ collections, counts, active }: Props) {
                   <button
                     type="submit"
                     aria-label={`删除分组 ${c.name}`}
-                    className="ml-1 inline-flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                    className="ml-1 inline-flex size-7 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity pointer-fine:size-6 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 hover:text-destructive"
                   >
                     <Trash2 className="size-3.5" />
                   </button>

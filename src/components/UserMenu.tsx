@@ -47,7 +47,7 @@ export function UserMenu({
         aria-label="账户菜单"
         className="flex items-center gap-2 rounded-full text-sm transition-opacity hover:opacity-85"
       >
-        <span className="hidden max-w-28 truncate text-muted-foreground sm:inline">
+        <span className="hidden max-w-28 truncate text-muted-foreground lg:inline">
           {userName}
           {admin ? " (admin)" : ""}
         </span>

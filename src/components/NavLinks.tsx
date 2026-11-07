@@ -37,7 +37,7 @@ export function NavLinks({
             aria-current={on ? "page" : undefined}
             onClick={onNavigate}
             className={[
-              "text-sm font-medium transition-colors",
+              "whitespace-nowrap text-sm font-medium transition-colors",
               mobile ? "py-1.5" : "py-2",
               on ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             ].join(" ")}
