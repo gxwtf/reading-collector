@@ -50,53 +50,53 @@ export async function GET(request: Request) {
   // 文字越长字号越小
   const size = text.length <= 30 ? 76 : text.length <= 60 ? 64 : text.length <= 110 ? 52 : text.length <= 180 ? 42 : 34;
 
+  const titleLine = title ? `《${title}》` : "";
+  const footerRight = "广学五题坊 · 阅读收集";
+
   return new ImageResponse(
     (
       <div
         style={{
           width: 1080,
           height: 1440,
-          background: bg,
           display: "flex",
           flexDirection: "column",
+          background: bg,
           padding: "96px 88px",
           fontFamily: "Songti",
-          position: "relative",
         }}
       >
-        {/* 顶部品牌 */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 12, background: accent }} />
-          <div style={{ fontSize: 30, color: muted, letterSpacing: 2 }}>阅读收集</div>
+          <div style={{ display: "flex", width: 46, height: 46, borderRadius: 12, background: accent }} />
+          <div style={{ display: "flex", fontSize: 30, color: muted, letterSpacing: 2 }}>{"阅读收集"}</div>
         </div>
 
-        {/* 引号 */}
-        <div style={{ marginTop: 84, fontSize: 120, lineHeight: 1, color: accent, opacity: 0.35 }}>“</div>
+        <div style={{ display: "flex", marginTop: 76, fontSize: 110, lineHeight: 1, color: accent, opacity: 0.35 }}>
+          {"\u201C"}
+        </div>
 
-        {/* 正文 */}
         <div
           style={{
-            marginTop: 8,
+            display: "flex",
+            marginTop: 4,
+            flexGrow: 1,
             fontSize: size,
             lineHeight: 1.62,
-            color: fg,
-            display: "flex",
-            flexGrow: 1,
             letterSpacing: 1,
+            color: fg,
           }}
         >
           {text}
         </div>
 
-        {/* 分隔线 + 来源 */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ height: 1, background: muted, opacity: 0.35 }} />
-          {title ? (
-            <div style={{ fontSize: 30, color: fg, opacity: 0.9 }}>《{title}》</div>
+          <div style={{ display: "flex", height: 1, background: muted, opacity: 0.35 }} />
+          {titleLine ? (
+            <div style={{ display: "flex", fontSize: 30, color: fg, opacity: 0.9 }}>{titleLine}</div>
           ) : null}
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, color: muted }}>
-            <div>{site || "reading.gxwtf.cn"}</div>
-            <div>广学五题坊 · 阅读收集</div>
+            <div style={{ display: "flex" }}>{site || "reading.gxwtf.cn"}</div>
+            <div style={{ display: "flex" }}>{footerRight}</div>
           </div>
         </div>
       </div>
