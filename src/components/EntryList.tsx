@@ -74,7 +74,7 @@ export function EntryList({
         {selected.size > 0 ? <span>已选 {selected.size} 条</span> : null}
       </div>
 
-      <ul className="space-y-3">
+      <ul className="grid gap-3 2xl:grid-cols-2">
         {entries.map((entry) => (
           <li key={entry.id}>
             <EntryCard

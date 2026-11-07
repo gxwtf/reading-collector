@@ -94,7 +94,7 @@ export default async function EntryPage({
   const preciseEnabled = Boolean(prefs?.preciseVideo);
 
   return (
-    <article className="space-y-4">
+    <article className="mx-auto w-full max-w-6xl space-y-4">
       {/* 顶部一行打包：返回 + 正文操作。横屏（高度只有 768）时这段每省一行，正文就多露一截 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
