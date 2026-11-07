@@ -1,0 +1,15 @@
+[Unit]
+Description=Readest WebDAV 书库
+After=network-online.target
+
+[Service]
+Type=simple
+User=gxwtf
+WorkingDirectory=/home/gxwtf/gxwtf_reading
+EnvironmentFile=/home/gxwtf/gxwtf_reading/.env
+ExecStart=/home/gxwtf/venv_reading/bin/python worker/webdav.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
