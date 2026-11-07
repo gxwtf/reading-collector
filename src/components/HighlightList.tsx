@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { deleteHighlight } from "@/actions/highlights";
+import { QuoteCardDialog } from "@/components/QuoteCardDialog";
 
 export type HighlightItem = {
   id: number;
@@ -24,6 +25,7 @@ export function HighlightList({
 }) {
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
+  const [cardFor, setCardFor] = useState<HighlightItem | null>(null);
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -127,15 +129,14 @@ export function HighlightList({
               {h.note ? <p className="mt-1 pl-2 text-xs text-muted-foreground">批注：{h.note}</p> : null}
               <p className="mt-1 pl-2 text-[11px] text-muted-foreground">{h.createdAt}</p>
             </button>
-            <a
-                    href={`/api/quote-card?text=${encodeURIComponent(h.quote)}&title=${encodeURIComponent(entryTitle ?? "")}&site=${encodeURIComponent(entrySite ?? "")}`}
-                    target="_blank"
-                    rel="noreferrer"
+            <button
+                    type="button"
+                    onClick={() => setCardFor(h)}
                     className="text-xs text-muted-foreground hover:text-brand"
                     title="生成金句图"
                   >
                     生成图
-                  </a>
+                  </button>
                   <button
               type="button"
               disabled={pending}
@@ -149,6 +150,14 @@ export function HighlightList({
         </li>
       ))}
       </ul>
+      {cardFor ? (
+        <QuoteCardDialog
+          quote={cardFor.quote}
+          title={entryTitle ?? ""}
+          site={entrySite ?? ""}
+          onClose={() => setCardFor(null)}
+        />
+      ) : null}
     </div>
   );
 }

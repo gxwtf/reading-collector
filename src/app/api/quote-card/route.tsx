@@ -10,22 +10,26 @@ export const dynamic = "force-dynamic";
  * GET /api/quote-card?text=...&title=...&site=...&theme=light|dark
  */
 
-const FONT_CANDIDATES = [
-  process.env.QUOTE_FONT,
-  "/home/gxwtf/.fonts/simsun.ttf",
-  "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-].filter(Boolean) as string[];
+const FONTS: Record<string, { path: string; label: string }> = {
+  song: { path: process.env.QUOTE_FONT || "/home/gxwtf/.fonts/simsun.ttf", label: "宋体" },
+  kai: { path: "/home/gxwtf/gxwtf_ji/public/fonts/字酷堂清楷体.ttf", label: "楷体" },
+  hei: { path: "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf", label: "黑体" },
+};
 
-let fontCache: ArrayBuffer | null = null;
+const cache = new Map<string, ArrayBuffer>();
 
-async function loadFont(): Promise<ArrayBuffer> {
-  if (fontCache) return fontCache;
-  for (const path of FONT_CANDIDATES) {
-    if (existsSync(path)) {
-      const buf = await readFile(path);
-      fontCache = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
-      return fontCache;
-    }
+async function loadFont(key: string): Promise<{ data: ArrayBuffer; name: string }> {
+  const chosen = FONTS[key] ?? FONTS.song;
+  const fallback = FONTS.song;
+
+  for (const candidate of [chosen.path, fallback.path]) {
+    if (!existsSync(candidate)) continue;
+    const hit = cache.get(candidate);
+    if (hit) return { data: hit, name: chosen.label };
+    const buf = await readFile(candidate);
+    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+    cache.set(candidate, ab);
+    return { data: ab, name: chosen.label };
   }
   throw new Error("找不到中文字体，请设置 QUOTE_FONT");
 }
@@ -41,7 +45,8 @@ export async function GET(request: Request) {
 
   if (!text) return new Response("缺少 text 参数", { status: 400 });
 
-  const font = await loadFont();
+  const fontKey = params.get("font") ?? "song";
+  const font = await loadFont(fontKey);
 
   const dark = theme === "dark";
   const bg = dark ? "#14100f" : "#f7f3ec";
@@ -65,7 +70,7 @@ export async function GET(request: Request) {
           flexDirection: "column",
           background: bg,
           padding: "96px 88px",
-          fontFamily: "Songti",
+          fontFamily: "Quote",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -107,7 +112,7 @@ export async function GET(request: Request) {
     {
       width: 1080,
       height: 1440,
-      fonts: [{ name: "Songti", data: font, style: "normal", weight: 400 }],
+      fonts: [{ name: "Quote", data: font.data, style: "normal", weight: 400 }],
       headers: { "Cache-Control": "public, max-age=86400" },
     },
   );
