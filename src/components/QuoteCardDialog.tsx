@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, Loader2, X } from "lucide-react";
 
 const FONTS = [
@@ -30,12 +31,14 @@ export function QuoteCardDialog({
   const [font, setFont] = useState<string>("song");
   const [theme, setTheme] = useState<string>("light");
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const src = `/api/quote-card?text=${encodeURIComponent(quote)}&title=${encodeURIComponent(
     title,
   )}&site=${encodeURIComponent(site)}&font=${font}&theme=${theme}`;
 
   useEffect(() => {
+    setMounted(true);
     setLoading(true);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -46,15 +49,16 @@ export function QuoteCardDialog({
     };
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div
-        className="flex max-h-full w-full max-w-lg flex-col gap-3 overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col gap-3 overflow-y-auto overscroll-contain">
         <div className="flex items-center justify-between text-white/80">
           <span className="text-sm">分享图</span>
           <button type="button" onClick={onClose} aria-label="关闭" className="rounded-lg p-1 hover:bg-white/10">
@@ -62,7 +66,7 @@ export function QuoteCardDialog({
           </button>
         </div>
 
-        <div className="relative overflow-hidden rounded-xl bg-black/20">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-black/20">
           {loading ? (
             <div className="flex aspect-[3/4] items-center justify-center text-white/60">
               <Loader2 className="size-6 animate-spin" />
@@ -72,7 +76,7 @@ export function QuoteCardDialog({
           <img
             src={src}
             alt="金句分享图"
-            className="w-full rounded-xl"
+            className="max-h-full w-full rounded-xl object-contain"
             onLoad={() => setLoading(false)}
             onError={() => setLoading(false)}
           />
@@ -129,6 +133,7 @@ export function QuoteCardDialog({
           iPad/iPhone 也可以长按图片直接保存到相册
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
