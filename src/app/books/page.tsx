@@ -5,8 +5,10 @@ import { BookOpen, Download, ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { syncBooks } from "@/lib/readest";
+import { BookUploader } from "@/components/BookUploader";
 
 export const metadata: Metadata = { title: "书库 · 阅读收集" };
+export const dynamic = "force-dynamic";
 
 export default async function BooksPage() {
   const session = await getSession();
@@ -29,37 +31,77 @@ export default async function BooksPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <BookOpen className="size-4 text-brand" />
         <h1 className="text-lg font-semibold">书库</h1>
-        <span className="text-xs text-muted-foreground">共 {books.length} 本 · 与 Readest 同步</span>
+        <span className="text-xs text-muted-foreground">共 {books.length} 本</span>
+        <a
+          href="/readest"
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
+        >
+          <ExternalLink className="size-3.5" />
+          打开阅读器
+        </a>
       </div>
+
+      <BookUploader />
+
+      <p className="text-xs text-muted-foreground">
+        还没连过阅读器？
+        <a href="/readest-setup" className="ml-1 text-brand hover:underline">
+          查看同步设置
+        </a>
+      </p>
 
       {books.length === 0 ? (
         <p className="rounded-xl border border-border px-4 py-10 text-center text-sm text-muted-foreground">
-          书库还是空的。用 Readest 的 WebDAV 把 epub 传上来，这里就会出现。
+          书库还是空的。点上面「上传书籍」，或从阅读器同步上来。
         </p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {books.map((b) => (
-            <li key={b.id} className="rounded-xl border border-border p-4 transition-colors hover:bg-muted/40">
-              <Link href={`/books/${b.id}`} className="block space-y-1">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="font-medium">{b.title}</span>
-                  <span className="shrink-0 text-xs uppercase text-muted-foreground">{b.format}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {b.author || "未知作者"} · 标注 {b._count.annotations} 条
+            <li
+              key={b.id}
+              className="flex gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/40"
+            >
+              <Link href={`/books/${b.id}`} className="shrink-0">
+                {b.coverFile ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/api/books/${b.id}/cover`}
+                    alt=""
+                    className="h-24 w-16 rounded-md object-cover ring-1 ring-border"
+                  />
+                ) : (
+                  <div className="flex h-24 w-16 items-center justify-center rounded-md bg-muted text-[10px] text-muted-foreground">
+                    无封面
+                  </div>
+                )}
+              </Link>
+
+              <div className="min-w-0 flex-1 space-y-1">
+                <Link href={`/books/${b.id}`} className="block">
+                  <h2 className="truncate text-sm font-medium">{b.title}</h2>
+                </Link>
+                <p className="truncate text-xs text-muted-foreground">
+                  {b.author || "未知作者"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {b.format.toUpperCase()}
+                  {b.pageCount ? ` · ${b.pageCount} 页` : ""}
+                  {b._count.annotations ? ` · 标注 ${b._count.annotations}` : ""}
                   {b.epubPercent != null ? ` · 已读 ${Math.round(b.epubPercent)}%` : ""}
                 </p>
-              </Link>
-              <a
-                href={`/api/books/${b.id}/file`}
-                className="mt-2 inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-brand"
-              >
-                <Download className="size-3" />
-                下载 / 分享到阅读器
-              </a>
+                <a
+                  href={`/api/books/${b.id}/file`}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-brand"
+                >
+                  <Download className="size-3" />
+                  下载
+                </a>
+              </div>
             </li>
           ))}
         </ul>

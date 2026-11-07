@@ -266,6 +266,15 @@ model Book {
   format       String
   /// 文件字节数（Readest 用 fileSizeKb = fileSize / 1024 向下取整匹配）
   fileSize     BigInt
+  /// 简介（EPUB dc:description 或 PDF Info）
+  description  String?   @db.Text
+  publisher    String?
+  published    String?
+  language     String?
+  isbn         String?
+  pageCount    Int?
+  /// 封面文件名（存在 READEST_BOOKS_DIR/covers/）
+  coverFile    String?
   readStatus   String?
   epubCfi      String?
   epubHref     String?

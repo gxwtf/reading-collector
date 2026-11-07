@@ -129,7 +129,22 @@ async function walkBooks(dir: string, depth = 0, mirrorInodes: Set<bigint | numb
 
 /** 扫书库并 upsert 到 Book 表，返回按书名排序的记录 */
 export async function syncBooks() {
-  const [files, meta] = await Promise.all([walkBooks(BOOKS_DIR), readLibraryMeta()]);
+  const walked = await walkBooks(BOOKS_DIR);
+
+  // 同一本书可能以硬链接形式出现在多个目录（original/、Readest/books/<hash>/、anx/…），
+  // 按 inode 去重，保留路径最短的那份
+  const seen = new Map<string, string>();
+  for (const f of walked) {
+    const info = await stat(f).catch(() => null);
+    if (!info) continue;
+    const key = `${info.dev}:${info.ino}`;
+    const rel = path.relative(BOOKS_DIR, f);
+    const prev = seen.get(key);
+    if (!prev || rel.length < prev.length) seen.set(key, rel);
+  }
+  const files = [...seen.values()].map((rel) => path.join(BOOKS_DIR, rel));
+
+  const meta = await readLibraryMeta();
   const rows = [];
 
   for (const full of files) {
