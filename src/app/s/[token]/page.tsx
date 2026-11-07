@@ -9,10 +9,38 @@ import { getEmbed, seekUrl } from "@/lib/embed";
 
 type Params = Promise<{ token: string }>;
 
-export const metadata: Metadata = {
-  title: "分享的文章",
-  robots: { index: false, follow: false },
-};
+/** 分享卡片：微信/Telegram/Twitter 都读这套 Open Graph 标签 */
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { token } = await params;
+  const entry = await prisma.entry.findUnique({
+    where: { shareToken: token },
+    select: { title: true, excerpt: true, summary: true, coverImage: true, site: true },
+  });
+  if (!entry) return { title: "分享的文章" };
+
+  const desc =
+    (entry.excerpt || entry.summary || "")
+      .replace(/[#>*`\-]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 110) || "来自广学五题坊 · 阅读收集";
+
+  return {
+    title: entry.title,
+    description: desc,
+    robots: { index: false, follow: false },
+    openGraph: {
+      title: entry.title,
+      description: desc,
+      type: "article",
+      siteName: "阅读收集",
+      images: entry.coverImage
+        ? [{ url: entry.coverImage }]
+        : [{ url: "https://reading.gxwtf.cn/icons/icon-512.png", width: 512, height: 512 }],
+    },
+    twitter: { card: "summary", title: entry.title, description: desc },
+  };
+}
 
 /** 只读分享页：不需要登录；文章给正文，视频给播放器 + 逐字稿 */
 export default async function SharedPage({ params }: { params: Params }) {
@@ -26,6 +54,8 @@ export default async function SharedPage({ params }: { params: Params }) {
       kind: true,
       summary: true,
       contentMd: true,
+      coverImage: true,
+      excerpt: true,
       createdAt: true,
       transcript: { select: { text: true } },
     },
