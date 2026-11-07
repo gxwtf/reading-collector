@@ -24,6 +24,7 @@ def rows():
 def main():
     mirror = os.path.join(BOOKS_DIR, "_library")
     os.makedirs(mirror, exist_ok=True)
+    root_links = 0
 
     made = 0
     for b in rows():
@@ -39,10 +40,24 @@ def main():
                 os.remove(dst)
             os.link(src, dst)
             made += 1
+
         except OSError as e:
             print(f"skip {b['title'][:30]}: {e}", file=sys.stderr)
 
-    print(f"mirror ready: {len(os.listdir(mirror))} files ({made} new)")
+    # Readest 的 WebDAV 面板只列根目录下的文件（不展开子目录），
+    # 所以把镜像里的每本书再硬链到根目录一份，手机上直接就能看到全部。
+    for name in os.listdir(mirror):
+        top = os.path.join(BOOKS_DIR, name)
+        src = os.path.join(mirror, name)
+        if os.path.exists(top):
+            continue
+        try:
+            os.link(src, top)
+            root_links += 1
+        except OSError:
+            pass
+
+    print(f"mirror ready: {len(os.listdir(mirror))} files, {root_links} root links")
 
 
 if __name__ == "__main__":

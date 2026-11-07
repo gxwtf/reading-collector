@@ -106,6 +106,11 @@ async function walkBooks(dir: string, depth = 0): Promise<string[]> {
     if (e.isDirectory()) {
       out.push(...(await walkBooks(full, depth + 1)));
     } else if (SUPPORTED.has(extOf(e.name))) {
+      // 根目录里给 Readest 用的硬链接镜像（nlink > 1）不计入库，避免重复
+      if (depth === 0) {
+        const info = await stat(full).catch(() => null);
+        if (info && info.nlink > 1) continue;
+      }
       out.push(full);
     }
   }
