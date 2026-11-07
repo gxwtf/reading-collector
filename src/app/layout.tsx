@@ -43,7 +43,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ServiceWorker />
           <Navbar />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 lg:px-6 xl:max-w-6xl 2xl:max-w-[1400px]">{children}</main>
+          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 lg:px-6 xl:max-w-[1280px] 2xl:max-w-[1536px]">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>
