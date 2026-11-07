@@ -12,8 +12,9 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
   const row = await prisma.bookAnnotation.update({
     where: { id: Number(id) },
     data: {
-      ...(body.color !== undefined ? { color: body.color } : {}),
-      ...(body.style !== undefined ? { style: body.style } : {}),
+      // Readest 约定：null = 不修改，空字符串 = 清空
+      ...(body.color != null ? { color: body.color } : {}),
+      ...(body.style != null ? { style: body.style } : {}),
       ...(body.note !== undefined ? { note: body.note } : {}),
     },
   });

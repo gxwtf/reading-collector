@@ -14,7 +14,7 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const book = await prisma.book.findUnique({
     where: { id: Number(id) },
-    include: { annotations: { orderBy: { id: "asc" } } },
+    include: { annotations: { orderBy: { id: "asc" } }, bookmarks: { orderBy: { id: "asc" } } },
   });
   if (!book) notFound();
 
@@ -30,6 +30,20 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
           {book.readStatus ? ` · ${book.readStatus}` : ""}
         </p>
       </div>
+
+      {book.bookmarks.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold">书签 {book.bookmarks.length}</h2>
+          <ul className="space-y-1">
+            {book.bookmarks.map((b) => (
+              <li key={b.id} className="rounded-lg border border-border px-3 py-2 text-sm">
+                <span className="text-brand">◆</span> {b.title || b.cfi}
+                {b.notes ? <span className="ml-2 text-xs text-muted-foreground">{b.notes}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {book.annotations.length === 0 ? (
         <p className="rounded-xl border border-border px-4 py-10 text-center text-sm text-muted-foreground">
