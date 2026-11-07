@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const FONTS: Record<string, { path: string; label: string }> = {
   song: { path: process.env.QUOTE_FONT || "/home/gxwtf/.fonts/simsun.ttf", label: "宋体" },
-  kai: { path: "/home/gxwtf/gxwtf_ji/public/fonts/字酷堂清楷体.ttf", label: "楷体" },
+  kai: { path: process.env.QUOTE_FONT_KAI || "/home/gxwtf/.fonts/LXGWWenKai-Regular.ttf", label: "楷体" },
   hei: { path: "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf", label: "黑体" },
 };
 
