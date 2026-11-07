@@ -3,6 +3,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { prisma } from "@/lib/db";
+import { syncAnx } from "@/lib/anx";
 
 const SUPPORTED = new Set(["epub", "pdf", "cbz", "cbr", "mobi", "azw3", "fb2", "txt"]);
 
@@ -141,7 +142,11 @@ export async function syncBooks() {
     rows.push(row);
   }
 
-  return rows.sort((a, b) => a.title.localeCompare(b.title, "zh"));
+  // 书先入库，再用 Anx 的 SQLite 覆盖真实书名/作者并导入划线
+  await syncAnx().catch(() => 0);
+
+  const refreshed = await prisma.book.findMany({ where: { fileName: { in: files.map((f) => path.relative(BOOKS_DIR, f)) } } });
+  return refreshed.sort((a, b) => a.title.localeCompare(b.title, "zh"));
 }
 
 /* ---------------------------------------------------------------- 部分 MD5 区间 */
