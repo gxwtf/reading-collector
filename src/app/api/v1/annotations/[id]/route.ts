@@ -5,19 +5,21 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
   if (!verifyToken(req)) return unauthorized();
   const { id } = await ctx.params;
   const body = (await req.json().catch(() => ({}))) as {
-    color?: string;
-    style?: string;
-    note?: string;
+    color?: string | null;
+    style?: string | null;
+    note?: string | null;
   };
-  const row = await prisma.bookAnnotation.update({
-    where: { id: Number(id) },
-    data: {
-      // Readest 约定：null = 不修改，空字符串 = 清空
-      ...(body.color != null ? { color: body.color } : {}),
-      ...(body.style != null ? { style: body.style } : {}),
-      ...(body.note !== undefined ? { note: body.note } : {}),
-    },
-  });
+
+  // Readest 约定：字段为 null 表示「不修改」，空字符串表示「清空」
+  const data: { color?: string; style?: string; note?: string | null } = {};
+  if (body.color != null) data.color = body.color;
+  if (body.style != null) data.style = body.style;
+  if (body.note !== undefined && body.note !== null) {
+    data.note = body.note === "" ? null : body.note;
+  }
+
+  const row = await prisma.bookAnnotation.update({ where: { id: Number(id) }, data });
+
   return Response.json({
     id: row.id,
     bookId: row.bookId,
