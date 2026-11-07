@@ -8,7 +8,7 @@ export function SearchBox() {
       <input
         name="q"
         placeholder="搜索标题 / 正文"
-        className="h-9 w-56 rounded-full border border-border bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="h-8 w-56 rounded-lg border border-input bg-transparent pl-7 pr-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
       />
     </form>
   );

@@ -52,7 +52,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-medium">概括用的模型</h2>
         <p className="mt-1 mb-4 text-xs text-muted-foreground">
           不填就用站点默认；填了就走你自己的接口，调用量与费用都在你自己的账号下。
@@ -68,7 +68,7 @@ export default async function SettingsPage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-medium">站点登录态</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           知乎、B 站官方字幕、微博、小红书需要登录态。填一次即可，之后这些站点的链接会自动带上。
@@ -78,14 +78,14 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-medium">视频</h2>
         <div className="mt-3">
           <PreciseVideoToggle initial={Boolean(prefs.preciseVideo)} />
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+      <section className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
         <h2 className="text-sm font-medium text-foreground">当前账号</h2>
         <p className="mt-2">广学账号：{session.userName ?? "—"}</p>
         <p>用户 ID：{session.userId}</p>

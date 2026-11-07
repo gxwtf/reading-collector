@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { deleteCollection } from "@/actions/collections";
 import { NewCollectionForm } from "@/components/NewCollectionForm";
+import { Button } from "@/components/ui/button";
 
 export type SidebarCounts = {
   total: number;
@@ -18,21 +19,34 @@ type Props = {
   active: { collection?: number; kind?: string; readState?: string; favorite?: boolean };
 };
 
-function itemClass(on: boolean) {
-  return [
-    "flex items-center justify-between rounded-lg px-2.5 py-2 text-sm transition-colors",
-    on
-      ? "bg-foreground font-medium text-background"
-      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-  ].join(" ");
+/** 与广学题库 FilterPanel 一致的筛选按钮：选中实心，未选中描边，text-xs px-3 py-1 */
+function Chip({
+  href,
+  on,
+  children,
+}: {
+  href: string;
+  on: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      asChild
+      variant={on ? "default" : "outline"}
+      size="sm"
+      className="px-3 py-1 text-xs"
+    >
+      <Link href={href}>{children}</Link>
+    </Button>
+  );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <h2 className="flex items-center gap-2 px-1 pb-2 text-xs font-semibold text-foreground">
-      <span className="h-3.5 w-1 rounded-full bg-brand" />
-      {children}
-    </h2>
+    <div>
+      <p className="mb-3 block text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
   );
 }
 
@@ -40,70 +54,59 @@ export function Sidebar({ collections, counts, active }: Props) {
   const isAll = !active.kind && !active.collection && !active.readState && !active.favorite;
 
   return (
-    <aside className="space-y-5 rounded-2xl border border-border bg-card p-3">
-      <nav className="space-y-0.5">
-        <Link href="/" className={itemClass(isAll)}>
-          <span>全部</span>
-          <span className="text-xs tabular-nums">{counts.total}</span>
-        </Link>
-        <Link href="/?readState=unread" className={itemClass(active.readState === "unread")}>
-          <span>未读</span>
-          <span className="text-xs tabular-nums">{counts.unread}</span>
-        </Link>
-        <Link href="/?favorite=1" className={itemClass(Boolean(active.favorite))}>
-          <span>收藏</span>
-          <span className="text-xs tabular-nums">{counts.favorite}</span>
-        </Link>
-      </nav>
+    <aside className="space-y-6 rounded-xl border border-border bg-card p-4">
+      <Group label="状态">
+        <Chip href="/" on={isAll}>
+          全部 <span className="ml-1 tabular-nums opacity-70">{counts.total}</span>
+        </Chip>
+        <Chip href="/?readState=unread" on={active.readState === "unread"}>
+          未读 <span className="ml-1 tabular-nums opacity-70">{counts.unread}</span>
+        </Chip>
+        <Chip href="/?favorite=1" on={Boolean(active.favorite)}>
+          收藏 <span className="ml-1 tabular-nums opacity-70">{counts.favorite}</span>
+        </Chip>
+      </Group>
 
-      <section>
-        <SectionTitle>类型（自动）</SectionTitle>
-        <nav className="space-y-0.5">
-          <Link href="/?kind=article" className={itemClass(active.kind === "article")}>
-            <span>文章</span>
-            <span className="text-xs tabular-nums">{counts.article}</span>
-          </Link>
-          <Link href="/?kind=video" className={itemClass(active.kind === "video")}>
-            <span>视频</span>
-            <span className="text-xs tabular-nums">{counts.video}</span>
-          </Link>
-          <Link href="/?kind=podcast" className={itemClass(active.kind === "podcast")}>
-            <span>播客</span>
-            <span className="text-xs tabular-nums">{counts.podcast}</span>
-          </Link>
-        </nav>
-      </section>
+      <Group label="类型">
+        <Chip href="/?kind=article" on={active.kind === "article"}>
+          文章 <span className="ml-1 tabular-nums opacity-70">{counts.article}</span>
+        </Chip>
+        <Chip href="/?kind=video" on={active.kind === "video"}>
+          视频 <span className="ml-1 tabular-nums opacity-70">{counts.video}</span>
+        </Chip>
+        <Chip href="/?kind=podcast" on={active.kind === "podcast"}>
+          播客 <span className="ml-1 tabular-nums opacity-70">{counts.podcast}</span>
+        </Chip>
+      </Group>
 
-      <section>
-        <SectionTitle>我的分组</SectionTitle>
-        <nav className="space-y-0.5">
+      <div>
+        <p className="mb-3 block text-sm font-medium text-muted-foreground">我的分组</p>
+        <div className="flex flex-wrap gap-2">
           {collections.length === 0 ? (
-            <p className="px-2.5 py-1 text-xs text-muted-foreground">还没有分组</p>
+            <p className="text-xs text-muted-foreground">还没有分组</p>
           ) : (
             collections.map((c) => (
-              <div key={c.id} className="group flex items-center gap-1">
-                <Link
-                  href={`/?collection=${c.id}`}
-                  className={`${itemClass(active.collection === c.id)} min-w-0 flex-1`}
-                >
-                  <span className="truncate">{c.name}</span>
-                  <span className="ml-2 shrink-0 text-xs tabular-nums">{c.count}</span>
-                </Link>
+              <span key={c.id} className="group inline-flex items-center">
+                <Chip href={`/?collection=${c.id}`} on={active.collection === c.id}>
+                  {c.name} <span className="ml-1 tabular-nums opacity-70">{c.count}</span>
+                </Chip>
                 <form action={deleteCollection.bind(null, c.id)}>
                   <button
                     type="submit"
                     aria-label={`删除分组 ${c.name}`}
-                    className="inline-flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                    className="ml-1 inline-flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
                 </form>
-              </div>
+              </span>
             ))
           )}
-        </nav>
-        <NewCollectionForm />
-      </section>
+        </div>
+        <div className="mt-3">
+          <NewCollectionForm />
+        </div>
+      </div>
     </aside>
   );
 }

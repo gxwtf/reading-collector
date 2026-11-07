@@ -204,7 +204,7 @@ export function HighlightLayer({
           className={
             pending.coarse
               ? "fixed inset-x-3 bottom-6 z-40 mx-auto max-w-sm rounded-xl border border-border bg-card p-2 shadow-xl"
-              : "fixed z-40 w-64 rounded-2xl border border-border bg-card p-2 shadow-lg"
+              : "fixed z-40 w-64 rounded-xl border border-border bg-card p-2 shadow-lg"
           }
           style={pending.coarse ? undefined : { left: pending.x, top: pending.y }}
         >

@@ -32,7 +32,7 @@ export async function Navbar() {
           <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground">
             <Menu className="size-4" />
           </summary>
-          <div className="absolute left-0 top-11 z-50 flex w-40 flex-col gap-1 rounded-2xl border border-border bg-card p-2 shadow-lg">
+          <div className="absolute left-0 top-11 z-50 flex w-40 flex-col gap-1 rounded-xl border border-border bg-card p-2 shadow-lg">
             <NavLinks />
           </div>
         </details>

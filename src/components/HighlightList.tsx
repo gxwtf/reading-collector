@@ -107,7 +107,7 @@ export function HighlightList({ items: all }: { items: HighlightItem[] }) {
         <li
           key={h.id}
           id={`hl-item-${h.id}`}
-          className="group rounded-2xl border border-border bg-card p-3"
+          className="group rounded-xl border border-border bg-card p-3"
         >
           <div className="flex items-start gap-2">
             <button

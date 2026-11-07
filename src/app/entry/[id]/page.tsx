@@ -219,7 +219,7 @@ export default async function EntryPage({
 
         {/* 右栏：概括 + 划线批注 */}
         <aside className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-auto lg:pr-1">
-          <section className="rounded-2xl border border-border bg-card p-4">
+          <section className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium">概括</h2>
               <form action={regenerateSummary.bind(null, entry.id)}>
@@ -245,7 +245,7 @@ export default async function EntryPage({
             )}
           </section>
 
-          <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+          <section className="space-y-3 rounded-xl border border-border bg-card p-4">
             <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>
             <HighlightList
               items={entry.highlights.map((h) => ({
@@ -259,7 +259,7 @@ export default async function EntryPage({
           </section>
 
           {collections.length > 0 ? (
-            <section className="rounded-2xl border border-border bg-card p-4">
+            <section className="rounded-xl border border-border bg-card p-4">
               <h2 className="text-sm font-medium">分组</h2>
               <div className="mt-2 flex flex-wrap gap-2">
                 {collections.map((c) => {

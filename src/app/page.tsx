@@ -105,7 +105,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
       />
       </div>
 
-      <details className="rounded-2xl border border-border bg-card p-3 md:hidden">
+      <details className="rounded-xl border border-border bg-card p-3 md:hidden">
         <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground">筛选 / 分组</summary>
         <div className="mt-3">
       <Sidebar
@@ -125,7 +125,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
       <div className="min-w-0 space-y-4">
         <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold">
             {q
               ? `搜索：${q}`
               : collectionId
@@ -151,7 +151,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         />
 
         <AddEntryForm collections={collections.map((c) => ({ id: c.id, name: c.name }))} />
-        <details className="rounded-2xl border border-border bg-card p-3">
+        <details className="rounded-xl border border-border bg-card p-3">
           <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
             更多导入方式（B 站收藏夹 / 合集 / RSS / Markdown）
           </summary>
