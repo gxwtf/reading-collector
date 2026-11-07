@@ -136,3 +136,6 @@ brief 里必须显式列出禁止行为，否则 agent 会「出于谨慎」去�
 | 多文件重构 | 40 |
 
 超过 40 步的任务，说明它应该被拆成多个 brief，而不是继续加步数。
+
+- 2026-11-07 实测：远程 agent 用 GIT_SSH_COMMAND='ssh -o BatchMode=yes' git push origin main 成功
+- 2026-11-07 实测：远程 agent 用 sudo -n systemctl restart gxreading 重启站点成功
