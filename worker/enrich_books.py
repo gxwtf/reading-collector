@@ -38,6 +38,8 @@ SERIES_RE = re.compile(
 )
 # 书名尾部的作者括号：[美]贝克尔 / （俄）托尔斯泰
 AUTHOR_IN_TITLE_RE = re.compile(r"\s*[\(（][^\(（]{1,30}[\)）]\s*$")
+# 书名前缀的丛书编号：「理想国译丛016 · 」
+SERIES_PREFIX_RE = re.compile(r"^.{0,12}(译丛|丛书|系列|文库)\s*\d*\s*[·・]\s*")
 NOISE_RE = [re.compile(p, re.I) for p in NOISE]
 
 
@@ -46,6 +48,7 @@ def clean_title(title: str) -> str:
     for rx in NOISE_RE:
         t = rx.sub("", t)
     t = re.sub(r"[\(（]\s*[\)）]", "", t)
+    t = SERIES_PREFIX_RE.sub("", t)
     t = SERIES_RE.sub("", t)
     t = re.sub(r"\s*-{2,}.*$", "", t)
     # 尾部括号里像人名的（含国别标记）也去掉
@@ -62,6 +65,8 @@ AUTHOR_JUNK = re.compile(r"(ePUBw\.COM|z-?lib|z-library|www\.[\w.]+|\.(com|net|o
 def clean_author(author: str) -> str:
     a = html.unescape(author or "")
     a = AUTHOR_JUNK.sub("", a)
+    a = re.sub(r"^[\[【（(][^\]】）)]{1,6}[\]】）)]\s*", "", a)   # 去掉 [美] 【英】 这类国别
+    a = re.sub(r"[（(]\s*(著|编著|主编|编|译|等)\s*[)）]", "", a)
     a = re.sub(r"[，,]\s*(著|编著|主编|译|编)\s*$", "", a)
     a = re.sub(r"\s*(著|编著|主编)$", "", a)
     parts = [p.strip() for p in re.split(r"[,，;；/]", a) if p.strip()]

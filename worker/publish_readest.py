@@ -94,6 +94,26 @@ def main():
                 f.write(cdata)
             cover_hash = hashlib.md5(cdata).hexdigest()
 
+        # 同一本书只留一份：删掉旧文件名留下的副本
+        for other in os.listdir(target_dir):
+            if other == base or other in ("config.json", "cover.png"):
+                continue
+            if other.lower().endswith((".epub", ".pdf", ".mobi", ".azw3", ".fb2", ".cbz")):
+                try:
+                    os.remove(os.path.join(target_dir, other))
+                except OSError:
+                    pass
+
+        # 同一本书只留一份：删掉旧文件名留下的副本
+        for other in os.listdir(target_dir):
+            if other == base or other in ("config.json", "cover.png"):
+                continue
+            if other.lower().endswith((".epub", ".pdf", ".mobi", ".azw3", ".fb2", ".cbz")):
+                try:
+                    os.remove(os.path.join(target_dir, other))
+                except OSError:
+                    pass
+
         cfg_path = os.path.join(target_dir, "config.json")
         if not os.path.exists(cfg_path):
             with open(cfg_path, "w", encoding="utf-8") as f:
@@ -132,6 +152,18 @@ def main():
             "progress": None,
         }
         if h in by_hash:
+            # 老条目也要跟着清洗后的书名/作者更新
+            by_hash[h].update(
+                {
+                    "title": row["title"],
+                    "sourceTitle": row["title"],
+                    "author": row.get("author") or "",
+                    "format": fmt,
+                    "originalFilename": base,
+                    "metadata": entry["metadata"],
+                    "updatedAt": now,
+                }
+            )
             if cover_hash:
                 by_hash[h]["coverHash"] = cover_hash
                 by_hash[h]["coverUpdatedAt"] = now
