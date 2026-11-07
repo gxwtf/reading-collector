@@ -10,6 +10,12 @@ exec 9>"$LOCK"
 flock -n 9 || { echo "sync already running"; exit 0; }
 
 export READEST_BOOKS_DIR=/home/gxwtf/reading-books
+
+# 统一用站点 .env 的库连接：手动执行时不会误继承别的库（如 gxwtf_agent）
+if [ -f .env ]; then
+  ENV_DB=$(grep -m1 '^DATABASE_URL=' .env | cut -d= -f2- | tr -d '"')
+  [ -n "$ENV_DB" ] && export DATABASE_URL="$ENV_DB"
+fi
 PY=/home/gxwtf/venv_reading/bin/python
 
 # 先让站点扫一遍磁盘，把新文件登记进数据库（走开放 API）

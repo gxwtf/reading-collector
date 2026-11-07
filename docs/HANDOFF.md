@@ -17,6 +17,13 @@
 | 仓库 | `gxwtf/reading-collector`（主）+ `kyoukawa/reading-collector`（镜像） |
 | 文档 | `docs/wiki/*`，发布在 `dev.gxwtf.cn/reading/` |
 
+## 当前状态（2026-11-08）
+
+- 书库已收敛为**根目录单一副本**：`~/reading-books/*.epub|pdf` 为唯一真身，`Readest/books/<hash>/` 走硬链接，`library.json` 由脚本生成
+- 一条龙：`sh worker/sync_library.sh`（扫描 → 书名/作者清洗 → 元数据+封面 → 发布 → 去重 → 孤儿清理），上传即触发，另有定时任务
+- 四层计数一致（2026-11-08 实测）：根目录 10 / DB 10 / Readest 目录 10 / library.json 10
+- 服务：`gxreading`、`gxreading-worker`、`gxreading-dav`、`readest`、`nginx` 均 active
+
 ## 已上线功能（本次会话）
 
 - 批量导入：链接、B 站收藏夹/合集、RSS 订阅（30 分钟自动拉新）、**Markdown**（文件/粘贴）、**OPML**
