@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, ExternalLink } from "lucide-react";
 
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
@@ -33,11 +33,27 @@ export default async function BooksPage() {
         <BookOpen className="size-4 text-brand" />
         <h1 className="text-lg font-semibold">书库</h1>
         <span className="text-xs text-muted-foreground">共 {books.length} 本 · 与 Readest 同步</span>
+        <a
+          href="/readest"
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
+        >
+          <ExternalLink className="size-3.5" />
+          打开阅读器
+        </a>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        还没连过阅读器？
+        <a href="/readest-setup" className="ml-1 text-brand hover:underline">
+          查看同步设置
+        </a>
+      </p>
 
       {books.length === 0 ? (
         <p className="rounded-xl border border-border px-4 py-10 text-center text-sm text-muted-foreground">
-          书库还是空的。用 Readest 的 WebDAV 把 epub 传上来，这里就会出现。
+          书库还是空的。点右上角「打开阅读器」，用 WebDAV 把 epub 传上来，这里就会出现。
         </p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
