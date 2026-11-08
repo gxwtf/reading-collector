@@ -1,9 +1,10 @@
-import { bookType, extOf, fmt, syncBooks, unauthorized, verifyToken } from "@/lib/readest";
+import { bookType, extOf, fmt, syncBooks, tokenUserId, unauthorized, verifyToken, SYNC_USER_ID } from "@/lib/readest";
 
 export async function GET(req: Request) {
   if (!verifyToken(req)) return unauthorized();
 
-  const books = await syncBooks();
+  const uid = tokenUserId(req) ?? SYNC_USER_ID;
+  const books = (await syncBooks(uid)).filter((b) => b.userId === uid);
   return Response.json(
     books.map((b) => ({
       id: b.id,

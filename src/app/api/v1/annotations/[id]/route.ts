@@ -1,4 +1,4 @@
-import { fmt, unauthorized, verifyToken } from "@/lib/readest";
+import { fmt, tokenUserId, unauthorized, verifyToken, SYNC_USER_ID } from "@/lib/readest";
 import { prisma } from "@/lib/db";
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -18,7 +18,15 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     data.note = body.note === "" ? null : body.note;
   }
 
-  const row = await prisma.bookAnnotation.update({ where: { id: Number(id) }, data });
+  const userId = tokenUserId(req) ?? SYNC_USER_ID;
+  const { count } = await prisma.bookAnnotation.updateMany({
+    where: { id: Number(id), userId },
+    data,
+  });
+  if (count === 0) return Response.json({ error: "not found" }, { status: 404 });
+
+  const row = await prisma.bookAnnotation.findFirst({ where: { id: Number(id), userId } });
+  if (!row) return Response.json({ error: "not found" }, { status: 404 });
 
   return Response.json({
     id: row.id,
@@ -37,6 +45,9 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!verifyToken(req)) return unauthorized();
   const { id } = await ctx.params;
-  await prisma.bookAnnotation.delete({ where: { id: Number(id) } });
+  const { count } = await prisma.bookAnnotation.deleteMany({
+    where: { id: Number(id), userId: tokenUserId(req) ?? SYNC_USER_ID },
+  });
+  if (count === 0) return Response.json({ error: "not found" }, { status: 404 });
   return new Response(null, { status: 204 });
 }

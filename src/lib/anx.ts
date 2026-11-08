@@ -25,12 +25,14 @@ type AnxNote = {
 
 const ANX_DB = path.join(BOOKS_DIR, "anx", "database7.db");
 
+const DEFAULT_USER_ID = Number(process.env.API_USER_ID || 2691);
+
 /**
  * Anx Reader 通过 WebDAV 同步上来的是 SQLite 库 + data/file 下的书。
  * 这里直接读它的库（只读打开），拿真实书名、作者、进度和划线。
  * 读不到就静默跳过——Anx 只是可选的客户端之一。
  */
-export async function syncAnx(): Promise<number> {
+export async function syncAnx(userId: number = DEFAULT_USER_ID): Promise<number> {
   let db: import("node:sqlite").DatabaseSync | null = null;
 
   try {
@@ -90,9 +92,10 @@ export async function syncAnx(): Promise<number> {
       if (!bookId || !n.content) continue;
       const cfi = n.cfi || `anx:${n.id}`;
       await prisma.bookAnnotation.upsert({
-        where: { bookId_cfi_text: { bookId, cfi, text: n.content } },
+        where: { userId_bookId_cfi_text: { userId, bookId, cfi, text: n.content } },
         update: { note: n.reader_note ?? null, chapterTitle: n.chapter ?? null, color: n.color ?? null },
         create: {
+          userId,
           bookId,
           cfi,
           text: n.content,

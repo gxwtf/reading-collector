@@ -12,7 +12,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!session.userId) return new Response("未登录", { status: 401 });
 
   const { id } = await ctx.params;
-  const book = await prisma.book.findUnique({ where: { id: Number(id) } });
+  const book = await prisma.book.findFirst({ where: { id: Number(id), userId: session.userId } });
   if (!book) return new Response("not found", { status: 404 });
 
   const full = path.join(BOOKS_DIR, book.fileName);

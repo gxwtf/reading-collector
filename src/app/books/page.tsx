@@ -23,10 +23,11 @@ export default async function BooksPage() {
     );
   }
 
-  await syncBooks();
+  await syncBooks(session.userId);
   const books = await prisma.book.findMany({
+    where: { userId: session.userId },
     orderBy: [{ lastReadTime: "desc" }, { title: "asc" }],
-    include: { _count: { select: { annotations: true } } },
+    include: { _count: { select: { annotations: { where: { userId: session.userId } } } } },
   });
 
   return (

@@ -48,6 +48,21 @@ export function verifyToken(req: Request): boolean {
   }
 }
 
+/** 从 token 里取 userId（不校验签名，签名由 verifyToken 负责） */
+export function tokenUserId(req: Request): number | null {
+  const raw = req.headers.get("authorization") || "";
+  const token = raw.replace(/^Bearer\s+/i, "").trim();
+  if (!token.includes(".")) return null;
+  const [payload] = token.split(".");
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { userId?: number; exp?: number };
+    if (typeof data.exp === "number" && data.exp <= Date.now()) return null;
+    return typeof data.userId === "number" ? data.userId : null;
+  } catch {
+    return null;
+  }
+}
+
 export function unauthorized() {
   return Response.json({ error: "unauthorized" }, { status: 401 });
 }
@@ -128,7 +143,7 @@ async function walkBooks(dir: string, depth = 0, mirrorInodes: Set<bigint | numb
 }
 
 /** 扫书库并 upsert 到 Book 表，返回按书名排序的记录 */
-export async function syncBooks() {
+export async function syncBooks(userId: number = SYNC_USER_ID) {
   const walked = await walkBooks(BOOKS_DIR);
 
   // 同一本书可能以硬链接形式出现在多个目录（original/、Readest/books/<hash>/、anx/…），
@@ -161,7 +176,7 @@ export async function syncBooks() {
       where: { fileName: rel },
       update: { fileSize: BigInt(info.size) },
       create: {
-        userId: SYNC_USER_ID,
+        userId,
         fileName: rel,
         title: lib?.title || lib?.sourceTitle || fallback,
         author: lib?.author ?? null,
@@ -174,13 +189,15 @@ export async function syncBooks() {
 
   // 清掉磁盘上已经不存在的记录（重命名/移动后不留幽灵条目）
   await prisma.book
-    .deleteMany({ where: { fileName: { notIn: files.map((f) => path.relative(BOOKS_DIR, f)) } } })
+    .deleteMany({ where: { userId, fileName: { notIn: files.map((f) => path.relative(BOOKS_DIR, f)) } } })
     .catch(() => null);
 
   // 书先入库，再用 Anx 的 SQLite 覆盖真实书名/作者并导入划线
-  await syncAnx().catch(() => 0);
+  await syncAnx(userId).catch(() => 0);
 
-  const refreshed = await prisma.book.findMany({ where: { fileName: { in: files.map((f) => path.relative(BOOKS_DIR, f)) } } });
+  const refreshed = await prisma.book.findMany({
+    where: { userId, fileName: { in: files.map((f) => path.relative(BOOKS_DIR, f)) } },
+  });
   return refreshed.sort((a, b) => a.title.localeCompare(b.title, "zh"));
 }
 

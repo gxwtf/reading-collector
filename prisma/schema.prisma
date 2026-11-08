@@ -295,6 +295,8 @@ model Book {
 /// 划线 / 标注（Readest 的 annotation）
 model BookAnnotation {
   id           Int      @id @default(autoincrement())
+  /// 归属用户（广学账号 userId），隔离用
+  userId       Int      @default(2691)
   bookId       Int
   book         Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   cfi          String
@@ -307,8 +309,9 @@ model BookAnnotation {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([bookId, cfi, text])
+  @@unique([userId, bookId, cfi, text])
   @@index([bookId])
+  @@index([userId])
 }
 
 /// 书签

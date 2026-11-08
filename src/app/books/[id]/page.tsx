@@ -14,10 +14,10 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
   if (!session.userId) notFound();
 
   const { id } = await params;
-  const book = await prisma.book.findUnique({
-    where: { id: Number(id) },
+  const book = await prisma.book.findFirst({
+    where: { id: Number(id), userId: session.userId },
     include: {
-      annotations: { orderBy: { id: "asc" } },
+      annotations: { where: { userId: session.userId }, orderBy: { id: "asc" } },
       bookmarks: { orderBy: { id: "asc" } },
     },
   });

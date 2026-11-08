@@ -5,10 +5,14 @@ import path from "node:path";
 
 import { BOOKS_DIR } from "@/lib/readest";
 import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/session";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const session = await getSession();
+  if (!session.userId) return new Response("未登录", { status: 401 });
+
   const { id } = await ctx.params;
-  const book = await prisma.book.findUnique({ where: { id: Number(id) } });
+  const book = await prisma.book.findFirst({ where: { id: Number(id), userId: session.userId } });
   if (!book?.coverFile) return new Response("no cover", { status: 404 });
 
   const full = path.join(BOOKS_DIR, "covers", book.coverFile);

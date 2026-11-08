@@ -1,4 +1,4 @@
-import { fmt, unauthorized, verifyToken } from "@/lib/readest";
+import { fmt, tokenUserId, unauthorized, verifyToken, SYNC_USER_ID } from "@/lib/readest";
 import { prisma } from "@/lib/db";
 
 function shape(a: {
@@ -42,8 +42,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "bookId/cfi/text 必填" }, { status: 400 });
   }
 
+  const userId = tokenUserId(req) ?? SYNC_USER_ID;
   const row = await prisma.bookAnnotation.upsert({
-    where: { bookId_cfi_text: { bookId: body.bookId, cfi: body.cfi, text: body.text } },
+    where: {
+      userId_bookId_cfi_text: { userId, bookId: body.bookId, cfi: body.cfi, text: body.text },
+    },
     update: {
       color: body.color ?? null,
       style: body.style ?? null,
@@ -51,6 +54,7 @@ export async function POST(req: Request) {
       chapterTitle: body.chapterTitle ?? null,
     },
     create: {
+      userId,
       bookId: body.bookId,
       cfi: body.cfi,
       text: body.text,

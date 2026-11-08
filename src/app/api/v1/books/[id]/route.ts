@@ -1,10 +1,12 @@
-import { bookType, extOf, fmt, unauthorized, verifyToken } from "@/lib/readest";
+import { bookType, extOf, fmt, tokenUserId, unauthorized, verifyToken, SYNC_USER_ID } from "@/lib/readest";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!verifyToken(req)) return unauthorized();
   const { id } = await ctx.params;
-  const b = await prisma.book.findUnique({ where: { id: Number(id) } });
+  const b = await prisma.book.findFirst({
+    where: { id: Number(id), userId: tokenUserId(req) ?? SYNC_USER_ID },
+  });
   if (!b) return Response.json({ error: "not found" }, { status: 404 });
   return Response.json({
     id: b.id,

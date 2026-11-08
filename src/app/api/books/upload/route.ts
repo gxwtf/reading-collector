@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { BOOKS_DIR, extOf, SYNC_USER_ID } from "@/lib/readest";
+import { BOOKS_DIR, extOf } from "@/lib/readest";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     where: { fileName },
     update: { fileSize: BigInt(buf.length) },
     create: {
-      userId: SYNC_USER_ID,
+      userId: session.userId,
       fileName,
       title: base,
       format: ext,
