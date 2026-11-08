@@ -1,16 +1,14 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import QRCode from "qrcode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * 分享图（统一入口，带二维码）：
- *   /api/share-card?kind=article&title=…&text=…&site=…&url=…
- *   /api/share-card?kind=quote&title=…&text=…&site=…&url=…
- * 二维码指向分享短链，扫码即可在手机上打开原文/该书划线。
+ * 分享图（无二维码）：
+ *   /api/share-card?kind=article&title=…&text=…&site=…
+ *   /api/share-card?kind=quote&title=…&text=…&site=…
  */
 
 const FONTS: Record<string, string> = {
@@ -42,29 +40,17 @@ export async function GET(request: Request) {
   const text = (q.get("text") ?? "").trim().slice(0, 320);
   const title = (q.get("title") ?? "").trim().slice(0, 60);
   const site = (q.get("site") ?? "").trim().slice(0, 20);
-  const url = (q.get("url") ?? "").trim().slice(0, 300);
   const theme = q.get("theme") === "dark" ? "dark" : "light";
   const fontKey = q.get("font") ?? "song";
 
   if (!text && !title) return new Response("缺少内容", { status: 400 });
 
   const font = await loadFont(fontKey);
-
   const dark = theme === "dark";
   const bg = dark ? "#14100f" : "#f7f3ec";
   const fg = dark ? "#f5efe6" : "#231815";
   const muted = dark ? "#9d938a" : "#8a7f78";
   const accent = dark ? "#e0574f" : "#a31f24";
-
-  // 二维码：透明底，前景随主题
-  const qr = url
-    ? await QRCode.toDataURL(url, {
-        margin: 1,
-        width: 360,
-        errorCorrectionLevel: "M",
-        color: { dark: fg, light: "#00000000" },
-      }).catch(() => "")
-    : "";
 
   const header = (label: string) => (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -76,22 +62,9 @@ export async function GET(request: Request) {
   const footer = (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", height: 1, background: muted, opacity: 0.35 }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {title && kind === "quote" ? (
-            <div style={{ display: "flex", fontSize: 30, color: fg, opacity: 0.9 }}>{`《${title}》`}</div>
-          ) : null}
-          <div style={{ display: "flex", fontSize: 24, color: muted }}>
-            {site || "reading.gxwtf.cn"} · 广学五题坊
-          </div>
-        </div>
-        {qr ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qr} width={150} height={150} alt="" />
-            <div style={{ display: "flex", fontSize: 20, color: muted }}>扫码阅读</div>
-          </div>
-        ) : null}
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, color: muted }}>
+        <div style={{ display: "flex" }}>{site || "reading.gxwtf.cn"}</div>
+        <div style={{ display: "flex" }}>广学五题坊 · 阅读收集</div>
       </div>
     </div>
   );
@@ -110,7 +83,6 @@ export async function GET(request: Request) {
         }}
       >
         {header("阅读收集")}
-
         <div
           style={{
             display: "flex",
@@ -118,14 +90,11 @@ export async function GET(request: Request) {
             fontSize: title.length > 18 ? 66 : 78,
             lineHeight: 1.35,
             color: fg,
-            fontWeight: 400,
           }}
         >
           {title || "未命名"}
         </div>
-
         <div style={{ display: "flex", marginTop: 40, width: 120, height: 6, background: accent, opacity: 0.85 }} />
-
         <div
           style={{
             display: "flex",
@@ -139,7 +108,6 @@ export async function GET(request: Request) {
         >
           {text}
         </div>
-
         {footer}
       </div>
     ) : (
@@ -162,7 +130,6 @@ export async function GET(request: Request) {
           style={{
             display: "flex",
             alignItems: "center",
-            marginTop: 0,
             flexGrow: 1,
             fontSize: text.length <= 30 ? 76 : text.length <= 60 ? 64 : 52,
             lineHeight: 1.7,
@@ -172,7 +139,12 @@ export async function GET(request: Request) {
         >
           {text}
         </div>
-        {footer}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {title ? (
+            <div style={{ display: "flex", fontSize: 30, color: fg, opacity: 0.9 }}>{`《${title}》`}</div>
+          ) : null}
+          {footer}
+        </div>
       </div>
     );
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Download, Loader2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, Download, Loader2, MessageCircle, X } from "lucide-react";
 
 const FONTS = [
   { key: "song", label: "宋体" },
@@ -15,7 +15,6 @@ const THEMES = [
   { key: "dark", label: "深色" },
 ] as const;
 
-/** 分享图预览：文章卡 / 金句卡，都带二维码；可换字体与主题后下载 */
 export function ShareCardDialog({
   kind,
   title,
@@ -31,17 +30,49 @@ export function ShareCardDialog({
   url: string;
   onClose: () => void;
 }) {
+  const [sentence, setSentence] = useState(text);
   const [font, setFont] = useState<string>("song");
   const [theme, setTheme] = useState<string>("light");
   const [loading, setLoading] = useState(true);
+  const [hint, setHint] = useState("");
 
-  const src =
-    `/api/share-card?kind=${kind}` +
-    `&title=${encodeURIComponent(title)}` +
-    `&text=${encodeURIComponent(text)}` +
-    `&site=${encodeURIComponent(site)}` +
-    `&url=${encodeURIComponent(url)}` +
-    `&font=${font}&theme=${theme}`;
+  const src = useMemo(
+    () =>
+      `/api/share-card?kind=${kind}` +
+      `&title=${encodeURIComponent(title)}` +
+      `&text=${encodeURIComponent(sentence)}` +
+      `&site=${encodeURIComponent(site)}` +
+      `&font=${font}&theme=${theme}`,
+    [kind, title, sentence, site, font, theme],
+  );
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setHint("链接已复制");
+    } catch {
+      setHint("复制失败，请手动复制");
+    }
+    setTimeout(() => setHint(""), 2400);
+  }
+
+  async function toWechat() {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      /* 忽略：微信里仍可手动粘贴 */
+    }
+    const ua = navigator.userAgent;
+    if (/MicroMessenger/i.test(ua)) {
+      setHint("已复制链接，点右上角「…」→ 发送给朋友");
+    } else if (/Android|iPhone|iPad|iPod/i.test(ua)) {
+      window.location.href = "weixin://";
+      setHint("正在打开微信，粘贴即可发送");
+    } else {
+      setHint("链接已复制，在微信里粘贴发送");
+    }
+    setTimeout(() => setHint(""), 4000);
+  }
 
   return (
     <div
@@ -73,6 +104,20 @@ export function ShareCardDialog({
             onError={() => setLoading(false)}
           />
         </div>
+
+        <label className="space-y-1">
+          <span className="text-xs text-white/60">图上文字（可直接改）</span>
+          <textarea
+            value={sentence}
+            onChange={(e) => {
+              setSentence(e.target.value.slice(0, 320));
+              setLoading(true);
+            }}
+            rows={3}
+            className="w-full resize-none rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
+            placeholder={kind === "article" ? "写一句推荐语…" : "改一句你想发的话…"}
+          />
+        </label>
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex overflow-hidden rounded-lg border border-white/20">
@@ -110,20 +155,38 @@ export function ShareCardDialog({
               </button>
             ))}
           </div>
+        </div>
 
+        <div className="flex flex-wrap items-center gap-2">
           <a
             href={src}
             download={`分享图-${Date.now()}.png`}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-black"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-black"
           >
             <Download className="size-3.5" />
             保存图片
           </a>
+
+          <button
+            type="button"
+            onClick={copyLink}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 px-3 py-1.5 text-xs text-white/85 hover:bg-white/10"
+          >
+            <Check className="size-3.5" />
+            复制链接
+          </button>
+
+          <button
+            type="button"
+            onClick={toWechat}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-[#07c160] px-3 py-1.5 text-xs font-medium text-white"
+          >
+            <MessageCircle className="size-3.5" />
+            发到微信
+          </button>
         </div>
 
-        <p className="text-center text-[11px] text-white/50">
-          图上带二维码，扫码即可在手机上打开 · 也可长按图片保存到相册
-        </p>
+        <p className="min-h-[16px] text-center text-[11px] text-white/60">{hint}</p>
       </div>
     </div>
   );
