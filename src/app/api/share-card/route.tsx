@@ -39,7 +39,7 @@ async function loadFont(key: string): Promise<ArrayBuffer> {
 export async function GET(request: Request) {
   const q = new URL(request.url).searchParams;
   const kind = q.get("kind") === "article" ? "article" : "quote";
-  const text = (q.get(text) ?? "").trim().slice(0, 320);
+  const text = (q.get("text") ?? "").trim().slice(0, 320);
   const title = (q.get("title") ?? "").trim().slice(0, 60);
   const site = (q.get("site") ?? "").trim().slice(0, 20);
   const url = (q.get("url") ?? "").trim().slice(0, 300);
