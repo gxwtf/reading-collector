@@ -3,13 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, ExternalLink, RefreshCw, RotateCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, RotateCw } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { regenerateSummary } from "@/actions/summary";
 import { ShareMenu } from "@/components/ShareMenu";
+import { RegenerateButton } from "@/components/RegenerateButton";
 import { getEmbed } from "@/lib/embed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -231,15 +232,7 @@ export default async function EntryPage({
           <section className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium">概括</h2>
-              <form action={regenerateSummary.bind(null, entry.id)}>
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <RefreshCw className="size-3" />
-                  重算
-                </button>
-              </form>
+              <RegenerateButton action={regenerateSummary.bind(null, entry.id)} />
             </div>
 
             {entry.summary ? (
