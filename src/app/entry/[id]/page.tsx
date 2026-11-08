@@ -121,15 +121,9 @@ export default async function EntryPage({
                 ? `https://reading.gxwtf.cn/s/${entry.shareToken}`
                 : `https://reading.gxwtf.cn/entry/${entry.id}`
             }
-            text={(
-              entry.summary ??
-              (entry as { excerpt?: string | null }).excerpt ??
-              ""
-            )
-              .replace(/[#>*`_\[\]]/g, "")
-              .replace(/
-{2,}/g, "
-")
+            text={(entry.summary ?? "")
+              .replace(/\s+/g, " ")
+              .replace(/[#>*_`[\]]/g, "")
               .trim()
               .slice(0, 260)}
           />
