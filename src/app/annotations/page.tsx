@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AnnotationShareButton } from "@/components/AnnotationShareButton";
-import { MessageSquareQuote, Search } from "lucide-react";
+import { Download, MessageSquareQuote, Search } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 
