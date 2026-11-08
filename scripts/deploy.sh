@@ -9,6 +9,9 @@ ln -sfn "$SRC/node_modules" "$TMP/node_modules"
 cd "$TMP"
 pnpm build
 cd "$SRC"
-rsync -a --delete "$TMP/.next/" "$SRC/.next/"
+# 不删旧分片：打开的标签页还引用着旧 hash 的 chunk，删掉就会 500
+rsync -a "$TMP/.next/" "$SRC/.next/"
+# 顺手清掉 7 天前的旧分片，避免无限膨胀
+find "$SRC/.next/static" -type f -mtime +7 -delete 2>/dev/null || true
 rm -rf "$TMP"
 echo "build done，执行 systemctl restart gxreading 生效（需端上 sudo）"
