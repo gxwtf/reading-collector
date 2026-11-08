@@ -134,6 +134,8 @@ async function walkBooks(dir: string, depth = 0, mirrorInodes: Set<bigint | numb
     if (e.name.startsWith(".") || e.name.startsWith("_")) continue;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
+      // Readest 目录是发布镜像，covers 是封面，都不当书扫
+      if (e.name === "Readest" || e.name === "covers") continue;
       out.push(...(await walkBooks(full, depth + 1, mirrorInodes)));
     } else if (SUPPORTED.has(extOf(e.name))) {
       out.push(full);
