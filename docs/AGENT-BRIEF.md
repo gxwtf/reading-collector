@@ -100,6 +100,164 @@ brief 里必须显式列出禁止行为，否则 agent 会「出于谨慎」去�
 
 结论：同一个模型、同一个仓库，brief 从「描述目标」改成「描述补丁」，结果从空转变为一次过。**brief 的形态决定成败，不是模型能力。**
 
+## 3.5 构建禁用裸 pnpm build
+
+**绝对不要**在  里直接跑 ▲ Next.js 16.3.5 (webpack)
+- Environments: .env
+✓ Running next.config.ts took 19ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.9s
+  Running TypeScript ...
+  Finished TypeScript in 1020ms ...
+  Collecting page data using 31 workers ...
+  Generating static pages using 31 workers (0/20) ...
+  Generating static pages using 31 workers (5/20) 
+  Generating static pages using 31 workers (10/20) 
+  Generating static pages using 31 workers (15/20) 
+✓ Generating static pages using 31 workers (20/20) in 333ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /annotations
+├ ƒ /api/annotations/export
+├ ƒ /api/bilibili/collection
+├ ƒ /api/bilibili/fav
+├ ƒ /api/books/[id]/cover
+├ ƒ /api/books/[id]/file
+├ ƒ /api/books/upload
+├ ƒ /api/cron/feeds
+├ ƒ /api/entries/[id]/subtitle
+├ ƒ /api/entries/epub
+├ ƒ /api/entries/markdown
+├ ƒ /api/export
+├ ƒ /api/health
+├ ƒ /api/media/[id]
+├ ƒ /api/media/[id]/file
+├ ƒ /api/media/[id]/hls/[...path]
+├ ƒ /api/media/[id]/prepare
+├ ƒ /api/media/[id]/status
+├ ƒ /api/quote-card
+├ ƒ /api/rss
+├ ƒ /api/rss/opml
+├ ƒ /api/share-card
+├ ƒ /api/transcript/[id]
+├ ƒ /api/v1/annotations
+├ ƒ /api/v1/annotations/[id]
+├ ƒ /api/v1/annotations/book/[bookId]
+├ ƒ /api/v1/auth/login
+├ ƒ /api/v1/bookmarks
+├ ƒ /api/v1/bookmarks/[id]
+├ ƒ /api/v1/bookmarks/book/[bookId]
+├ ƒ /api/v1/books
+├ ƒ /api/v1/books/[id]
+├ ƒ /api/v1/books/[id]/content
+├ ƒ /api/v1/books/progress
+├ ƒ /api/v1/books/status
+├ ƒ /api/v1/entries
+├ ƒ /api/v1/entries/[id]
+├ ƒ /api/v1/reading-sessions
+├ ƒ /api/v1/reading-sessions/book/[bookId]
+├ ƒ /api/v1/version
+├ ƒ /api/worker/jobs
+├ ƒ /api/worker/jobs/[id]
+├ ƒ /books
+├ ƒ /books/[id]
+├ ƒ /entry/[id]
+├ ƒ /login
+├ ƒ /readest-setup
+├ ƒ /s/[token]
+├ ƒ /settings
+├ ƒ /share
+├ ƒ /sso/callback
+├ ƒ /sso/login
+└ ƒ /tags
+
+
+ƒ  (Dynamic)  server-rendered on demand：Next 构建会先清空 ，
+正在跑的服务会立刻白屏（2026-11-08 就是这样崩了 15 分钟）。
+一律用 ▲ Next.js 16.3.5 (webpack)
+- Environments: .env
+✓ Running next.config.ts took 16ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 4.7s
+  Running TypeScript ...
+  Finished TypeScript in 2.5s ...
+  Collecting page data using 31 workers ...
+  Generating static pages using 31 workers (0/20) ...
+  Generating static pages using 31 workers (5/20) 
+  Generating static pages using 31 workers (10/20) 
+  Generating static pages using 31 workers (15/20) 
+✓ Generating static pages using 31 workers (20/20) in 280ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /annotations
+├ ƒ /api/annotations/export
+├ ƒ /api/bilibili/collection
+├ ƒ /api/bilibili/fav
+├ ƒ /api/books/[id]/cover
+├ ƒ /api/books/[id]/file
+├ ƒ /api/books/upload
+├ ƒ /api/cron/feeds
+├ ƒ /api/entries/[id]/subtitle
+├ ƒ /api/entries/epub
+├ ƒ /api/entries/markdown
+├ ƒ /api/export
+├ ƒ /api/health
+├ ƒ /api/media/[id]
+├ ƒ /api/media/[id]/file
+├ ƒ /api/media/[id]/hls/[...path]
+├ ƒ /api/media/[id]/prepare
+├ ƒ /api/media/[id]/status
+├ ƒ /api/quote-card
+├ ƒ /api/rss
+├ ƒ /api/rss/opml
+├ ƒ /api/share-card
+├ ƒ /api/transcript/[id]
+├ ƒ /api/v1/annotations
+├ ƒ /api/v1/annotations/[id]
+├ ƒ /api/v1/annotations/book/[bookId]
+├ ƒ /api/v1/auth/login
+├ ƒ /api/v1/bookmarks
+├ ƒ /api/v1/bookmarks/[id]
+├ ƒ /api/v1/bookmarks/book/[bookId]
+├ ƒ /api/v1/books
+├ ƒ /api/v1/books/[id]
+├ ƒ /api/v1/books/[id]/content
+├ ƒ /api/v1/books/progress
+├ ƒ /api/v1/books/status
+├ ƒ /api/v1/entries
+├ ƒ /api/v1/entries/[id]
+├ ƒ /api/v1/reading-sessions
+├ ƒ /api/v1/reading-sessions/book/[bookId]
+├ ƒ /api/v1/version
+├ ƒ /api/worker/jobs
+├ ƒ /api/worker/jobs/[id]
+├ ƒ /books
+├ ƒ /books/[id]
+├ ƒ /entry/[id]
+├ ƒ /login
+├ ƒ /readest-setup
+├ ƒ /s/[token]
+├ ƒ /settings
+├ ƒ /share
+├ ƒ /sso/callback
+├ ƒ /sso/login
+└ ƒ /tags
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
+build done，执行 systemctl restart gxreading 生效（需端上 sudo）（临时副本里构建，再整体换 ），重启由端上执行。
+
 ## 4. 边界
 
 远程 agent 的能力边界要提前写进 brief，避免它尝试后失败、或者假装成功。
