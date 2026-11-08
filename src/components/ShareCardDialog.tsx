@@ -41,9 +41,9 @@ export function ShareCardDialog({
       `/api/share-card?kind=${kind}` +
       `&title=${encodeURIComponent(title)}` +
       `&text=${encodeURIComponent(sentence)}` +
-      `&site=${encodeURIComponent(site)}` +
+      `&site=${encodeURIComponent(site)}&url=${encodeURIComponent(url)}` +
       `&font=${font}&theme=${theme}`,
-    [kind, title, sentence, site, font, theme],
+    [kind, title, sentence, site, url, font, theme],
   );
 
   async function copyLink() {

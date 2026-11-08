@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { Check, Link2, Loader2, X } from "lucide-react";
 import { toggleShare } from "@/actions/share";
-import { ShareQr } from "@/components/ShareQr";
 
 /** 分享开关：未分享时一键生成；已分享时可直接复制链接或停止分享 */
 export function ShareButton({ entryId, token }: { entryId: number; token: string | null }) {
@@ -49,7 +48,6 @@ export function ShareButton({ entryId, token }: { entryId: number; token: string
         {copied ? <Check className="size-3.5" /> : <Link2 className="size-3.5" />}
         {copied ? "已复制" : "复制链接"}
       </button>
-      <ShareQr url={url} />
       <a
         href={`/s/${token}`}
         target="_blank"
