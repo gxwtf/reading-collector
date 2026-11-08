@@ -9,8 +9,7 @@ import { requireSession } from "@/lib/session";
 import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { regenerateSummary } from "@/actions/summary";
-import { ShareButton } from "@/components/ShareButton";
-import { EntryShareCard } from "@/components/EntryShareCard";
+import { ShareMenu } from "@/components/ShareMenu";
 import { getEmbed } from "@/lib/embed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,15 +111,11 @@ export default async function EntryPage({
           >
             {onlySummary ? "显示原文" : "只看概括"}
           </Link>
-          <ShareButton entryId={entry.id} token={entry.shareToken} />
-          <EntryShareCard
+          <ShareMenu
+            entryId={entry.id}
+            token={entry.shareToken}
             title={entry.title}
             site={entry.site ?? ""}
-            url={
-              entry.shareToken
-                ? `https://reading.gxwtf.cn/s/${entry.shareToken}`
-                : `https://reading.gxwtf.cn/entry/${entry.id}`
-            }
             text={(entry.summary ?? "")
               .replace(/\s+/g, " ")
               .replace(/[#>*_`[\]]/g, "")
