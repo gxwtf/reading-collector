@@ -10,6 +10,7 @@ import { retryFetch } from "@/actions/entries";
 import { addEntryToCollection, removeEntryFromCollection } from "@/actions/collections";
 import { regenerateSummary } from "@/actions/summary";
 import { ShareButton } from "@/components/ShareButton";
+import { EntryShareCard } from "@/components/EntryShareCard";
 import { getEmbed } from "@/lib/embed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,26 @@ export default async function EntryPage({
             {onlySummary ? "显示原文" : "只看概括"}
           </Link>
           <ShareButton entryId={entry.id} token={entry.shareToken} />
+          <EntryShareCard
+            title={entry.title}
+            site={entry.site ?? ""}
+            url={
+              entry.shareToken
+                ? `https://reading.gxwtf.cn/s/${entry.shareToken}`
+                : `https://reading.gxwtf.cn/entry/${entry.id}`
+            }
+            text={(
+              entry.summary ??
+              (entry as { excerpt?: string | null }).excerpt ??
+              ""
+            )
+              .replace(/[#>*`_\[\]]/g, "")
+              .replace(/
+{2,}/g, "
+")
+              .trim()
+              .slice(0, 260)}
+          />
           <a
             href={entry.url}
             target="_blank"
@@ -247,6 +268,11 @@ export default async function EntryPage({
           <section className="space-y-3 rounded-xl border border-border bg-card p-4">
             <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>
             <HighlightList
+              entryUrl={
+                entry.shareToken
+                  ? `https://reading.gxwtf.cn/s/${entry.shareToken}`
+                  : `https://reading.gxwtf.cn/entry/${entry.id}`
+              }
               entryTitle={entry.title}
               entrySite={entry.site}
               items={entry.highlights.map((h) => ({

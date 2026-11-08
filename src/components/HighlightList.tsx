@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { deleteHighlight } from "@/actions/highlights";
-import { QuoteCardDialog } from "@/components/QuoteCardDialog";
+import { ShareCardDialog } from "@/components/ShareCardDialog";
 
 export type HighlightItem = {
   id: number;
@@ -18,10 +18,12 @@ export function HighlightList({
   items: all,
   entryTitle,
   entrySite,
+  entryUrl,
 }: {
   items: HighlightItem[];
   entryTitle?: string;
   entrySite?: string | null;
+  entryUrl?: string;
 }) {
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -151,10 +153,12 @@ export function HighlightList({
       ))}
       </ul>
       {cardFor ? (
-        <QuoteCardDialog
-          quote={cardFor.quote}
+        <ShareCardDialog
+          kind="quote"
           title={entryTitle ?? ""}
+          text={cardFor.quote}
           site={entrySite ?? ""}
+          url={entryUrl ?? "https://reading.gxwtf.cn"}
           onClose={() => setCardFor(null)}
         />
       ) : null}

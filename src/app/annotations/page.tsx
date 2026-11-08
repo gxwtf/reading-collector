@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AnnotationShareButton } from "@/components/AnnotationShareButton";
 import { MessageSquareQuote, Search } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
@@ -34,7 +35,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
     orderBy: { createdAt: "desc" },
     take: 300,
     include: {
-      entry: { select: { id: true, title: true, site: true } },
+      entry: { select: { id: true, title: true, site: true, url: true, shareToken: true } },
     },
   });
 
@@ -79,6 +80,13 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
           >
             只看有批注
           </Link>
+          <a
+            href="/api/annotations/export"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-brand"
+          >
+            <Download className="size-3.5" />
+            导出
+          </a>
           <form action="/annotations" className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -115,7 +123,21 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
               <ul className="mt-3 space-y-2">
                 {items.map((h) => (
                   <li key={h.id} className="rounded-md border border-border/60 px-3 py-2">
-                    <p className="border-l-2 border-brand/60 pl-2 text-sm leading-6">{h.quote}</p>
+                    <div className="flex items-start gap-2">
+                      <p className="min-w-0 flex-1 border-l-2 border-brand/60 pl-2 text-sm leading-6">
+                        {h.quote}
+                      </p>
+                      <AnnotationShareButton
+                        title={entry.title}
+                        site={entry.site ?? ""}
+                        text={h.quote}
+                        url={
+                          entry.shareToken
+                            ? `https://reading.gxwtf.cn/s/${entry.shareToken}`
+                            : `https://reading.gxwtf.cn/entry/${entry.id}`
+                        }
+                      />
+                    </div>
                     {h.note ? (
                       <p className="mt-1 flex gap-1.5 pl-2 text-xs text-muted-foreground">
                         <MessageSquareQuote className="mt-0.5 size-3.5 shrink-0" />
