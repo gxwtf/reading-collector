@@ -42,11 +42,11 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
   // 按条目归组，组内保持「最近批注在前」
   const groups = new Map<
     number,
-    { entry: { id: number; title: string; site: string | null }; items: typeof highlights }
+    { entry: (typeof highlights)[number]["entry"]; items: typeof highlights }
   >();
   for (const h of highlights) {
     const g = groups.get(h.entryId) ?? {
-      entry: { id: h.entry.id, title: h.entry.title, site: h.entry.site },
+      entry: h.entry,
       items: [] as typeof highlights,
     };
     g.items.push(h);
