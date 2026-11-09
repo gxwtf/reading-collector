@@ -23,11 +23,21 @@ DEVICE = "minis-publisher"
 VERSION = "reader-1"
 
 
+def user_id() -> int | None:
+    """从 READEST_BOOKS_DIR 的末级目录名 u<id> 推断账号，避免把别人的书发布进来。"""
+    base = os.path.basename(os.path.normpath(BOOKS_DIR))
+    if base.startswith("u") and base[1:].isdigit():
+        return int(base[1:])
+    return None
+
+
 def db_rows():
+    uid = user_id()
+    where = f' where "userId" = {uid}' if uid is not None else ""
     sql = (
         'select coalesce(json_agg(json_build_object('
         "'id', id, 'title', title, 'author', author, 'format', format, 'file', \"fileName\""
-        ')), \'[]\') from "Book"'
+        f')), \'[]\') from "Book"{where}'
     )
     out = subprocess.run(["psql", DB, "-tAc", sql], capture_output=True, text=True, check=True).stdout
     return json.loads(out.strip() or "[]")
@@ -59,8 +69,13 @@ def main():
     now = int(time.time() * 1000)
     added = 0
 
+    uid = user_id()
+    prefix = f"u{uid}/" if uid is not None else ""
+
     for row in db_rows():
-        src = os.path.join(BOOKS_DIR, row["file"])
+        # DB 里存的是相对书库根的路径（u<id>/xxx.epub），这里要相对本账号目录
+        rel = row["file"][len(prefix):] if prefix and row["file"].startswith(prefix) else row["file"]
+        src = os.path.join(BOOKS_DIR, rel)
         if not os.path.exists(src):
             print(f"skip missing {row['file']}", file=sys.stderr)
             continue

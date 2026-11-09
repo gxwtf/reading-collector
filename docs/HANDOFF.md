@@ -17,11 +17,12 @@
 | 仓库 | `gxwtf/reading-collector`（主）+ `kyoukawa/reading-collector`（镜像） |
 | 文档 | `docs/wiki/*`，发布在 `dev.gxwtf.cn/reading/` |
 
-## 当前状态（2026-11-09）
+## 当前状态（2026-11-10）
 
-- 书库已收敛为**根目录单一副本**：`~/reading-books/*.epub|pdf` 为唯一真身，`Readest/books/<hash>/` 走硬链接，`library.json` 由脚本生成
+- 书库已收敛为**根目录单一副本**：`~/reading-books/u<id>/*.epub|pdf` 为唯一真身（按账号分目录），`Readest/books/<hash>/` 走硬链接，`library.json` 由脚本生成
 - 一条龙：`sh worker/sync_library.sh`（扫描 → 书名/作者清洗 → 元数据+封面 → 发布 → 去重 → 孤儿清理），上传即触发，另有定时任务
-- 四层计数一致（2026-11-09 实测）：根目录 10 / DB 10 / Readest 目录 10 / library.json 10；`sync_library.sh` 复跑新增 0、孤儿 0
+- 四层计数一致（2026-11-10 实测）：u2691 根目录 10 / DB 10 / Readest 目录 10 / library.json 10；u16 新账号 0/0/0/0；`sync_library.sh` 复跑新增 0、孤儿 0
+- 账号隔离已落地：新账号自动开通书库目录 + 独立 WebDAV 实例/凭据，打开阅读器时自动写入本账号 WebDAV 配置
 - 服务：`gxreading`、`gxreading-worker`、`gxreading-dav`、`readest`、`nginx` 均 active；`pnpm typecheck` 通过
 - 部署：零停机脚本 + `flock` 串行构建，保留旧 chunk；**禁止在仓库内裸跑 `pnpm build`**
 - 账号隔离第一阶段已提交（`98f7058`，书库/笔记按广学账号隔离 DB/API/页面）
