@@ -15,6 +15,7 @@ type Stored = { mode?: "system" | "custom"; apiBase?: string; apiKey?: string; m
 
 export default async function SettingsPage() {
   const session = await requireSession("/settings");
+  const dav = await import("@/lib/dav-users").then((m) => m.ensureDavUser(session.userId));
 
   const user = await prisma.user.findUnique({
     where: { userId: session.userId },
@@ -83,6 +84,30 @@ export default async function SettingsPage() {
         <div className="mt-3">
           <PreciseVideoToggle initial={Boolean(prefs.preciseVideo)} />
         </div>
+      </section>
+
+      <section className="space-y-2 rounded-xl border border-border bg-card p-5">
+        <h2 className="text-sm font-medium">书库同步（WebDAV）</h2>
+        <p className="text-xs text-muted-foreground">
+          这个账号专属的书库目录。在 Readest 里填下面三项，就能把书和笔记同步到自己的空间。
+        </p>
+        <div className="space-y-1 rounded-lg border border-border p-3 text-xs">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">服务器</span>
+            <code className="truncate">https://reading.gxwtf.cn/dav/{dav.username}/</code>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">用户名</span>
+            <code>{dav.username}</code>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">密码</span>
+            <code>{dav.password}</code>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Readest → 设置 → 集成 → WebDAV，根路径留空（服务器地址已含用户名）。
+        </p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">

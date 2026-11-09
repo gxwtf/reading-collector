@@ -1,5 +1,6 @@
 // SSO 回调：广学账号带 token 回到 <host>/sso/callback?token=…&back=…
 // 校验 token → upsert 用户 → 写 iron-session → 跳回原页面
+import path from "node:path";
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -67,6 +68,16 @@ export async function GET(request: NextRequest) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     session.isLoggedIn = true;
     session.userId = data.userId;
+
+    // 每个广学账号都给一份书库与 DAV 凭据
+    try {
+      const { mkdir } = await import("node:fs/promises");
+      const { davRoot, ensureDavUser } = await import("@/lib/dav-users");
+      await mkdir(path.join(davRoot(data.userId), "covers"), { recursive: true });
+      await ensureDavUser(data.userId);
+    } catch {
+      /* 失败不影响登录 */
+    }
     session.userName = userName;
     session.admin = admin;
     session.email = data.userEmail || "";
