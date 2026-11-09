@@ -1,6 +1,7 @@
 // 每个广学账号一份 WebDAV 凭据：账号表存在书库根目录的 .dav-users.json
 // 结构：{ "<username>": { "userId": 2691, "password": "xxx" } }
 // 用户名固定 u<userId>，避免重名；已有条目（如 reader）保持原名不动。
+import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -30,6 +31,16 @@ export async function ensureDavUser(userId: number): Promise<DavUser> {
       return { username: name, password: info.password, userId };
     }
   }
+
+  // 新账号：让 root 侧脚本建目录 / systemd 实例 / nginx 路由（sudoers 已授权）
+  execFile(
+    "sudo",
+    ["-n", "/usr/local/bin/gx-dav-provision", username, String(userId)],
+    { timeout: 60_000 },
+    () => {
+      /* 失败不阻塞登录 */
+    },
+  );
 
   const password = randomBytes(8).toString("hex").slice(0, 16);
   store[username] = { userId, password };
