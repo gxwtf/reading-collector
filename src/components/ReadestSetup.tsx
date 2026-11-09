@@ -63,7 +63,7 @@ export function ReadestSetup({ webdavUser, webdavPass, syncUser, syncPass }: {
       </p>
 
       <a
-        href="/readest"
+        href="/readest-boot"
         target="_blank"
         rel="noreferrer"
         className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"

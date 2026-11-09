@@ -79,7 +79,7 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
               下载
             </a>
             <a
-              href="/readest"
+              href="/readest-boot"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-brand"

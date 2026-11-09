@@ -37,7 +37,7 @@ export default async function BooksPage() {
         <h1 className="text-lg font-semibold">书库</h1>
         <span className="text-xs text-muted-foreground">共 {books.length} 本</span>
         <a
-          href="/readest"
+          href="/readest-boot"
           target="_blank"
           rel="noreferrer"
           className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
