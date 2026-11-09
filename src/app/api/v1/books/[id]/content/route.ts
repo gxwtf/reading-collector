@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 
-import { BOOKS_DIR, tokenUserId, unauthorized, verifyToken, SYNC_USER_ID } from "@/lib/readest";
+import { booksRoot, tokenUserId, unauthorized, verifyToken, SYNC_USER_ID } from "@/lib/readest";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -15,7 +15,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   });
   if (!book) return Response.json({ error: "not found" }, { status: 404 });
 
-  const full = path.join(BOOKS_DIR, book.fileName);
+  const full = path.join(booksRoot(book.userId), book.fileName);
   let size = 0;
   try {
     size = (await stat(full)).size;

@@ -1,5 +1,12 @@
-"""Readest 用的 WebDAV 书库端点。"""
-import hashlib
+"""Readest 用的 WebDAV 书库端点（单用户实例）。
+
+一个进程只服务一个账号，根目录固定为该用户的 u<id>/：
+    python3 worker/webdav.py --user reader --port 3011
+账号表：/home/gxwtf/reading-books/.dav-users.json
+    { "reader": { "userId": 2691, "password": "xxx" } }
+"""
+import argparse
+import json
 import os
 import sys
 
@@ -7,36 +14,49 @@ from cheroot import wsgi
 from wsgidav.dc.simple_dc import SimpleDomainController
 from wsgidav.wsgidav_app import WsgiDAVApp
 
-USER = os.environ.get("WEBDAV_USER", "")
-PWD = os.environ.get("WEBDAV_PASSWORD", "")
-if not USER or not PWD:
-    sys.exit("WEBDAV_USER / WEBDAV_PASSWORD 未设置")
+BOOKS = os.environ.get("READEST_BOOKS_DIR", "/home/gxwtf/reading-books")
+USERS_FILE = os.environ.get("DAV_USERS_FILE", os.path.join(BOOKS, ".dav-users.json"))
 
-ROOT = os.environ.get("WEBDAV_ROOT", "/home/gxwtf/reading-books")
-PORT = int(os.environ.get("WEBDAV_PORT", "3010"))
-REALM = "readest"
-os.makedirs(ROOT, exist_ok=True)
 
-digest = hashlib.md5(f"{USER}:{REALM}:{PWD}".encode()).hexdigest()
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--user", default=os.environ.get("DAV_USER", "reader"))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("WEBDAV_PORT", "3011")))
+    args = ap.parse_args()
 
-config = {
-    "host": "127.0.0.1",
-    "port": PORT,
-    "provider_mapping": {"/dav": ROOT},
-    "http_authenticator": {
-        "domain_controller": SimpleDomainController,
-        "accept_basic": True,
-        "accept_digest": False,
-        "default_to_digest": False,
-        "realm": REALM,
-    },
-    "simple_dc": {"user_mapping": {"*": {USER: {"password": PWD}}}},
-    "verbose": 1,
-    "dir_browser": {"enable": True},
-    "property_manager": True,
-    "lock_storage": True,
-}
+    if not os.path.exists(USERS_FILE):
+        sys.exit(f"缺少账号表：{USERS_FILE}")
+
+    with open(USERS_FILE, encoding="utf-8") as f:
+        users = json.load(f)
+
+    info = users.get(args.user)
+    if not info:
+        sys.exit(f"账号表里没有 {args.user}")
+
+    root = os.path.join(BOOKS, f"u{info['userId']}")
+    os.makedirs(root, exist_ok=True)
+
+    config = {
+        "host": "127.0.0.1",
+        "port": args.port,
+        "provider_mapping": {"/": root},
+        "http_authenticator": {
+            "domain_controller": SimpleDomainController,
+            "accept_basic": True,
+            "accept_digest": False,
+            "default_to_digest": False,
+        },
+        "simple_dc": {"user_mapping": {"*": {args.user: {"password": info["password"]}}}},
+        "verbose": 1,
+        "dir_browser": {"enable": True},
+        "property_manager": True,
+        "lock_storage": True,
+    }
+
+    print(f"WebDAV {args.user} → {root} on 127.0.0.1:{args.port}", flush=True)
+    wsgi.Server((config["host"], config["port"]), WsgiDAVApp(config)).start()
+
 
 if __name__ == "__main__":
-    print(f"WebDAV on 127.0.0.1:{PORT} root={ROOT} user={USER}", flush=True)
-    wsgi.Server((config["host"], config["port"]), WsgiDAVApp(config)).start()
+    main()

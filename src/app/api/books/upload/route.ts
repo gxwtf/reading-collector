@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { BOOKS_DIR, extOf } from "@/lib/readest";
+import { booksRoot, extOf } from "@/lib/readest";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
@@ -25,9 +25,10 @@ export async function POST(req: Request) {
   const base = file.name.replace(/\.[^.]+$/, "").replace(/[/\\:*?"<>|]/g, "_").slice(0, 120);
   const fileName = `${base}.${ext}`;
 
-  await mkdir(BOOKS_DIR, { recursive: true });
+  const root = booksRoot(session.userId);
+  await mkdir(root, { recursive: true });
   const buf = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(BOOKS_DIR, fileName), buf);
+  await writeFile(path.join(root, fileName), buf);
 
   const row = await prisma.book.upsert({
     where: { fileName },

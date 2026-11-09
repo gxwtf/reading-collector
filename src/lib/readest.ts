@@ -11,6 +11,11 @@ export const BOOKS_DIR = process.env.READEST_BOOKS_DIR || "/home/gxwtf/reading-b
 
 export const SYNC_USER_ID = Number(process.env.API_USER_ID || 2691);
 
+/** 每个用户的书库根目录：BOOKS_DIR/u<userId> */
+export function booksRoot(userId: number): string {
+  return path.join(BOOKS_DIR, `u${userId}`);
+}
+
 const SECRET = process.env.SECRET_API_KEY || "readest-dev";
 
 /** 无时区的本地时间，Readest 期望 `2026-11-05T14:04:52` */
@@ -146,7 +151,8 @@ async function walkBooks(dir: string, depth = 0, mirrorInodes: Set<bigint | numb
 
 /** 扫书库并 upsert 到 Book 表，返回按书名排序的记录 */
 export async function syncBooks(userId: number = SYNC_USER_ID) {
-  const walked = await walkBooks(BOOKS_DIR);
+  const root = booksRoot(userId);
+  const walked = await walkBooks(root);
 
   // 同一本书可能以硬链接形式出现在多个目录（original/、Readest/books/<hash>/、anx/…），
   // 按 inode 去重，保留路径最短的那份
@@ -155,11 +161,11 @@ export async function syncBooks(userId: number = SYNC_USER_ID) {
     const info = await stat(f).catch(() => null);
     if (!info) continue;
     const key = `${info.dev}:${info.ino}`;
-    const rel = path.relative(BOOKS_DIR, f);
+    const rel = path.relative(root, f);
     const prev = seen.get(key);
     if (!prev || rel.length < prev.length) seen.set(key, rel);
   }
-  const files = [...seen.values()].map((rel) => path.join(BOOKS_DIR, rel));
+  const files = [...seen.values()].map((rel) => path.join(root, rel));
 
   const meta = await readLibraryMeta();
   const rows = [];
