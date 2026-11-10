@@ -46,24 +46,15 @@ export default async function BooksPage() {
             <BookMarked className="size-3.5" />
             云书库
           </a>
-          <a
-            href="/readest-boot"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
-          >
-            <ExternalLink className="size-3.5" />
-            打开阅读器
-          </a>
         </div>
       </div>
 
       <BookUploader />
 
       <p className="text-xs text-muted-foreground">
-        还没连过阅读器？
-        <a href="/readest-setup" className="ml-1 text-brand hover:underline">
-          查看同步设置
+        想在浏览器里读书？
+        <a href="/calibre/" className="ml-1 text-brand hover:underline">
+          打开云书库
         </a>
       </p>
 
