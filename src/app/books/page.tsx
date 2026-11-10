@@ -62,7 +62,7 @@ export default async function BooksPage() {
           className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
         >
           <BookMarked className="size-3.5" />
-          云书库阅读
+          广学读书
         </a>
       </div>
 
