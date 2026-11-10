@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookMarked, BookOpen, Download, Search } from "lucide-react";
+import { BookMarked, BookOpen, Download, Search, Upload } from "lucide-react";
 
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
@@ -57,16 +57,38 @@ export default async function BooksPage() {
         <span className="text-xs text-muted-foreground">
           {total} 本{reading.length ? ` · ${reading.length} 本在读` : ""}
         </span>
-        <a
-          href="https://book.gxwtf.cn/"
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
-        >
-          <BookMarked className="size-3.5" />
-          广学读书
-        </a>
+        <div className="ml-auto flex items-center gap-2">
+          <a
+            href="https://book.gxwtf.cn/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-brand"
+          >
+            <Upload className="size-3.5" />
+            添加书籍
+          </a>
+          <a
+            href="https://book.gxwtf.cn/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+          >
+            <BookMarked className="size-3.5" />
+            去读书
+          </a>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <details className="rounded-xl border border-border p-3">
+        <summary className="cursor-pointer text-xs text-muted-foreground">
+          或者直接传到本服务器（epub / pdf，上传后自动清洗元数据）
+        </summary>
+        <div className="mt-3">
+          <BookUploader />
+        </div>
+      </details>
+
+      <div className="hidden">
         <BookUploader />
         <div className="rounded-xl border border-border p-4">
           <p className="text-xs text-muted-foreground">

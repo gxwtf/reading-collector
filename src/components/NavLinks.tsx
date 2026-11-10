@@ -9,7 +9,6 @@ const ITEMS = [
   { label: "收藏", href: "/?favorite=1", match: (p: string, q: URLSearchParams) => p === "/" && q.get("favorite") === "1" },
   { label: "批注", href: "/annotations", match: (p: string) => p.startsWith("/annotations") },
   { label: "书库", href: "/books", match: (p: string) => p.startsWith("/books") },
-  { label: "广学读书", href: "https://book.gxwtf.cn/", match: () => false, external: true },
 ];
 
 /**
