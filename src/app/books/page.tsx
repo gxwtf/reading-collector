@@ -38,7 +38,7 @@ export default async function BooksPage() {
         <span className="text-xs text-muted-foreground">共 {books.length} 本</span>
         <div className="ml-auto flex items-center gap-2">
           <a
-            href="/calibre/"
+            href="/api/calibre-login"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
@@ -53,7 +53,7 @@ export default async function BooksPage() {
 
       <p className="text-xs text-muted-foreground">
         想在浏览器里读书？
-        <a href="/calibre/" className="ml-1 text-brand hover:underline">
+        <a href="/api/calibre-login" className="ml-1 text-brand hover:underline">
           打开云书库
         </a>
       </p>
