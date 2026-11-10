@@ -58,7 +58,7 @@ export default async function BooksPage() {
           {total} 本{reading.length ? ` · ${reading.length} 本在读` : ""}
         </span>
         <a
-          href="/api/calibre-login"
+          href="https://book.gxwtf.cn/"
           className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
         >
           <BookMarked className="size-3.5" />
