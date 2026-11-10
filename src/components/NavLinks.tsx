@@ -9,6 +9,7 @@ const ITEMS = [
   { label: "收藏", href: "/?favorite=1", match: (p: string, q: URLSearchParams) => p === "/" && q.get("favorite") === "1" },
   { label: "批注", href: "/annotations", match: (p: string) => p.startsWith("/annotations") },
   { label: "书库", href: "/books", match: (p: string) => p.startsWith("/books") },
+  { label: "云书库", href: "/calibre/", match: () => false, external: true },
 ];
 
 /**
@@ -31,7 +32,23 @@ export function NavLinks({
     <>
       {ITEMS.map((item) => {
         const on = item.match(pathname, params);
-        return (
+        const external = "external" in item && item.external;
+        return external ? (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noreferrer"
+              onClick={onNavigate}
+              className={[
+                "whitespace-nowrap text-sm font-medium transition-colors",
+                mobile ? "py-1.5" : "py-2",
+                "text-muted-foreground hover:text-foreground",
+              ].join(" ")}
+            >
+              {item.label}
+            </a>
+          ) : (
           <Link
             key={item.href}
             href={item.href}

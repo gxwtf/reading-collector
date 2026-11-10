@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, Download, ExternalLink } from "lucide-react";
+import { BookMarked, BookOpen, Download, ExternalLink } from "lucide-react";
 
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
@@ -36,15 +36,26 @@ export default async function BooksPage() {
         <BookOpen className="size-4 text-brand" />
         <h1 className="text-lg font-semibold">书库</h1>
         <span className="text-xs text-muted-foreground">共 {books.length} 本</span>
-        <a
-          href="/readest-boot"
-          target="_blank"
-          rel="noreferrer"
-          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
-        >
-          <ExternalLink className="size-3.5" />
-          打开阅读器
-        </a>
+        <div className="ml-auto flex items-center gap-2">
+          <a
+            href="/calibre/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
+          >
+            <BookMarked className="size-3.5" />
+            云书库
+          </a>
+          <a
+            href="/readest-boot"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-brand"
+          >
+            <ExternalLink className="size-3.5" />
+            打开阅读器
+          </a>
+        </div>
       </div>
 
       <BookUploader />
