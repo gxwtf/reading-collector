@@ -232,6 +232,21 @@ cleanup_old() {
   done <<< "$dirs"
 }
 
+cmd_build_only() {
+  say "只构建（不改线上）"
+  local sha; sha=$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)
+  BUILD_DIR="$HOME/.build-$PROJECT"
+  rm -rf "$BUILD_DIR"; mkdir -p "$BUILD_DIR"
+  rsync -a --delete --exclude node_modules --exclude .next --exclude .git "$APP_DIR/" "$BUILD_DIR/"
+  rm -rf "$BUILD_DIR/node_modules"
+  [ -d "$APP_DIR/node_modules" ] && { cp -al "$APP_DIR/node_modules" "$BUILD_DIR/node_modules" 2>/dev/null || cp -a "$APP_DIR/node_modules" "$BUILD_DIR/node_modules"; }
+  if ( cd "$BUILD_DIR" && pnpm build >/tmp/build-$PROJECT.log 2>&1 ); then
+    ok "构建通过（产物在 $BUILD_DIR/.next，未影响线上）"
+  else
+    tail -30 /tmp/build-$PROJECT.log; die "构建失败"
+  fi
+}
+
 cmd_log() {
   [ -f "$LOG" ] || die "还没有部署记录"
   python3 - "$LOG" <<'PY'
