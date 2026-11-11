@@ -17,11 +17,11 @@
 | 仓库 | `gxwtf/reading-collector`（主）+ `kyoukawa/reading-collector`（镜像） |
 | 文档 | `docs/wiki/*`，发布在 `dev.gxwtf.cn/reading/` |
 
-## 当前状态（2026-11-11）
+## 当前状态（2026-11-12）
 
 - 书库已收敛为**根目录单一副本**：`~/reading-books/u<id>/*.epub|pdf` 为唯一真身（按账号分目录），`Readest/books/<hash>/` 走硬链接，`library.json` 由脚本生成
 - 一条龙：`sh worker/sync_library.sh`（扫描 → 书名/作者清洗 → 元数据+封面 → 发布 → 去重 → 孤儿清理），上传即触发，另有定时任务
-- 四层计数一致（2026-11-11 实测）：u2691 根目录 11 / DB 11 / Readest 目录 11 / library.json 11；u16、u2537 新账号 0/0/0/0；`sync_library.sh` 复跑新增 0、孤儿 0
+- 四层计数一致（2026-11-12 实测）：u2691 根目录 11 / DB 11 / Readest 目录 11 / library.json 11；u16、u2440、u2449、u2537 新账号 0/0/0/0
 - 账号隔离已落地：新账号自动开通书库目录 + 独立 WebDAV 实例/凭据，打开阅读器时自动写入本账号 WebDAV 配置
 - 阅读器已统一到 **BookOrbit**（`bookorbit-app` 容器 healthy）：Readest / Calibre-Web 均弃用，`gxreadest.service` 已停用（failed 属预期，勿当故障处理）
 - 元数据统一走 **ISBN 匹配**（豆瓣 `/isbn/` 直达），`gx-bookmeta.service` 每 6 小时补全一次
