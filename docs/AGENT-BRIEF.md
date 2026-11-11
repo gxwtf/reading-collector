@@ -262,7 +262,7 @@ build done，执行 systemctl restart gxreading 生效（需端上 sudo）（临
 
 绝对不要在项目根目录直接执行 `pnpm build`：Next 构建会先清空 `.next`，正在跑的服务会立刻白屏（2026-11-08 就是这样崩了约 15 分钟）。
 
-一律用 `sh scripts/deploy.sh`：临时副本里构建，再整体替换 `.next`；重启由端上执行。
+一律用 `bash scripts/deploy.sh deploy`：临时副本构建 → 快照 → 切换 → 重启 → 冒烟，失败自动回滚（详见 `docs/DEPLOY.md`）。禁止 `pnpm build` 直接覆盖线上 `.next`。
 
 ## 4. 边界
 
