@@ -10,6 +10,8 @@
 set -euo pipefail
 
 PROJECT="${PROJECT:-reading}"
+MODE="${MODE:-next}"
+SMOKE_EXPECT="${SMOKE_EXPECT:-200}"   # next：构建+快照+可回滚；restart：只重启+冒烟
 APP_DIR="${APP_DIR:-/home/gxwtf/gxwtf_reading}"
 SERVICE="${SERVICE:-gxreading}"
 APP_URL="${APP_URL:-https://reading.gxwtf.cn}"
@@ -50,11 +52,16 @@ PY
 # ---------------------------------------------------------------- 冒烟基线
 smoke() {
   local base="$APP_URL"
+  local CURL_OPTS=()
+  case "$base" in
+    *://127.0.0.1*|*://localhost*) CURL_OPTS=() ;;
+    *) CURL_OPTS=(--resolve "$(echo "$base" | sed -E 's#https?://##; s#/.*##'):443:$RESOLVE_IP") ;;
+  esac
   local fails=0
   check() { # name expected path [grep]
     local name="$1" want="$2" path="$3" needle="${4:-}"
     local code body
-    body=$(curl -sSL --max-time 25 --resolve "$(echo "$base" | sed -E 's#https?://##; s#/.*##'):443:$RESOLVE_IP" -w '\n%{http_code}' "$base$path" 2>/dev/null || true)
+    body=$(curl -sSL --max-time 25 "${CURL_OPTS[@]}" -w '\n%{http_code}' "$base$path" 2>/dev/null || true)
     code=$(printf '%s' "$body" | tail -n1)
     if [ "$code" != "$want" ]; then
       printf '  %s✗%s %-34s %s（期望 %s）\n' "$C_RED" "$C_OFF" "$name" "$code" "$want"
@@ -68,6 +75,11 @@ smoke() {
   }
 
   say "— 冒烟基线 —"
+  if [ "$PROJECT" != "reading" ]; then
+    check "首页" "$SMOKE_EXPECT" "/"
+    say "— 冒烟完成：$fails 项失败 —"
+    return "$fails"
+  fi
   check "健康检查"          200 "/api/health"
   check "登录页"            200 "/login" "登录"
   check "书库页（未登录跳转）" "200" "/books"
@@ -75,7 +87,7 @@ smoke() {
 
   # 静态资源抽样：从 HTML 里取一个 chunk
   local chunk
-  chunk=$(curl -sSL --max-time 25 --resolve "$(echo "$base" | sed -E 's#https?://##; s#/.*##'):443:$RESOLVE_IP" "$base/login" 2>/dev/null \
+  chunk=$(curl -sSL --max-time 25 "${CURL_OPTS[@]}" "$base/login" 2>/dev/null \
     | grep -oE '/_next/static/chunks/[^"]+\.js' | head -1 || true)
   if [ -n "$chunk" ]; then
     check "静态分片 ${chunk##*/}" 200 "$chunk"
@@ -105,12 +117,29 @@ cmd_deploy() {
   dir="$ROOT/$name"
   mkdir -p "$dir"
 
-  say "部署 $PROJECT @ $sha（版本 $name）"
+  say "部署 $PROJECT @ $sha（版本 $name，模式 $MODE）"
+
+  if [ "$MODE" != "next" ]; then
+    say "— 重启（restart 模式，无构建）—"
+    sudo -n systemctl restart "$SERVICE" || die "重启失败"
+    sleep 4
+    if smoke; then
+      ok "重启完成：$PROJECT"
+      log_event deploy succeeded version="$name" sha="$sha" mode="$MODE"
+      return 0
+    fi
+    log_event deploy failed version="$name" sha="$sha" mode="$MODE" stage=smoke
+    die "重启后冒烟失败，请人工介入"
+  fi
 
   # 1) 构建（临时副本，避免清空线上 .next）
   say "— 构建 —"
   rsync -a --delete --exclude node_modules --exclude .next --exclude .git "$APP_DIR/" "$BUILD_DIR/"
-  ln -sfn "$APP_DIR/node_modules" "$BUILD_DIR/node_modules"
+  # 依赖用硬链接复制：TurboPack 不接受指向构建目录之外的 node_modules 符号链接
+  rm -rf "$BUILD_DIR/node_modules"
+  if [ -d "$APP_DIR/node_modules" ]; then
+    cp -al "$APP_DIR/node_modules" "$BUILD_DIR/node_modules" 2>/dev/null || cp -a "$APP_DIR/node_modules" "$BUILD_DIR/node_modules"
+  fi
   ( cd "$BUILD_DIR" && pnpm build >/tmp/build-$PROJECT.log 2>&1 ) || { tail -30 /tmp/build-$PROJECT.log; log_event deploy failed version="$name" sha="$sha" stage=build; die "构建失败"; }
   ok "构建完成"
 
@@ -155,6 +184,9 @@ cmd_deploy() {
 
 # ---------------------------------------------------------------- 回滚
 cmd_rollback() {
+  if [ "$MODE" != "next" ]; then
+    die "$PROJECT 是 restart 模式，没有构建快照；回滚请用 git 切回上一个 commit 后重启"
+  fi
   local from_failure=""
   [ "${1:-}" = "--from-failure" ] && from_failure="${2:-}"
 
