@@ -261,6 +261,7 @@ case "${1:-}" in
   deploy) shift; cmd_deploy "$@" ;;
   rollback) shift; cmd_rollback "$@" ;;
   smoke) smoke ;;
+  build_only|build-only) cmd_build_only ;;
   log) cmd_log ;;
-  *) die "用法: deploy.sh {deploy [--tag x] | rollback | smoke | log}" ;;
+  *) die "用法: deploy.sh {deploy [--tag x] | rollback | smoke | build_only | log}" ;;
 esac
