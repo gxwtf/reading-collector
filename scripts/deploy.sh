@@ -135,6 +135,12 @@ cmd_deploy() {
   # 1) 构建（临时副本，避免清空线上 .next）
   say "— 构建 —"
   rsync -a --delete --exclude node_modules --exclude .next --exclude .git "$APP_DIR/" "$BUILD_DIR/"
+  # 上一轮构建的 .next 必须清掉：它在 rsync 的 exclude 里，--delete 删不到它，
+  # 而 Next 16 的 server/route-cache 是持久化缓存，跨构建不会自动清。
+  # 不清理会把旧构建渲染出来的 HTML 一起带进 release，见 2026-11-13 gxwriting 事故：
+  # 线上 /books/all 一直命中 11-05 的缓存页面，里面的 Server Action id 在新构建里不存在，
+  # 表现为「页面看起来像没登录 + 控制台 409 Failed to find Server Action」。
+  rm -rf "$BUILD_DIR/.next"
   # 依赖用硬链接复制：TurboPack 不接受指向构建目录之外的 node_modules 符号链接
   rm -rf "$BUILD_DIR/node_modules"
   if [ -d "$APP_DIR/node_modules" ]; then
@@ -164,6 +170,10 @@ cmd_deploy() {
   # 3) 切换
   say "— 切换 —"
   rsync -a "$dir/next/" "$APP_DIR/.next/"
+  # 清掉线上残留的持久化路由缓存：final rsync 没有 --delete（保留旧 chunk 给老标签页），
+  # 旧的 server/route-cache 会留下来并且优先级高于新构建的静态产物，
+  # 造成「新构建 + 旧页面缓存」，Server Action id 对不上 → 409。
+  rm -rf "$APP_DIR/.next/server/route-cache"
   systemctl --user is-active >/dev/null 2>&1 || true
   sudo -n systemctl restart "$SERVICE" || die "重启 $SERVICE 失败"
   sleep 6
@@ -207,6 +217,7 @@ cmd_rollback() {
 
   say "回滚到：$(basename "$target")"
   rsync -a --delete "$target/next/" "$APP_DIR/.next/"
+  rm -rf "$APP_DIR/.next/server/route-cache"
   sudo -n systemctl restart "$SERVICE" || die "重启失败"
   sleep 6
 
@@ -238,6 +249,7 @@ cmd_build_only() {
   BUILD_DIR="$HOME/.build-$PROJECT"
   rm -rf "$BUILD_DIR"; mkdir -p "$BUILD_DIR"
   rsync -a --delete --exclude node_modules --exclude .next --exclude .git "$APP_DIR/" "$BUILD_DIR/"
+  rm -rf "$BUILD_DIR/.next"   # 持久化 route-cache 跨构建残留，见 cmd_deploy 注释
   rm -rf "$BUILD_DIR/node_modules"
   [ -d "$APP_DIR/node_modules" ] && { cp -al "$APP_DIR/node_modules" "$BUILD_DIR/node_modules" 2>/dev/null || cp -a "$APP_DIR/node_modules" "$BUILD_DIR/node_modules"; }
   if ( cd "$BUILD_DIR" && pnpm build >/tmp/build-$PROJECT.log 2>&1 ); then
