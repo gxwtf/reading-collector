@@ -17,11 +17,11 @@
 | 仓库 | `gxwtf/reading-collector`（主）+ `kyoukawa/reading-collector`（镜像） |
 | 文档 | `docs/wiki/*`，发布在 `dev.gxwtf.cn/reading/` |
 
-## 当前状态（2026-11-12）
+## 当前状态（2026-11-23）
 
 - 书库已收敛为**根目录单一副本**：`~/reading-books/u<id>/*.epub|pdf` 为唯一真身（按账号分目录），`Readest/books/<hash>/` 走硬链接，`library.json` 由脚本生成
 - 一条龙：`sh worker/sync_library.sh`（扫描 → 书名/作者清洗 → 元数据+封面 → 发布 → 去重 → 孤儿清理），上传即触发，另有定时任务
-- 四层计数一致（2026-11-12 实测）：u2691 根目录 11 / DB 11 / Readest 目录 11 / library.json 11；u16、u2440、u2449、u2537 新账号 0/0/0/0
+- 四层计数一致（2026-11-23 实测）：u2691 根目录 11 / DB 11 / Readest 目录 11 / library.json 11；u16、u2440、u2443、u2449、u2537 新账号 0/0/0/0
 - 账号隔离已落地：新账号自动开通书库目录 + 独立 WebDAV 实例/凭据，打开阅读器时自动写入本账号 WebDAV 配置
 - 阅读器已统一到 **BookOrbit**（`bookorbit-app` 容器 healthy）：Readest / Calibre-Web 均弃用，`gxreadest.service` 已停用（failed 属预期，勿当故障处理）
 - 元数据统一走 **ISBN 匹配**（豆瓣 `/isbn/` 直达），`gx-bookmeta.service` 每 6 小时补全一次
@@ -29,7 +29,7 @@
 - 服务：`gxreading`、`gxreading-worker`、`gxreading-dav`、`nginx` 均 active；`pnpm typecheck` 通过
 - 部署：零停机脚本 + `flock` 串行构建，保留旧 chunk；**禁止在仓库内裸跑 `pnpm build`**
 - 账号隔离第一阶段已提交（`98f7058`，书库/笔记按广学账号隔离 DB/API/页面）
-- 进行中（未提交）：EPUB 导入（`jszip` 解包 + `turndown` 转 Markdown，`/api/entries/epub` + `src/lib/{epub,entry-import}.ts`），Markdown 导入已抽到 `saveTextEntry` 复用；另有 `worker/prune_stale_books.py` 与 `readest.ts` 跳过 `Readest/`、`covers/` 目录的小修
+- 进行中（未提交，勿随手提交）：EPUB 导入（`jszip` 解包 + `turndown` 转 Markdown，`/api/entries/epub` + `src/lib/{epub,entry-import}.ts`），Markdown 导入已抽到 `saveTextEntry` 复用；**OIDC Provider**（`src/app/oidc/*` + `src/lib/oidc.ts`，签名私钥在 `.oidc/`，已加 `.gitignore`）；另有 `worker/prune_stale_books.py` 与 `readest.ts` 跳过 `Readest/`、`covers/` 目录的小修
 
 ## 已上线功能（本次会话）
 
