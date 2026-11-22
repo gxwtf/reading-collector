@@ -49,6 +49,13 @@ with open(log, "a", encoding="utf-8") as f:
 PY
 }
 
+# ---------------------------------------------------------------- 依赖指纹
+# 记录「产物对应哪一版依赖」，回滚时据此判断 node_modules 是否需要一起回退。
+deps_hash() { # $1=项目目录
+  ( cd "$1" 2>/dev/null && { cat package.json 2>/dev/null
+      cat pnpm-lock.yaml package-lock.json yarn.lock bun.lockb 2>/dev/null; } | sha256sum | cut -d' ' -f1 )
+}
+
 # ---------------------------------------------------------------- 冒烟基线
 smoke() {
   local base="$APP_URL"
@@ -134,6 +141,7 @@ cmd_deploy() {
     [ -L "$ROOT/current" ] && prev_st="$(readlink -f "$ROOT/current")"
     if [ -n "$prev_st" ] && [ -d "$prev_st/dist" ]; then ok "可回滚版本：$(basename "$prev_st")"; else warn "没有上一版，本次不可回滚"; fi
     say "— 切换 —"
+    deps_hash "$APP_DIR" > "$dir/deps.sha256" 2>/dev/null || true
     rsync -a --delete "$dir/dist/" "$APP_DIR/dist/"
     if smoke; then
       ln -sfn "$dir" "$ROOT/current"
@@ -200,6 +208,7 @@ cmd_deploy() {
 
   # 3) 切换
   say "— 切换 —"
+  deps_hash "$APP_DIR" > "$dir/deps.sha256" 2>/dev/null || true
   rsync -a "$dir/next/" "$APP_DIR/.next/"
   # 清掉线上残留的持久化路由缓存：final rsync 没有 --delete（保留旧 chunk 给老标签页），
   # 旧的 server/route-cache 会留下来并且优先级高于新构建的静态产物，
@@ -242,8 +251,13 @@ cmd_rollback() {
     target="$d"; break
   done
 
-  if [ -z "$target" ] || [ ! -d "$target/next" ]; then
+  if [ -z "$target" ]; then
     die "没有可回滚的版本"
+  fi
+  if [ "$MODE" = "static" ]; then
+    [ -d "$target/dist" ] || die "目标版本没有 dist 产物"
+  else
+    [ -d "$target/next" ] || die "目标版本没有 next 产物"
   fi
 
   say "回滚到：$(basename "$target")"
@@ -257,10 +271,20 @@ cmd_rollback() {
     sleep 6
   fi
 
+  # 依赖指纹比对：产物回退了，node_modules 未必回退
+  local want_deps cur_deps
+  want_deps="$(cat "$target/deps.sha256" 2>/dev/null || true)"
+  cur_deps="$(deps_hash "$APP_DIR" 2>/dev/null || true)"
+  if [ -n "$want_deps" ] && [ -n "$cur_deps" ] && [ "$want_deps" != "$cur_deps" ]; then
+    warn "依赖与产物不一致：本次回滚只还原了产物，package.json/lock 与线上 node_modules 仍是新版本"
+    warn "  请手工执行：cd $APP_DIR && git checkout <上一版 commit> -- package.json pnpm-lock.yaml package-lock.json && (pnpm|npm) install && sudo -n systemctl restart $SERVICE"
+    deps_mismatch=1
+  fi
+
   if smoke; then
     ln -sfn "$target" "$ROOT/current"
     ok "回滚完成"
-    log_event rollback succeeded to="$(basename "$target")" failed_version="$from_failure"
+    log_event rollback succeeded to="$(basename "$target")" failed_version="$from_failure" deps_mismatch="${deps_mismatch:-0}"
   else
     die "回滚后冒烟仍失败，需要人工介入"
   fi
