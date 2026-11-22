@@ -119,6 +119,34 @@ cmd_deploy() {
 
   say "部署 $PROJECT @ $sha（版本 $name，模式 $MODE）"
 
+  if [ "$MODE" = "static" ]; then
+    say "— 构建（static 模式：隔离副本 → dist）—"
+    rsync -a --delete --exclude node_modules --exclude dist --exclude .git "$APP_DIR/" "$BUILD_DIR/"
+    rm -rf "$BUILD_DIR/dist" "$BUILD_DIR/node_modules"
+    if [ -d "$APP_DIR/node_modules" ]; then
+      cp -al "$APP_DIR/node_modules" "$BUILD_DIR/node_modules" 2>/dev/null || cp -a "$APP_DIR/node_modules" "$BUILD_DIR/node_modules"
+    fi
+    ( cd "$BUILD_DIR" && pnpm build >/tmp/build-$PROJECT.log 2>&1 ) || { tail -30 /tmp/build-$PROJECT.log; log_event deploy failed version="$name" sha="$sha" stage=build mode=static; die "构建失败"; }
+    [ -d "$BUILD_DIR/dist" ] || die "构建完成但 $BUILD_DIR/dist 不存在"
+    ok "构建完成"
+    rsync -a --delete "$BUILD_DIR/dist/" "$dir/dist/"
+    local prev_st=""
+    [ -L "$ROOT/current" ] && prev_st="$(readlink -f "$ROOT/current")"
+    if [ -n "$prev_st" ] && [ -d "$prev_st/dist" ]; then ok "可回滚版本：$(basename "$prev_st")"; else warn "没有上一版，本次不可回滚"; fi
+    say "— 切换 —"
+    rsync -a --delete "$dir/dist/" "$APP_DIR/dist/"
+    if smoke; then
+      ln -sfn "$dir" "$ROOT/current"
+      ok "部署成功：$name"
+      log_event deploy succeeded version="$name" sha="$sha" mode=static rollback_from="$(basename "${prev_st:-none}")"
+      cleanup_old
+      return 0
+    fi
+    warn "冒烟失败，准备回滚"
+    log_event deploy failed version="$name" sha="$sha" stage=smoke mode=static
+    cmd_rollback --from-failure "$name"
+  fi
+
   if [ "$MODE" != "next" ]; then
     say "— 重启（restart 模式，无构建）—"
     sudo -n systemctl restart "$SERVICE" || die "重启失败"
@@ -194,7 +222,7 @@ cmd_deploy() {
 
 # ---------------------------------------------------------------- 回滚
 cmd_rollback() {
-  if [ "$MODE" != "next" ]; then
+  if [ "$MODE" != "next" ] && [ "$MODE" != "static" ]; then
     die "$PROJECT 是 restart 模式，没有构建快照；回滚请用 git 切回上一个 commit 后重启"
   fi
   local from_failure=""
@@ -205,7 +233,7 @@ cmd_rollback() {
   target=""
   for d in $(ls -1dt "$ROOT"/*/ 2>/dev/null | sed 's#/$##'); do
     [ -L "$d" ] && continue
-    [ -d "$d/next" ] || continue
+    if [ "$MODE" = "static" ]; then [ -d "$d/dist" ] || continue; else [ -d "$d/next" ] || continue; fi
     [ "$(readlink -f "$d")" = "$cur" ] && continue
     [ -n "$from_failure" ] && [ "$(basename "$d")" = "$from_failure" ] && continue
     target="$d"; break
@@ -216,10 +244,15 @@ cmd_rollback() {
   fi
 
   say "回滚到：$(basename "$target")"
-  rsync -a --delete "$target/next/" "$APP_DIR/.next/"
-  rm -rf "$APP_DIR/.next/server/route-cache"
-  sudo -n systemctl restart "$SERVICE" || die "重启失败"
-  sleep 6
+  if [ "$MODE" = "static" ]; then
+    [ -d "$target/dist" ] || die "目标版本没有 dist 产物"
+    rsync -a --delete "$target/dist/" "$APP_DIR/dist/"
+  else
+    rsync -a --delete "$target/next/" "$APP_DIR/.next/"
+    rm -rf "$APP_DIR/.next/server/route-cache"
+    sudo -n systemctl restart "$SERVICE" || die "重启失败"
+    sleep 6
+  fi
 
   if smoke; then
     ln -sfn "$target" "$ROOT/current"

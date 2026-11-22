@@ -22,7 +22,7 @@ cmd_list() {
   while IFS=$'\t' read -r name dir svc url mode expect; do
     [ -z "$name" ] && continue
     case "$name" in \#*) continue ;; esac
-    st=$(systemctl is-active "$svc" 2>/dev/null || true)
+    if [ "$svc" = "-" ]; then st="(static)"; else st=$(systemctl is-active "$svc" 2>/dev/null || true); fi
     printf '%-14s %-10s %-38s %s\n' "$name" "$mode" "$url" "$st"
   done < "$CONF"
 }
