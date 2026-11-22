@@ -8,6 +8,8 @@ dist/
 .env
 .env.local
 *.log
+# OIDC 签名密钥（私钥，绝不入库）
+.oidc/
 
 # Prisma 生成物
 src/generated/
