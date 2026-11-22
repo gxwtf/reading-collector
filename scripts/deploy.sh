@@ -192,6 +192,9 @@ cmd_deploy() {
     db="$(grep -m1 '^DATABASE_URL=' "$APP_DIR/.env" | cut -d= -f2- | tr -d '"' || true)"
   fi
   if [ -n "$db" ]; then
+    # Prisma 的 DATABASE_URL 常带 ?schema=public / ?connection_limit= 这类查询参数，
+    # pg_dump 不认（error: invalid URI query parameter），截掉再喂。
+    db="${db%%\?*}"
     pg_dump "$db" -Fc -f "$dir/db.dump" 2>/dev/null && ok "数据库快照 $(du -h "$dir/db.dump" | cut -f1)" || warn "数据库快照失败"
   fi
 
