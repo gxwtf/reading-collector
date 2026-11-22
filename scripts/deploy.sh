@@ -111,7 +111,7 @@ cmd_deploy() {
 
   cd "$APP_DIR"
   local sha ts name dir
-  sha="$(git rev-parse --short HEAD)"
+  sha="$(git rev-parse --short HEAD 2>/dev/null || echo nogit)"
   ts="$(date +%Y%m%d-%H%M%S)"
   name="${tag:-$ts-$sha}"
   dir="$ROOT/$name"

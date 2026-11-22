@@ -63,9 +63,7 @@ cmd_with_conf() {
   row="$(load "$name")" || true
   [ -z "$row" ] && { printf '%s\n' "未知项目：$name" >&2; exit 2; }
   local dir svc url mode
-  IFS=$'\t' read -r _ dir svc url mode <<< "$row"
-  local e
-  e="$(printf '%s' "$row" | cut -f6)"
+  IFS=$'\t' read -r _ dir svc url mode e <<< "$row"
   PROJECT="$name" APP_DIR="$dir" SERVICE="$svc" APP_URL="$url" MODE="$mode" \
     SMOKE_EXPECT="${e:-200}" RELEASES_ROOT="$HOME/releases" \
     bash "$DEPLOY" "$@"
