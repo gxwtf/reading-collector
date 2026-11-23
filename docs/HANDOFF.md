@@ -27,7 +27,7 @@
 - 元数据统一走 **ISBN 匹配**（豆瓣 `/isbn/` 直达），`gx-bookmeta.service` 每 6 小时补全一次
 - 入口收敛：导航只留「书库」，书库页给「添加书籍 / 去读书」两个按钮；站点名统一为「广学读书」
 - 服务：`gxreading`、`gxreading-worker`、`gxreading-dav`、`nginx` 均 active；`pnpm typecheck` 通过
-- 部署：零停机脚本 + `flock` 串行构建，保留旧 chunk；**禁止在仓库内裸跑 `pnpm build`**
+- 部署：零停机脚本 + `flock` 串行构建，保留旧 chunk；**禁止在仓库内裸跑 `pnpm build`**；2026-11-23 起统一部署器新增 `mode=static`（构建→快照→冒烟→失败回滚），并补登记 `gxmemorize`/`gxgis`/`gxis` 三个项目
 - 账号隔离第一阶段已提交（`98f7058`，书库/笔记按广学账号隔离 DB/API/页面）
 - 进行中（未提交，勿随手提交）：EPUB 导入（`jszip` 解包 + `turndown` 转 Markdown，`/api/entries/epub` + `src/lib/{epub,entry-import}.ts`），Markdown 导入已抽到 `saveTextEntry` 复用；**OIDC Provider**（`src/app/oidc/*` + `src/lib/oidc.ts`，签名私钥在 `.oidc/`，已加 `.gitignore`）；另有 `worker/prune_stale_books.py` 与 `readest.ts` 跳过 `Readest/`、`covers/` 目录的小修
 
