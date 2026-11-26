@@ -23,6 +23,7 @@
 - 一条龙：`sh worker/sync_library.sh`（扫描 → 书名/作者清洗 → 元数据+封面 → 发布 → 去重 → 孤儿清理），上传即触发，另有定时任务
 - 四层计数一致（2026-11-27 实测）：u2691 根目录 11 / DB 11 / Readest 目录 11 / library.json 11；u16、u2440、u2443、u2449、u2537 新账号 0/0/0/0
 - 注：`Book` 表用 `fileName`（相对 `READEST_BOOKS_DIR`）核对，没有 `file_path` 列；`死亡否认.pdf` 为 85MB PDF，正常在库
+- 内容侧复核（2026-11-27）：`Entry` 30 条、`Highlight` 2 条；`pnpm typecheck` 通过，`sync_library.sh` 无增删（四层计数未变）
 - 账号隔离已落地：新账号自动开通书库目录 + 独立 WebDAV 实例/凭据，打开阅读器时自动写入本账号 WebDAV 配置
 - 阅读器已统一到 **BookOrbit**（`bookorbit-app` 容器 healthy）：Readest / Calibre-Web 均弃用，`gxreadest.service` 已停用（failed 属预期，勿当故障处理）
 - 元数据统一走 **ISBN 匹配**（豆瓣 `/isbn/` 直达），`gx-bookmeta.service` 每 6 小时补全一次
