@@ -34,6 +34,7 @@ model User {
   keyframes   Keyframe[]
   feeds       Feed[]
   tagConfigs  TagConfig[]
+  attachments Attachment[]
 }
 
 /// 收集分组（一个用户可以有多个，例如「待读」「语文素材」「英语外刊」）
@@ -113,12 +114,45 @@ model Entry {
   highlights  Highlight[]
   keyframes   Keyframe[]
   jobs        FetchJob[]
+  attachments Attachment[]
 
   @@unique([userId, urlHash])
   @@index([userId, state])
   @@index([userId, readState])
   @@index([userId, createdAt])
   @@index([userId, favorite])
+}
+
+/// 图片等二进制附件（借鉴 memos 的 Attachment 设计）
+///
+/// 几个刻意的取舍：
+/// - 二进制放磁盘、元数据进库，与 memos 的 LOCAL 存储一致；不放库是因为
+///   Postgres 的 bytea 会让备份变大、也不好走 nginx 的 sendfile。
+/// - `path` 存相对 UPLOAD_DIR 的路径（`u<userId>/<random>.<ext>`），不是绝对路径：
+///   换机器/换盘只改环境变量，不用刷库。
+/// - 访问一律走 `/api/attachments/<id>` 鉴权路由，**不把目录暴露成静态资源**——
+///   memos 的 fileserver 也是这个思路（先校验元数据再读文件）。
+model Attachment {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  /// 关联的条目；null 表示还没挂到任何条目上（上传后先建，插入正文时回填）
+  entryId   Int?
+  /// 展示用原始文件名
+  filename  String   @db.VarChar(255)
+  /// 相对 UPLOAD_DIR 的存储路径
+  path      String   @db.VarChar(500)
+  /// 服务端嗅探出的 MIME（不信任前端传的 Content-Type）
+  mime      String   @db.VarChar(120)
+  size      Int
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  entry Entry? @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([entryId])
 }
 
 /// 标签（全局去重，按名称唯一；颜色/描述在 TagConfig 里按用户区分）

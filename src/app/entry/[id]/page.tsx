@@ -21,6 +21,7 @@ import { VideoReader } from "@/components/VideoReader";
 import { mmss } from "@/lib/time";
 import { PrepareVideo } from "@/components/PrepareVideo";
 import { SummaryPanel } from "@/components/SummaryPanel";
+import { MarkdownImage } from "@/components/MarkdownImage";
 
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ only?: string }>;
@@ -212,6 +213,7 @@ export default async function EntryPage({
                       <MDXRemote
                         source={body}
                         options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+                        components={{ img: MarkdownImage }}
                       />
                     </div>
                   </HighlightLayer>

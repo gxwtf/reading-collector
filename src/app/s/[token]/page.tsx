@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getEmbed, seekUrl } from "@/lib/embed";
+import { MarkdownImage } from "@/components/MarkdownImage";
 
 type Params = Promise<{ token: string }>;
 
@@ -115,7 +116,12 @@ export default async function SharedPage({ params }: { params: Params }) {
 
       {entry.contentMd ? (
         <div className="prose-reading max-w-none">
-          <MDXRemote source={entry.contentMd} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
+          <MDXRemote
+            source={entry.contentMd}
+            options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+            // 分享页没有登录态，附件路由要用 token 放行
+            components={{ img: (props) => <MarkdownImage {...props} shareToken={token} /> }}
+          />
         </div>
       ) : paragraphs.length > 0 ? (
         <section className="prose-reading max-w-none space-y-3 text-[15px] leading-7">

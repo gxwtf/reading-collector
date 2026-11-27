@@ -1,17 +1,61 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Loader2, Upload } from "lucide-react";
+import { FileText, ImagePlus, Loader2, Upload } from "lucide-react";
 
-/** 导入 Markdown：支持多选文件，或粘贴一段 Markdown 文本 */
+/**
+ * 导入 Markdown：支持多选文件、粘贴 Markdown，或上传图片（图片会以 Markdown
+ * 语法插进粘贴框）。
+ *
+ * 图片是「附件」而非「条目」——单独一张图没有正文可读，所以先传附件拿到
+ * `/api/attachments/<id>`，再以 `![](url)` 的形式落进正文，最后由用户决定
+ * 是存成新的一条还是粘贴进已有文章。
+ */
 export function MarkdownImport() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const imageRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [msg, setMsg] = useState("");
   const [pasteOpen, setPasteOpen] = useState(false);
   const [text, setText] = useState("");
+
+  /** 把图片插到光标所在位置，没有光标就追加到末尾 */
+  const insertAtCursor = useCallback((snippet: string) => {
+    setText((prev) => (prev ? `${prev}${prev.endsWith("\n") ? "" : "\n\n"}${snippet}\n` : `${snippet}\n`));
+  }, []);
+
+  async function uploadImages(files: FileList | File[] | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length === 0) return;
+    setUploadingImage(true);
+    setMsg("");
+    const fd = new FormData();
+    list.forEach((f) => fd.append("files", f));
+    try {
+      const res = await fetch("/api/attachments", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(data.error ?? "图片上传失败");
+        return;
+      }
+      const snippets = (data.attachments as { url: string }[])
+        .map((a) => `![](${a.url})`)
+        .join("\n");
+      setPasteOpen(true);
+      insertAtCursor(snippets);
+      setMsg(
+        `已上传 ${data.added} 张图片，${data.errors?.length ? `跳过 ${data.errors.length} 张（${data.errors[0]}）` : "已插入到下方文本框"}`,
+      );
+    } catch {
+      setMsg("图片上传失败，请重试");
+    } finally {
+      setUploadingImage(false);
+      if (imageRef.current) imageRef.current.value = "";
+    }
+  }
 
   async function upload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -57,7 +101,7 @@ export function MarkdownImport() {
       <div className="flex flex-wrap items-center gap-2">
         <FileText className="size-4 text-muted-foreground" />
         <span className="text-sm font-medium">导入 Markdown</span>
-        <span className="text-xs text-muted-foreground">支持 .md / .markdown / .txt</span>
+        <span className="text-xs text-muted-foreground">支持 .md / .markdown / .txt / 图片</span>
 
         <div className="ml-auto flex items-center gap-2">
           <input
@@ -67,6 +111,14 @@ export function MarkdownImport() {
             accept=".md,.markdown,.txt,text/markdown,text/plain"
             className="hidden"
             onChange={(e) => upload(e.target.files)}
+          />
+          <input
+            ref={imageRef}
+            type="file"
+            multiple
+            accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp"
+            className="hidden"
+            onChange={(e) => uploadImages(e.target.files)}
           />
           <button
             type="button"
@@ -79,6 +131,15 @@ export function MarkdownImport() {
           </button>
           <button
             type="button"
+            disabled={uploadingImage}
+            onClick={() => imageRef.current?.click()}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+          >
+            {uploadingImage ? <Loader2 className="size-3.5 animate-spin" /> : <ImagePlus className="size-3.5" />}
+            上传图片
+          </button>
+          <button
+            type="button"
             onClick={() => setPasteOpen((v) => !v)}
             className="inline-flex h-8 items-center rounded-lg border border-border px-2.5 text-sm text-muted-foreground hover:text-foreground"
           >
@@ -88,7 +149,19 @@ export function MarkdownImport() {
       </div>
 
       {pasteOpen ? (
-        <div className="mt-3 space-y-2">
+        <div
+          className="mt-3 space-y-2"
+          onDragOver={(e) => {
+            // 拖图片进来直接传，省一次点「上传图片」
+            if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+          }}
+          onDrop={(e) => {
+            const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+            if (files.length === 0) return;
+            e.preventDefault();
+            void uploadImages(files);
+          }}
+        >
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
