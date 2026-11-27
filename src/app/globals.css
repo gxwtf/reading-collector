@@ -6,11 +6,24 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* 品牌色：与广学题库一致，业务代码只用 text-brand / bg-brand / border-brand */
+  /* 品牌色：陶土色。业务代码只用 text-brand / bg-brand / border-brand */
   --color-brand: var(--brand);
+  --color-brand-fill: var(--brand-fill);
   --color-brand-foreground: var(--brand-foreground);
-  --color-brand-muted: var(--brand-muted);
+  --color-brand-soft: var(--brand-soft);
+  /* 品牌色用于**文字**时必须换成这一档：陶土 #D97757 在纸底上只有 2.96:1，
+     达不到 WCAG AA 的 4.5:1。--brand-strong 是同一色相压暗后的版本（5.07:1）。 */
+  --color-brand-strong: var(--brand-strong);
+  /* 纸张中性色（《稍后再看》设计说明 §3.1） */
+  --color-paper: var(--paper);
+  --color-paper-muted: var(--paper-muted);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-hairline: var(--hairline);
+  --color-hairline-dashed: var(--hairline-dashed);
   --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,276 +53,119 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 4px); /* 8px：Logo 方块 */
+  --radius-md: calc(var(--radius) - 2px); /* 10px：侧栏项 */
+  --radius-lg: var(--radius); /* 12px：按钮、输入框（§3.4） */
+  --radius-xl: calc(var(--radius) + 2px); /* 14px */
+  --radius-2xl: calc(var(--radius) + 4px); /* 16px：卡片（§3.4） */
 }
 
 /*
- * 北京师范大学附属实验中学 视觉形象识别系统（VI）
- * 色彩规范 A4 —— https://vi.sdsz.com.cn/fenlei/a4/
+ * 视觉基线：《稍后再看 · 设计说明》
  *
- * 标准色：实验红 #A31F24、赤诚红 #C22525、深赤红 #8A1010、坚实黑 #231815、纯净白 #FFFFFF
- * 补充辅助色：科技蓝 #053391、艺术紫 #492B93、体育绿 #90BF3D、人文棕 #5E3424、青春橙 #E59D48、行政灰 #9B9B9B
- * 辅助色：黄 #FDD000、橙 #F08300、灰 #9FA0A0、浅灰 #E6E6E6、绿 #41B25D、深绿 #007963、浅蓝 #0086D1、蓝 #004098、紫 #4D4398
+ * 底色是纸，标题用衬线，正文用无衬线，装饰极少。强调色只有一种陶土色，
+ * 且只出现在「当前分类」「主按钮」「小图的竖条」三处。
+ *
+ * 与旧版的差别：旧版是北师大实验中学 VI（实验红 + 一整套色阶重映射），
+ * 已经全部撤掉——代码里从来没有用过 blue/gray/zinc 这些色阶，留着只是噪音，
+ * 还会让「换个品牌色」变成改十几处的事。
+ *
+ * 所有 token 都在上面的 @theme inline 块里声明（用 inline 才能让 .bg-paper
+ * 这类工具类直接引用 :root 的变量，从而跟着 .dark 一起换值）。
  */
-@theme {
-  /* ===== VI 品牌语义色 ===== */
-  --color-brand-red: #a31f24; /* 实验红（标准色） */
-  --color-brand-crimson: #c22525; /* 赤诚红 */
-  --color-brand-deep-red: #8a1010; /* 深赤红 */
-  --color-brand-black: #231815; /* 坚实黑 */
-  --color-brand-white: #ffffff; /* 纯净白 */
-
-  --color-brand-tech-blue: #053391; /* 科技蓝 */
-  --color-brand-purple: #492b93; /* 艺术紫 */
-  --color-brand-sports-green: #90bf3d; /* 体育绿 */
-  --color-brand-brown: #5e3424; /* 人文棕 */
-  --color-brand-youth-orange: #e59d48; /* 青春橙 */
-  --color-brand-admin-gray: #9b9b9b; /* 行政灰 */
-
-  --color-brand-yellow: #fdd000; /* 辅助黄 */
-  --color-brand-orange: #f08300; /* 辅助橙 */
-  --color-brand-gray: #9fa0a0; /* 辅助灰 */
-  --color-brand-light-gray: #e6e6e6; /* 辅助浅灰 */
-  --color-brand-green: #41b25d; /* 辅助绿 */
-  --color-brand-dark-green: #007963; /* 辅助深绿 */
-  --color-brand-light-blue: #0086d1; /* 辅助浅蓝 */
-  --color-brand-blue: #004098; /* 辅助蓝 */
-  --color-brand-aux-purple: #4d4398; /* 辅助紫 */
-
-  /* ===== 品牌强调色重映射：blue / indigo / sky / cyan / teal / purple / violet / fuchsia -> 实验红系 =====
-   * 依据 VI 色彩规范 A4 / A-2-1：
-   *   实验红 #A31F24（标准色，RGB/163 31 36，PANTONE 1795C）
-   *   赤诚红 #C22525、深赤红 #8A1010（规范中与实验红相近的两种红，小面积搭配使用）
-   *   标准色附 10%~90% 色阶（A4-01-1），下方浅色取自规范色阶样本。
-   * 仅重映射界面装饰 / 品牌色相；green(正确) / amber(警告) / red(错误) 等语义色保持不变。
-   * 用户自定义标签颜色使用显式色值（见 constants/word-tags.tsx），不受此重映射影响。 */
-  --color-blue-50: #fdf6f5;
-  --color-blue-100: #f5e8e7; /* 实验红 10% 色阶 */
-  --color-blue-200: #ebd1d2; /* 实验红 20% 色阶 */
-  --color-blue-300: #e3bbbb; /* 实验红 30% 色阶 */
-  --color-blue-400: #d9a5a6; /* 实验红 40% 色阶 */
-  --color-blue-500: #c22525; /* 赤诚红 */
-  --color-blue-600: #a31f24; /* 实验红 */
-  --color-blue-700: #8a1010; /* 深赤红 */
-  --color-blue-800: #701414;
-  --color-blue-900: #5b1517;
-  --color-blue-950: #3c0d0e;
-
-  /* ===== 暖色邻近色（与实验红同属暖色系，用于点缀以提升层次感） =====
-   * 取自 VI 补充辅助色：青春橙 #E59D48、辅助橙 #F08300、辅助黄 #FDD000、人文棕 #5E3424。
-   * 用于 AI 功能、渐变收尾、浅色底等，避免整站只有单一红色。 */
-
-  /* indigo -> 青春橙 / 辅助橙（渐变收尾） */
-  --color-indigo-50: #fef9f1;
-  --color-indigo-100: #fdf0da;
-  --color-indigo-200: #fae0b3;
-  --color-indigo-300: #f6c87f;
-  --color-indigo-400: #f0ad52;
-  --color-indigo-500: #e59d48; /* 青春橙 */
-  --color-indigo-600: #f08300; /* 辅助橙 */
-  --color-indigo-700: #c96d00;
-  --color-indigo-800: #a05700;
-  --color-indigo-900: #7e4600;
-  --color-indigo-950: #4a2900;
-
-  /* purple -> VI 辅助紫 #484098（AI 功能强调色） */
-  --color-purple-50: #f3f2f9;
-  --color-purple-100: #e8e6f2;
-  --color-purple-200: #d1cde6;
-  --color-purple-300: #b3aed6;
-  --color-purple-400: #8d86c4;
-  --color-purple-500: #484098; /* VI 辅助紫 */
-  --color-purple-600: #3a337d;
-  --color-purple-700: #302a68;
-  --color-purple-800: #282354;
-  --color-purple-900: #211d45;
-  --color-purple-950: #12102a;
-
-  /* violet -> VI 亮紫 #7848B8（AI 渐变收尾） */
-  --color-violet-50: #f8f5fc;
-  --color-violet-100: #f0e9f8;
-  --color-violet-200: #e2d4f0;
-  --color-violet-300: #ccb2e4;
-  --color-violet-400: #a67fd0;
-  --color-violet-500: #7848b8; /* VI 亮紫 */
-  --color-violet-600: #6539a0;
-  --color-violet-700: #553084;
-  --color-violet-800: #46296d;
-  --color-violet-900: #3b245a;
-  --color-violet-950: #241238;
-
-  /* sky -> 珊瑚红（暖粉调） */
-  --color-sky-50: #fdf5f3;
-  --color-sky-100: #fbe9e4;
-  --color-sky-200: #f7d3ca;
-  --color-sky-300: #f0b3a4;
-  --color-sky-400: #e78a74;
-  --color-sky-500: #dc6b52;
-  --color-sky-600: #c74f35;
-  --color-sky-700: #a63e29;
-  --color-sky-800: #883527;
-  --color-sky-900: #712f24;
-  --color-sky-950: #3d160f;
-
-  /* cyan -> 珊瑚红（暖粉调） */
-  --color-cyan-50: #fdf5f3;
-  --color-cyan-100: #fbe9e4;
-  --color-cyan-200: #f7d3ca;
-  --color-cyan-300: #f0b3a4;
-  --color-cyan-400: #e78a74;
-  --color-cyan-500: #dc6b52;
-  --color-cyan-600: #c74f35;
-  --color-cyan-700: #a63e29;
-  --color-cyan-800: #883527;
-  --color-cyan-900: #712f24;
-  --color-cyan-950: #3d160f;
-
-  /* teal -> 人文棕（暖深色） */
-  --color-teal-50: #f8f5f2;
-  --color-teal-100: #efe8e1;
-  --color-teal-200: #ded0c3;
-  --color-teal-300: #c5ae9b;
-  --color-teal-400: #a98a71;
-  --color-teal-500: #8f6e55;
-  --color-teal-600: #745441;
-  --color-teal-700: #5e3424; /* 人文棕 */
-  --color-teal-800: #4b2a1e;
-  --color-teal-900: #3f251c;
-  --color-teal-950: #221109;
-
-  /* fuchsia -> 珊瑚红（暖粉调） */
-  --color-fuchsia-50: #fdf5f3;
-  --color-fuchsia-100: #fbe9e4;
-  --color-fuchsia-200: #f7d3ca;
-  --color-fuchsia-300: #f0b3a4;
-  --color-fuchsia-400: #e78a74;
-  --color-fuchsia-500: #dc6b52;
-  --color-fuchsia-600: #c74f35;
-  --color-fuchsia-700: #a63e29;
-  --color-fuchsia-800: #883527;
-  --color-fuchsia-900: #712f24;
-  --color-fuchsia-950: #3d160f;
-
-  /* gray / slate / zinc / neutral / stone -> 坚实黑 + 行政灰 暖中性色阶 */
-  --color-gray-50: #faf9f9;
-  --color-gray-100: #f4f2f2;
-  --color-gray-200: #e7e4e4;
-  --color-gray-300: #d3cfcf;
-  --color-gray-400: #b4b0b0;
-  --color-gray-500: #9b9b9b;
-  --color-gray-600: #7d7a79;
-  --color-gray-700: #5f5b5a;
-  --color-gray-800: #403c3b;
-  --color-gray-900: #231815;
-  --color-gray-950: #14100f;
-
-  --color-slate-50: #faf9f9;
-  --color-slate-100: #f4f2f2;
-  --color-slate-200: #e7e4e4;
-  --color-slate-300: #d3cfcf;
-  --color-slate-400: #b4b0b0;
-  --color-slate-500: #9b9b9b;
-  --color-slate-600: #7d7a79;
-  --color-slate-700: #5f5b5a;
-  --color-slate-800: #403c3b;
-  --color-slate-900: #231815;
-  --color-slate-950: #14100f;
-
-  --color-zinc-50: #faf9f9;
-  --color-zinc-100: #f4f2f2;
-  --color-zinc-200: #e7e4e4;
-  --color-zinc-300: #d3cfcf;
-  --color-zinc-400: #b4b0b0;
-  --color-zinc-500: #9b9b9b;
-  --color-zinc-600: #7d7a79;
-  --color-zinc-700: #5f5b5a;
-  --color-zinc-800: #403c3b;
-  --color-zinc-900: #231815;
-  --color-zinc-950: #14100f;
-
-  --color-neutral-50: #faf9f9;
-  --color-neutral-100: #f4f2f2;
-  --color-neutral-200: #e7e4e4;
-  --color-neutral-300: #d3cfcf;
-  --color-neutral-400: #b4b0b0;
-  --color-neutral-500: #9b9b9b;
-  --color-neutral-600: #7d7a79;
-  --color-neutral-700: #5f5b5a;
-  --color-neutral-800: #403c3b;
-  --color-neutral-900: #231815;
-  --color-neutral-950: #14100f;
-
-  --color-stone-50: #faf9f9;
-  --color-stone-100: #f4f2f2;
-  --color-stone-200: #e7e4e4;
-  --color-stone-300: #d3cfcf;
-  --color-stone-400: #b4b0b0;
-  --color-stone-500: #9b9b9b;
-  --color-stone-600: #7d7a79;
-  --color-stone-700: #5f5b5a;
-  --color-stone-800: #403c3b;
-  --color-stone-900: #231815;
-  --color-stone-950: #14100f;
-}
 
 :root {
-  /* ===== 与广学题库对齐的语义令牌（oklch）===== */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  /* ===== 纸张色（《稍后再看》§3.1）===== */
+  --paper: #faf9f5; /* 页面底色 */
+  --paper-muted: #efede4; /* 选中 / 悬停底 */
+  --ink: #141413; /* 主文字 */
+  --ink-2: #5e5d57; /* 次要文字（纸底 6.27:1） */
+  --ink-3: #6e6a61; /* 弱化文字（纸底 5.11:1；设计稿的 #8A877D 只有 3.41:1，达不到 AA） */
+  --hairline: #e5e2d8;
+  --hairline-dashed: #d9d5c8;
+
+  /* ===== 语义令牌（映射到纸张色，组件照旧用 bg-card / text-muted-foreground）===== */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #ffffff; /* 卡片是纸上的一张白纸 */
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink); /* 主按钮：深墨底 + 纸色字（§4.1） */
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-muted);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-muted);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--paper-muted);
+  --accent-foreground: var(--ink);
+  --destructive: #b3261e;
+  --border: var(--hairline);
+  --input: var(--hairline-dashed);
+  --ring: #b4552f;
+  --radius: 0.75rem; /* 12px：按钮、输入框 */
+
+  --font-sans: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun,
+    Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
   color-scheme: light;
-  /* 广学红 #A31F24 */
-  --brand: oklch(0.4667 0.1672 25.06);
-  --brand-foreground: oklch(0.985 0 0);
-  --brand-muted: oklch(0.95 0.021 25.06);
+
+  /* 陶土强调色拆成三档——设计稿把它们当一个色用，但那个色同时要当
+     「纸上的文字」「按钮底」「装饰」三种角色，只有一档必然有一处不达标：
+       --brand        装饰：Logo 方块、进度条、竖条、圆点。不承载文字
+       --brand-fill   按钮底：上面压纸色文字，需 ≥4.5:1
+       --brand-strong 纸上的文字：链接、当前项、时间戳胶囊
+     设计稿的 #D97757 若直接铺在按钮上，白字只有 3.12:1；压到 #B4552F 后 4.66:1。 */
+  --brand: #d97757;
+  --brand-fill: #b4552f;
+  --brand-strong: #a9522f; /* 5.07:1 on paper */
+  --brand-foreground: #faf9f5;
+  /* 陶土色淡底，压在上面的字是 --brand-strong。取 #F8EFE9 是为了让
+     `text-brand-strong on bg-brand-soft` 达到 4.71:1（原来是 #F4E7E0 只有 4.41:1，
+     摘要里 11px 的时间戳胶囊刚好卡在 AA 线下）。 */
+  --brand-soft: #f8efe9;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  /* 深色仍是同一套纸：底色近墨、字近纸，陶土不变（§9 待定事项 4 的建议） */
+  --paper: #1f1e1d;
+  --paper-muted: #2b2a28;
+  --ink: #faf9f5;
+  --ink-2: #b9b5aa;
+  --ink-3: #9a968c;
+  --hairline: #383632;
+  --hairline-dashed: #47443f;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #262524;
+  --card-foreground: var(--ink);
+  --popover: #262524;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-muted);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-muted);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--paper-muted);
+  --accent-foreground: var(--ink);
+  --destructive: #e5807a;
+  --border: var(--hairline);
+  --input: var(--hairline-dashed);
+  --ring: #d97757;
+
   color-scheme: dark;
-  /* 深色下提亮，保证对比度 */
-  --brand: oklch(0.735 0.152 25.06);
-  --brand-foreground: oklch(0.145 0 0);
-  --brand-muted: oklch(0.283 0.049 25.06);
+
+  /* 深色下陶土本身就够亮（5.33:1），文字可以直接用它 */
+  --brand: #d97757;
+  --brand-fill: #d97757; /* 深色底上压 #1f1e1d 字，5.33:1 */
+  --brand-strong: #e58a69;
+  --brand-foreground: #1f1e1d;
+  --brand-soft: #2e211b; /* 深色下 --brand-strong 压上去 6.05:1 */
 }
 
 @layer base {
@@ -368,21 +224,24 @@
 }
 
 ::selection {
-  background-color: rgba(163, 31, 36, 0.25);
+  background-color: color-mix(in srgb, var(--brand) 30%, transparent);
   color: inherit;
 }
 
 .dark ::selection {
-  background-color: rgba(194, 37, 37, 0.4);
+  background-color: color-mix(in srgb, var(--brand) 38%, transparent);
   color: inherit;
 }
 
-/* ===== 阅读正文排版（MDX 渲染区）===== */
+/* ===== 阅读正文排版（MDX 渲染区）=====
+ * 设计说明 §3.3：详情页正文 17px、行高 1.9。
+ * 用户可在排版面板里改（--reading-font-size / --reading-line-height），
+ * 没设置时用这里的默认值。 */
 .prose-reading {
-  color: var(--foreground);
+  color: var(--ink);
   overflow-wrap: anywhere;
-  font-family: var(--reading-font-family, inherit);
-  font-size: var(--reading-font-size, 16px);
+  font-family: var(--reading-font-family, var(--font-sans));
+  font-size: var(--reading-font-size, 17px);
   line-height: var(--reading-line-height, 1.9);
   max-width: var(--reading-width, 38rem);
   margin-inline: 0;
@@ -445,7 +304,8 @@
   margin-block: 0.5em;
 }
 .prose-reading a {
-  color: var(--brand);
+  /* 正文里的链接是文字，用压暗的那档，陶土原色只有 2.96:1 */
+  color: var(--brand-strong);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
@@ -528,7 +388,7 @@
 
 /* ===== 划线标记 ===== */
 .hl-mark {
-  background: color-mix(in srgb, var(--brand) 14%, transparent);
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
   color: inherit;
   padding: 0.05em 0.1em;
   cursor: pointer;
@@ -538,7 +398,7 @@
   background: color-mix(in srgb, var(--brand) 22%, transparent);
 }
 .hl-mark:active {
-  background: color-mix(in srgb, var(--brand) 32%, transparent);
+  background: color-mix(in srgb, var(--brand) 34%, transparent);
 }
 
 /* ===== 搜索命中高亮（CSS Custom Highlight API）=====
@@ -547,11 +407,11 @@
  * 深浅色必须成对给，否则深色模式下黄底会刺眼。
  */
 ::highlight(reading-search-match) {
-  background-color: color-mix(in srgb, var(--brand) 22%, transparent);
+  background-color: color-mix(in srgb, var(--brand) 24%, transparent);
   color: inherit;
 }
 .dark ::highlight(reading-search-match) {
-  /* 深色下品牌红太暗，换成暖一点的琥珀，保证在深底上看得见 */
+  /* 深色下陶土太暗，换成暖一点的琥珀，保证在深底上看得见 */
   background-color: color-mix(in srgb, #f5c451 30%, transparent);
   color: inherit;
 }
@@ -605,11 +465,11 @@
   }
 }
 
-/* ===== 右栏概括（紧凑 Markdown）===== */
+/* ===== 右栏概括（紧凑 Markdown，§3.3：15px / 1.7）===== */
 .summary-prose {
-  font-size: 13.5px;
-  line-height: 1.75;
-  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-2);
 }
 .summary-prose > :first-child {
   margin-top: 0;
@@ -618,13 +478,13 @@
   margin: 1.1em 0 0.45em;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--foreground);
+  color: var(--ink);
 }
 .summary-prose h3 {
   margin: 0.9em 0 0.35em;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--foreground);
+  color: var(--ink);
 }
 .summary-prose p {
   margin: 0.5em 0;
@@ -637,24 +497,24 @@
   list-style: disc;
 }
 .summary-prose li::marker {
-  color: var(--brand);
+  color: var(--brand-strong);
 }
 .summary-prose strong {
-  color: var(--foreground);
+  color: var(--ink);
   font-weight: 600;
 }
 .summary-prose blockquote {
   margin: 0.6em 0;
   padding-left: 0.7em;
   border-left: 2px solid color-mix(in srgb, var(--brand) 45%, transparent);
-  color: var(--foreground);
+  color: var(--ink);
 }
 .summary-prose code {
   font-size: 0.9em;
   padding: 0.05em 0.3em;
   border-radius: 3px;
   background: var(--muted);
-  color: var(--foreground);
+  color: var(--ink);
 }
 
 /* ===== 视频逐行高亮（用显式类名，避免 Tailwind 任意透明度被裁） ===== */
@@ -667,7 +527,7 @@
   cursor: pointer;
 }
 .tr-line-active {
-  color: var(--foreground);
+  color: var(--ink);
   background: color-mix(in srgb, var(--brand) 16%, transparent);
   font-weight: 600;
   font-size: 15px;
