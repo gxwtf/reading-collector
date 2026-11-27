@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -78,7 +78,7 @@ export function BookUploader() {
               <span
                 className={
                   j.state === "ok"
-                    ? "text-brand"
+                    ? "text-brand-strong"
                     : j.state === "error"
                       ? "text-destructive"
                       : "text-muted-foreground"

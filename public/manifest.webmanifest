@@ -1,12 +1,12 @@
 {
-  "name": "阅读收集",
-  "short_name": "阅读收集",
-  "description": "把链接存进来，自动抓正文、转写音视频，在线读完、划线、打标签。",
+  "name": "稍后再看",
+  "short_name": "稍后再看",
+  "description": "把链接、文件、图片丢进来，自动分类；每条都有原文与 AI 概括。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#14100f",
-  "theme_color": "#a31f24",
+  "background_color": "#faf9f5",
+  "theme_color": "#faf9f5",
   "lang": "zh-CN",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
@@ -19,7 +19,7 @@
     "params": { "title": "title", "text": "text", "url": "url" }
   },
   "shortcuts": [
-    { "name": "我的收藏", "url": "/", "description": "打开收藏列表" },
+    { "name": "全部收藏", "url": "/", "description": "打开收藏列表" },
     { "name": "批注整理", "url": "/annotations", "description": "查看所有划线批注" }
   ]
 }

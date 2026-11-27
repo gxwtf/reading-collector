@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { Check, Link2, Loader2, X } from "lucide-react";
@@ -42,7 +42,7 @@ export function ShareButton({ entryId, token }: { entryId: number; token: string
       <button
         type="button"
         onClick={copy}
-        className="inline-flex items-center gap-1 rounded-lg border border-brand/40 bg-brand/10 px-2.5 py-1.5 text-xs text-brand transition-colors hover:bg-brand/20"
+        className="inline-flex items-center gap-1 rounded-lg border border-brand/40 bg-brand/10 px-2.5 py-1.5 text-xs text-brand-strong transition-colors hover:bg-brand/20"
         title={url}
       >
         {copied ? <Check className="size-3.5" /> : <Link2 className="size-3.5" />}

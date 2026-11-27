@@ -40,9 +40,9 @@ export function NavLinks({
               rel="noreferrer"
               onClick={onNavigate}
               className={[
-                "whitespace-nowrap text-sm font-medium transition-colors",
+                "whitespace-nowrap text-[15px] transition-colors",
                 mobile ? "py-1.5" : "py-2",
-                "text-muted-foreground hover:text-foreground",
+                "text-ink-2 hover:text-ink",
               ].join(" ")}
             >
               {item.label}
@@ -54,9 +54,9 @@ export function NavLinks({
             aria-current={on ? "page" : undefined}
             onClick={onNavigate}
             className={[
-              "whitespace-nowrap text-sm font-medium transition-colors",
+              "whitespace-nowrap text-[15px] transition-colors",
               mobile ? "py-1.5" : "py-2",
-              on ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              on ? "text-ink" : "text-ink-2 hover:text-ink",
             ].join(" ")}
           >
             {item.label}

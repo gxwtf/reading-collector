@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -24,7 +24,7 @@ export function UserAvatar({
         aria-hidden
         title={name ?? ""}
         style={{ width: size, height: size }}
-        className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-medium text-brand"
+        className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-medium text-brand-strong"
       >
         {initial}
       </span>

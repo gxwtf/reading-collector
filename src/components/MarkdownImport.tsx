@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -180,7 +180,7 @@ export function MarkdownImport() {
               type="button"
               disabled={busy || !text.trim()}
               onClick={submitText}
-              className="inline-flex h-8 items-center rounded-lg bg-brand px-2.5 text-sm font-medium text-brand-foreground disabled:opacity-50"
+              className="inline-flex h-8 items-center rounded-lg bg-brand-fill px-2.5 text-sm font-medium text-brand-foreground disabled:opacity-50"
             >
               导入
             </button>

@@ -74,7 +74,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
             }
             className={`rounded-md border px-2 py-1 text-xs ${
               onlyNotes
-                ? "border-brand/40 bg-brand/10 text-brand"
+                ? "border-brand/40 bg-brand/10 text-brand-strong"
                 : "border-border text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -82,7 +82,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
           </Link>
           <a
             href="/api/annotations/export"
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-brand"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-brand-strong"
           >
             <Download className="size-3.5" />
             导出
@@ -110,7 +110,7 @@ export default async function AnnotationsPage({ searchParams }: { searchParams: 
               <div className="flex items-baseline justify-between gap-2">
                 <Link
                   href={`/entry/${entry.id}`}
-                  className="min-w-0 truncate font-medium hover:text-brand"
+                  className="min-w-0 truncate font-medium hover:text-brand-strong"
                   title={entry.title}
                 >
                   {entry.title}

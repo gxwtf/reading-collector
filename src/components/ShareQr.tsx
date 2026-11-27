@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
@@ -91,7 +91,7 @@ export function ShareQr({ url }: { url: string }) {
             )
           ) : (
             <div className="flex h-20 flex-col items-center justify-center gap-1 text-muted-foreground">
-              {copied ? <Check className="size-5 text-brand" /> : <QrCode className="size-5" />}
+              {copied ? <Check className="size-5 text-brand-strong" /> : <QrCode className="size-5" />}
               <span className="text-xs">{copied ? "链接已复制" : "请手动复制链接"}</span>
             </div>
           )}
@@ -107,7 +107,7 @@ export function ShareQr({ url }: { url: string }) {
           {env !== "desktop" ? (
             <a
               href="weixin://"
-              className="mt-2 inline-block text-[11px] text-brand underline"
+              className="mt-2 inline-block text-[11px] text-brand-strong underline"
             >
               没跳过去？点这里打开微信
             </a>

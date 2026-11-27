@@ -45,7 +45,7 @@ export function ThemeToggle() {
         aria-label="切换主题"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="inline-flex size-11 items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-paper-muted hover:text-ink"
       >
         <Icon className="size-4" />
       </button>
@@ -53,7 +53,7 @@ export function ThemeToggle() {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-10 z-50 w-40 overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg"
+          className="absolute right-0 top-12 z-50 w-40 overflow-hidden rounded-xl border border-hairline bg-popover p-1 text-popover-foreground"
         >
           {OPTIONS.map(({ value, label, icon: ItemIcon }) => (
             <button
@@ -65,11 +65,11 @@ export function ThemeToggle() {
                 setTheme(value);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors hover:bg-muted"
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[14px] transition-colors hover:bg-paper-muted"
             >
               <ItemIcon className="size-4" />
               <span className="flex-1 text-left">{label}</span>
-              {theme === value ? <Check className="size-3.5 text-brand" /> : null}
+              {theme === value ? <Check className="size-3.5 text-brand-strong" /> : null}
             </button>
           ))}
         </div>

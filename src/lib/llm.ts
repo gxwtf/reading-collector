@@ -114,7 +114,7 @@ export async function chat(
   }
 }
 
-const SUMMARY_PROMPT = `你在为「阅读收集」写一份读书笔记摘要。请严格按下面的 Markdown 结构输出，不要任何开场白或额外解释：
+const SUMMARY_PROMPT = `你在为「稍后再看」写一份读书笔记摘要。请严格按下面的 Markdown 结构输出，不要任何开场白或额外解释：
 
 ## 一句话结论
 （一句话，不超过 40 字，说清这篇最重要的判断或发现）

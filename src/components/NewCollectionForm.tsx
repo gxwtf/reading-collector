@@ -24,13 +24,13 @@ export function NewCollectionForm() {
         required
         maxLength={40}
         placeholder="新建分组"
-        className="h-7 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="h-9 min-w-0 flex-1 rounded-[10px] border border-input bg-transparent px-2.5 text-[13px] outline-none placeholder:text-ink-3 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
       />
       <button
         type="submit"
         disabled={pending}
         aria-label="新建分组"
-        className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground disabled:opacity-50"
+        className="inline-flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-hairline text-ink-2 transition-colors hover:border-hairline-dashed hover:text-ink disabled:opacity-50"
       >
         <Plus className="size-3.5" />
       </button>

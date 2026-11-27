@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     return front;
   });
 
-  const body = `# 阅读收集导出（${stamp}，${entries.length} 篇）\n\n${parts.join("\n\n---\n\n")}`;
+  const body = `# 稍后再看导出（${stamp}，${entries.length} 篇）\n\n${parts.join("\n\n---\n\n")}`;
 
   return new Response(body, {
     headers: {

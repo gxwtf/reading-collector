@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
@@ -56,7 +56,7 @@ export function KeyframePanel({
               <button
                 type="button"
                 onClick={() => onSeek(k.timeSec)}
-                className="tabular-nums hover:text-brand"
+                className="tabular-nums hover:text-brand-strong"
               >
                 {mmss(k.timeSec)}
               </button>

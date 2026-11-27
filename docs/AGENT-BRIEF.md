@@ -140,7 +140,6 @@ Route (app)
 ├ ƒ /api/media/[id]/hls/[...path]
 ├ ƒ /api/media/[id]/prepare
 ├ ƒ /api/media/[id]/status
-├ ƒ /api/quote-card
 ├ ƒ /api/rss
 ├ ƒ /api/rss/opml
 ├ ƒ /api/share-card
@@ -217,7 +216,6 @@ Route (app)
 ├ ƒ /api/media/[id]/hls/[...path]
 ├ ƒ /api/media/[id]/prepare
 ├ ƒ /api/media/[id]/status
-├ ƒ /api/quote-card
 ├ ƒ /api/rss
 ├ ƒ /api/rss/opml
 ├ ƒ /api/share-card

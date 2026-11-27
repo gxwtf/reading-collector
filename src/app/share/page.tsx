@@ -3,7 +3,7 @@ import { BookOpenText } from "lucide-react";
 import { ShareForm } from "@/components/ShareForm";
 import { requireSession } from "@/lib/session";
 
-export const metadata: Metadata = { title: "收藏到阅读收集" };
+export const metadata: Metadata = { title: "收藏到稍后再看" };
 
 type Search = Promise<{ url?: string; text?: string; title?: string }>;
 
@@ -23,8 +23,8 @@ export default async function SharePage({ searchParams }: { searchParams: Search
   return (
     <div className="mx-auto max-w-md space-y-5 py-8">
       <div className="flex items-center gap-2">
-        <BookOpenText className="size-5 text-brand" />
-        <h1 className="text-lg font-semibold">收藏到阅读收集</h1>
+        <BookOpenText className="size-5 text-brand-strong" />
+        <h1 className="text-lg font-semibold">收藏到稍后再看</h1>
       </div>
 
       {url ? (

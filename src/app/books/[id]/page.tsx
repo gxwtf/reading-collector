@@ -6,7 +6,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
-export const metadata: Metadata = { title: "书籍详情 · 阅读收集" };
+export const metadata: Metadata = { title: "书籍详情 · 稍后再看" };
 export const dynamic = "force-dynamic";
 
 export default async function BookPage({ params }: { params: Promise<{ id: string }> }) {
@@ -36,7 +36,7 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="space-y-6">
-      <Link href="/books" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-brand">
+      <Link href="/books" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-brand-strong">
         <ArrowLeft className="size-3.5" />
         书库
       </Link>
@@ -82,7 +82,7 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
               href="/readest-boot"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-brand"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-brand-strong"
             >
               在阅读器中打开
             </a>
@@ -103,7 +103,7 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
           <ul className="space-y-1">
             {book.bookmarks.map((b) => (
               <li key={b.id} className="rounded-lg border border-border px-3 py-2 text-sm">
-                <span className="text-brand">◆</span> {b.title || b.cfi}
+                <span className="text-brand-strong">◆</span> {b.title || b.cfi}
                 {b.notes ? <span className="ml-2 text-xs text-muted-foreground">{b.notes}</span> : null}
               </li>
             ))}

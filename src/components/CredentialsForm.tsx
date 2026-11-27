@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useActionState } from "react";
 import { ExternalLink, Loader2, ShieldCheck } from "lucide-react";
@@ -57,7 +57,7 @@ export function CredentialsForm({ configured }: { configured: Record<string, boo
             <div className="flex items-center gap-2 text-sm">
               <span className="font-medium">{s.label}</span>
               {has ? (
-                <span className="inline-flex items-center gap-1 text-xs text-brand">
+                <span className="inline-flex items-center gap-1 text-xs text-brand-strong">
                   <ShieldCheck className="size-3.5" />
                   已配置
                 </span>
@@ -95,7 +95,7 @@ export function CredentialsForm({ configured }: { configured: Record<string, boo
                 href={s.login}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-0.5 text-brand hover:underline"
+                className="inline-flex items-center gap-0.5 text-brand-strong hover:underline"
               >
                 {s.label}
                 <ExternalLink className="size-3" />
@@ -114,7 +114,7 @@ export function CredentialsForm({ configured }: { configured: Record<string, boo
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex h-8 items-center rounded-lg bg-brand px-3 text-sm font-medium text-brand-foreground disabled:opacity-50"
+          className="inline-flex h-8 items-center rounded-lg bg-brand-fill px-3 text-sm font-medium text-brand-foreground disabled:opacity-50"
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : null}
           保存凭据

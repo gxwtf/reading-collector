@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
@@ -20,7 +20,7 @@ function Row({ label, value }: { label: string; value: string }) {
             setDone(false);
           }
         }}
-        className="shrink-0 rounded-md border border-border p-1.5 text-muted-foreground hover:text-brand"
+        className="shrink-0 rounded-md border border-border p-1.5 text-muted-foreground hover:text-brand-strong"
         aria-label={`复制${label}`}
       >
         {done ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}

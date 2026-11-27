@@ -19,7 +19,7 @@ export async function GET() {
     byEntry.set(h.entryId, list);
   }
 
-  const lines: string[] = [`# 阅读收集 · 批注导出`, ``, `> 导出时间：${new Date().toLocaleString("zh-CN")}`, ``];
+  const lines: string[] = [`# 稍后再看 · 批注导出`, ``, `> 导出时间：${new Date().toLocaleString("zh-CN")}`, ``];
   for (const [, items] of byEntry) {
     const entry = items[0].entry;
     lines.push(`## ${entry.title}`, ``);

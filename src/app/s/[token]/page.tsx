@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       .replace(/[#>*`\-]/g, "")
       .replace(/\s+/g, " ")
       .trim()
-      .slice(0, 110) || "来自广学五题坊 · 阅读收集";
+      .slice(0, 110) || "来自广学五题坊 · 稍后再看";
 
   return {
     title: entry.title,
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       title: entry.title,
       description: desc,
       type: "article",
-      siteName: "阅读收集",
+      siteName: "稍后再看",
       images: entry.coverImage
         ? [{ url: entry.coverImage }]
         : [{ url: "https://reading.gxwtf.cn/icons/icon-512.png", width: 512, height: 512 }],
@@ -81,7 +81,7 @@ export default async function SharedPage({ params }: { params: Params }) {
             href={entry.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-brand hover:underline"
+            className="inline-flex items-center gap-1 text-brand-strong hover:underline"
           >
             原文
             <ExternalLink className="size-3.5" />
@@ -135,7 +135,7 @@ export default async function SharedPage({ params }: { params: Params }) {
       )}
 
       <footer className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
-        由 广学五题坊 · <Link href="/" className="underline">阅读收集</Link> 分享
+        由 广学五题坊 · <Link href="/" className="underline">稍后再看</Link> 分享
       </footer>
     </article>
   );

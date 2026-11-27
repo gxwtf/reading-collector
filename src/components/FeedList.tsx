@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { RefreshCw, Rss, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
@@ -23,7 +23,7 @@ export async function FeedList() {
       <ul className="mt-2 space-y-1.5">
         {feeds.map((feed) => (
           <li key={feed.id} className="flex items-center gap-2 text-sm">
-            <Link href="/?q=RSS" className="min-w-0 flex-1 truncate hover:text-brand" title={feed.url}>
+            <Link href="/?q=RSS" className="min-w-0 flex-1 truncate hover:text-brand-strong" title={feed.url}>
               {feed.title ?? feed.url}
             </Link>
             <span className="shrink-0 text-xs text-muted-foreground">

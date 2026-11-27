@@ -7,7 +7,7 @@ import { getSession } from "@/lib/session";
 import { syncBooks } from "@/lib/readest";
 import { BookUploader } from "@/components/BookUploader";
 
-export const metadata: Metadata = { title: "书库 · 阅读收集" };
+export const metadata: Metadata = { title: "书库 · 稍后再看" };
 export const dynamic = "force-dynamic";
 
 function Progress({ value }: { value: number | null }) {
@@ -31,7 +31,7 @@ export default async function BooksPage() {
     return (
       <div className="mx-auto max-w-md space-y-4 py-20 text-center">
         <h1 className="text-lg font-semibold">先登录再看书库</h1>
-        <Link href="/login" className="text-sm text-brand hover:underline">
+        <Link href="/login" className="text-sm text-brand-strong hover:underline">
           去登录
         </Link>
       </div>
@@ -52,7 +52,7 @@ export default async function BooksPage() {
     <div className="space-y-6">
       {/* 头部 */}
       <div className="flex flex-wrap items-center gap-3">
-        <BookOpen className="size-5 text-brand" />
+        <BookOpen className="size-5 text-brand-strong" />
         <h1 className="text-xl font-semibold">书库</h1>
         <span className="text-xs text-muted-foreground">
           {total} 本{reading.length ? ` · ${reading.length} 本在读` : ""}
@@ -62,7 +62,7 @@ export default async function BooksPage() {
             href="https://book.gxwtf.cn/"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-brand"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-brand-strong"
           >
             <Upload className="size-3.5" />
             添加书籍
@@ -71,7 +71,7 @@ export default async function BooksPage() {
             href="https://book.gxwtf.cn/"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-fill px-3 py-1.5 text-xs font-medium text-brand-foreground transition-opacity hover:opacity-90"
           >
             <BookMarked className="size-3.5" />
             去读书
@@ -158,7 +158,7 @@ export default async function BooksPage() {
 
                 <div className="flex min-w-0 flex-1 flex-col">
                   <Link href={`/books/${b.id}`}>
-                    <h3 className="truncate text-sm font-medium group-hover:text-brand">{b.title}</h3>
+                    <h3 className="truncate text-sm font-medium group-hover:text-brand-strong">{b.title}</h3>
                   </Link>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {b.author || "未知作者"}
@@ -175,14 +175,14 @@ export default async function BooksPage() {
                     <div className="flex items-center gap-2">
                       <a
                         href={`/api/books/${b.id}/file`}
-                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-brand"
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-brand-strong"
                       >
                         <Download className="size-3" />
                         下载
                       </a>
                       <Link
                         href={`/books/${b.id}`}
-                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-brand"
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-brand-strong"
                       >
                         <Search className="size-3" />
                         笔记

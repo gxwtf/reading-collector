@@ -4,13 +4,13 @@ import { ArrowLeft } from "lucide-react";
 
 import { ReadestSetup } from "@/components/ReadestSetup";
 
-export const metadata: Metadata = { title: "阅读器同步设置 · 阅读收集" };
+export const metadata: Metadata = { title: "阅读器同步设置 · 稍后再看" };
 export const dynamic = "force-dynamic";
 
 export default function ReadestSetupPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <Link href="/books" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-brand">
+      <Link href="/books" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-brand-strong">
         <ArrowLeft className="size-3.5" />
         书库
       </Link>

@@ -10,21 +10,21 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#a31f24" },
-    { media: "(prefers-color-scheme: dark)", color: "#8a1010" },
+    { media: "(prefers-color-scheme: light)", color: "#faf9f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f1e1d" },
   ],
 };
 
 export const metadata: Metadata = {
   title: {
-    default: "阅读收集",
-    template: "%s | 阅读收集",
+    default: "稍后再看",
+    template: "%s | 稍后再看",
   },
   description:
-    "广学五题坊旗下的阅读收集：把链接存进来，自动抓正文、转写音视频，在线读完、划线、打标签。",
-  applicationName: "阅读收集",
+    "把链接、文件、图片丢进来，自动分类；每条都有原文与 AI 概括，读完还能生成分享小图。",
+  applicationName: "稍后再看",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "阅读收集", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "稍后再看", statusBarStyle: "default" },
   icons: {
     icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
@@ -39,11 +39,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className="antialiased flex flex-col min-h-screen bg-background text-foreground">
+      <body className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
         <ThemeProvider>
           <ServiceWorker />
           <Navbar />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 lg:px-6 xl:max-w-[1280px] 2xl:max-w-[1536px]">{children}</main>
+          <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 md:px-12 md:py-10">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>
