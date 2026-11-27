@@ -5,6 +5,7 @@ import { AddEntryForm } from "@/components/AddEntryForm";
 import { EntryList } from "@/components/EntryList";
 import { FetchProgress } from "@/components/FetchProgress";
 import { BilibiliFavImport } from "@/components/BilibiliFavImport";
+import { EpubImport } from "@/components/EpubImport";
 import { MarkdownImport } from "@/components/MarkdownImport";
 import { OpmlImport } from "@/components/OpmlImport";
 import { FeedList } from "@/components/FeedList";
@@ -155,11 +156,12 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         <AddEntryForm collections={collections.map((c) => ({ id: c.id, name: c.name }))} />
         <details className="rounded-xl border border-border bg-card p-3">
           <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
-            更多导入方式（B 站收藏夹 / 合集 / RSS / Markdown）
+            更多导入方式（B 站收藏夹 / 合集 / RSS / Markdown / EPUB）
           </summary>
           <div className="mt-3 space-y-3">
             <BilibiliFavImport />
             <MarkdownImport />
+            <EpubImport />
             <OpmlImport />
           </div>
         </details>
