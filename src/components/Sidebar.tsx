@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { deleteCollection } from "@/actions/collections";
 import { NewCollectionForm } from "@/components/NewCollectionForm";
-import { Button } from "@/components/ui/button";
+import { KINDS, kindLabel } from "@/lib/kind";
 
 export type SidebarCounts = {
   total: number;
@@ -11,99 +11,111 @@ export type SidebarCounts = {
   article: number;
   video: number;
   podcast: number;
+  document: number;
 };
 
 type Props = {
   collections: { id: number; name: string; count: number }[];
   counts: SidebarCounts;
   active: { collection?: number; kind?: string; readState?: string; favorite?: boolean };
+  /** 移动端横向分类条只要分类，不要「我的分组」与新建表单 */
+  compact?: boolean;
 };
 
-/** 与广学题库 FilterPanel 一致的筛选按钮：选中实心，未选中描边，text-xs px-3 py-1 */
-function Chip({
+/**
+ * 分类侧栏（设计说明 §4.2）：左文字、右数量，选中项底色加深。
+ *
+ * 分类用的是项目里真实存在的 kind（article / video / podcast / document），
+ * 不照抄设计稿的「图片 / 链接与工具」——库里没有这两种类型，写出来永远是 0。
+ */
+function Item({
   href,
   on,
-  children,
+  label,
+  count,
 }: {
   href: string;
   on: boolean;
-  children: React.ReactNode;
+  label: string;
+  count: number;
 }) {
   return (
-    <Button
-      asChild
-      variant={on ? "default" : "outline"}
-      size="sm"
-      className="px-3 py-1 text-xs"
+    <Link
+      href={href}
+      aria-current={on ? "page" : undefined}
+      className={[
+        "flex items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-[15px] transition-colors",
+        on ? "bg-paper-muted font-medium text-ink" : "text-ink-2 hover:bg-paper-muted/60 hover:text-ink",
+      ].join(" ")}
     >
-      <Link href={href}>{children}</Link>
-    </Button>
+      <span className="truncate">{label}</span>
+      <span className="shrink-0 tabular-nums text-[13px] text-ink-3">{count}</span>
+    </Link>
   );
 }
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="mb-3 block text-sm font-medium text-muted-foreground">{label}</p>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-}
-
-export function Sidebar({ collections, counts, active }: Props) {
+export function Sidebar({ collections, counts, active, compact }: Props) {
   const isAll = !active.kind && !active.collection && !active.readState && !active.favorite;
 
-  return (
-    <aside className="space-y-6 rounded-xl border border-border bg-card p-4">
-      <Group label="状态">
-        <Chip href="/" on={isAll}>
-          全部 <span className="ml-1 tabular-nums opacity-70">{counts.total}</span>
-        </Chip>
-        <Chip href="/?readState=unread" on={active.readState === "unread"}>
-          未读 <span className="ml-1 tabular-nums opacity-70">{counts.unread}</span>
-        </Chip>
-        <Chip href="/?favorite=1" on={Boolean(active.favorite)}>
-          收藏 <span className="ml-1 tabular-nums opacity-70">{counts.favorite}</span>
-        </Chip>
-      </Group>
+  // 类型项从 KINDS 生成，中文名一律走 kindLabel()——这里曾经硬编码过一份
+  // 「文章/视频/播客/文档」，加类型时得改两处（kind.ts 与这里）。
+  const items = (
+    <>
+      <Item href="/" on={isAll} label="全部" count={counts.total} />
+      <Item href="/?readState=unread" on={active.readState === "unread"} label="未读" count={counts.unread} />
+      <Item href="/?favorite=1" on={Boolean(active.favorite)} label="收藏" count={counts.favorite} />
+      {KINDS.map((k) => (
+        <Item
+          key={k}
+          href={`/?kind=${k}`}
+          on={active.kind === k}
+          label={kindLabel(k)}
+          count={counts[k]}
+        />
+      ))}
+    </>
+  );
 
-      <Group label="类型">
-        <Chip href="/?kind=article" on={active.kind === "article"}>
-          文章 <span className="ml-1 tabular-nums opacity-70">{counts.article}</span>
-        </Chip>
-        <Chip href="/?kind=video" on={active.kind === "video"}>
-          视频 <span className="ml-1 tabular-nums opacity-70">{counts.video}</span>
-        </Chip>
-        <Chip href="/?kind=podcast" on={active.kind === "podcast"}>
-          播客 <span className="ml-1 tabular-nums opacity-70">{counts.podcast}</span>
-        </Chip>
-      </Group>
+  // 移动端：横向滚动的分类条（§6「小于 768px 时侧栏收为顶部横向滚动的分类条」）
+  if (compact) {
+    return (
+      <nav aria-label="分类" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+        <div className="flex gap-1 [&>a]:whitespace-nowrap [&>a]:px-3.5">{items}</div>
+      </nav>
+    );
+  }
+
+  return (
+    <aside className="space-y-6">
+      <nav aria-label="分类" className="space-y-0.5">
+        {items}
+      </nav>
 
       <div>
-        <p className="mb-3 block text-sm font-medium text-muted-foreground">我的分组</p>
-        <div className="flex flex-wrap gap-2">
-          {collections.length === 0 ? (
-            <p className="text-xs text-muted-foreground">还没有分组</p>
-          ) : (
-            collections.map((c) => (
-              <span key={c.id} className="group inline-flex items-center">
-                <Chip href={`/?collection=${c.id}`} on={active.collection === c.id}>
-                  {c.name} <span className="ml-1 tabular-nums opacity-70">{c.count}</span>
-                </Chip>
+        <p className="px-3 pb-1.5 text-[13px] text-ink-3">我的分组</p>
+        {collections.length === 0 ? (
+          <p className="px-3 py-1.5 text-[13px] text-ink-3">还没有分组</p>
+        ) : (
+          <div className="space-y-0.5">
+            {collections.map((c) => (
+              <div key={c.id} className="group flex items-center">
+                <div className="min-w-0 flex-1">
+                  <Item href={`/?collection=${c.id}`} on={active.collection === c.id} label={c.name} count={c.count} />
+                </div>
                 <form action={deleteCollection.bind(null, c.id)}>
                   <button
                     type="submit"
                     aria-label={`删除分组 ${c.name}`}
-                    className="ml-1 inline-flex size-7 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity pointer-fine:size-6 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 hover:text-destructive"
+                    className="ml-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-3 opacity-60 transition-opacity hover:text-destructive pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
                 </form>
-              </span>
-            ))
-          )}
-        </div>
-        <div className="mt-3">
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-2 px-1">
           <NewCollectionForm />
         </div>
       </div>

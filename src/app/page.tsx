@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
-import { AddEntryForm } from "@/components/AddEntryForm";
 import { EntryList } from "@/components/EntryList";
 import { FetchProgress } from "@/components/FetchProgress";
 import { BilibiliFavImport } from "@/components/BilibiliFavImport";
@@ -10,8 +9,10 @@ import { MarkdownImport } from "@/components/MarkdownImport";
 import { OpmlImport } from "@/components/OpmlImport";
 import { FeedList } from "@/components/FeedList";
 import { Sidebar } from "@/components/Sidebar";
+import { DropZone } from "@/components/DropZone";
+import { isKind, kindLabel } from "@/lib/kind";
 
-export const metadata: Metadata = { title: "我的收藏" };
+export const metadata: Metadata = { title: "稍后再看" };
 
 type SearchParams = Promise<{
   readState?: string;
@@ -28,7 +29,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
   const collectionId = Number(sp.collection || 0) || undefined;
   const q = (sp.q || "").trim().slice(0, 60);
-  const kind = sp.kind && ["article", "video", "podcast"].includes(sp.kind) ? sp.kind : undefined;
+  const kind = isKind(sp.kind) ? sp.kind : undefined;
 
   const where = {
     userId,
@@ -90,61 +91,66 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   const ready = stateCount("ready");
   const failed = stateCount("failed");
 
+  const counts = {
+    total,
+    unread,
+    favorite: favoriteCount,
+    article: kindCount("article"),
+    video: kindCount("video"),
+    podcast: kindCount("podcast"),
+    document: kindCount("document"),
+  };
+  const collectionOptions = collections.map((c) => ({ id: c.id, name: c.name }));
+  const sidebarCollections = collections.map((c) => ({
+    id: c.id,
+    name: c.name,
+    count: c._count.entries,
+  }));
+  const active = {
+    collection: collectionId,
+    kind,
+    readState: sp.readState,
+    favorite: Boolean(sp.favorite),
+  };
+
+  const heading = q
+    ? `搜索：${q}`
+    : collectionId
+      ? (collections.find((c) => c.id === collectionId)?.name ?? "分组")
+      : kind
+        ? kindLabel(kind)
+        : sp.readState === "unread"
+          ? "未读"
+          : sp.favorite
+            ? "收藏"
+            : "全部收藏";
+
   return (
-    <div className="grid gap-6 md:grid-cols-[200px_1fr] xl:grid-cols-[232px_1fr]">
-      {/* 横屏时侧栏跟随（grid 高度等于内容高度，需 self-start 才吸得住） */}
-      <div className="hidden md:sticky md:top-20 md:block md:self-start">
-      <Sidebar
-        collections={collections.map((c) => ({ id: c.id, name: c.name, count: c._count.entries }))}
-        counts={{
-          total,
-          unread,
-          favorite: favoriteCount,
-          article: kindCount("article"),
-          video: kindCount("video"),
-          podcast: kindCount("podcast"),
-        }}
-        active={{ collection: collectionId, kind, readState: sp.readState, favorite: Boolean(sp.favorite) }}
-      />
+    <div className="grid gap-10 md:grid-cols-[200px_minmax(0,1fr)]">
+      {/* 桌面侧栏：sticky 需要 self-start，否则会被 grid 拉伸到内容高度 */}
+      <div className="hidden md:sticky md:top-24 md:block md:self-start">
+        <Sidebar collections={sidebarCollections} counts={counts} active={active} />
       </div>
 
-      <details className="rounded-xl border border-border bg-card p-3 md:hidden">
-        <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground">筛选 / 分组</summary>
-        <div className="mt-3">
-      <Sidebar
-        collections={collections.map((c) => ({ id: c.id, name: c.name, count: c._count.entries }))}
-        counts={{
-          total,
-          unread,
-          favorite: favoriteCount,
-          article: kindCount("article"),
-          video: kindCount("video"),
-          podcast: kindCount("podcast"),
-        }}
-        active={{ collection: collectionId, kind, readState: sp.readState, favorite: Boolean(sp.favorite) }}
-      />
+      <div className="min-w-0 space-y-7">
+        {/* 移动端：横向滚动的分类条 */}
+        <div className="md:hidden">
+          <Sidebar
+            collections={[]}
+            counts={counts}
+            active={active}
+            compact
+          />
         </div>
-      </details>
 
-      <div className="min-w-0 space-y-4">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-xl font-semibold">
-            {q
-              ? `搜索：${q}`
-              : collectionId
-              ? (collections.find((c) => c.id === collectionId)?.name ?? "分组")
-              : kind
-                ? { article: "文章", video: "视频", podcast: "播客" }[kind as "article" | "video" | "podcast"]
-                : sp.readState === "unread"
-                  ? "未读"
-                  : sp.favorite
-                    ? "收藏"
-                    : "我的收藏"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            共 {entries.length} 条{entries.length === 100 ? "（只显示最近 100 条）" : ""}
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h1 className="font-serif text-[26px] font-semibold leading-tight text-ink">{heading}</h1>
+          <p className="text-[13px] text-ink-3">
+            {entries.length} 条{entries.length === 100 ? "（只显示最近 100 条）" : ""}
           </p>
         </div>
+
+        <DropZone collections={collectionOptions} activeCollectionId={collectionId} />
 
         <FetchProgress
           pending={Math.max(0, pending - runningJobs)}
@@ -152,20 +158,6 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           ready={ready}
           failed={failed}
         />
-
-        <AddEntryForm collections={collections.map((c) => ({ id: c.id, name: c.name }))} />
-        <details className="rounded-xl border border-border bg-card p-3">
-          <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
-            更多导入方式（B 站收藏夹 / 合集 / RSS / Markdown / EPUB）
-          </summary>
-          <div className="mt-3 space-y-3">
-            <BilibiliFavImport />
-            <MarkdownImport />
-            <EpubImport />
-            <OpmlImport />
-          </div>
-        </details>
-        <FeedList />
 
         <EntryList
           entries={entries.map((entry) => ({
@@ -184,10 +176,24 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
             createdAt: entry.createdAt.toISOString(),
             tags: entry.tags.map((t) => t.tag.name),
           }))}
-          collections={collections.map((c) => ({ id: c.id, name: c.name }))}
+          collections={collectionOptions}
           activeCollectionId={collectionId}
           searchQuery={q || undefined}
         />
+
+        {/* 功能入口整体后置：默认折叠，不抢首页的视觉重心（用户选择「保留功能入口，只重排版式」） */}
+        <details className="rounded-2xl border border-hairline bg-card px-5 py-4">
+          <summary className="cursor-pointer list-none text-[14px] text-ink-2 transition-colors hover:text-ink">
+            更多导入方式 / RSS 订阅
+          </summary>
+          <div className="mt-4 space-y-4">
+            <BilibiliFavImport />
+            <MarkdownImport />
+            <EpubImport />
+            <OpmlImport />
+            <FeedList />
+          </div>
+        </details>
       </div>
     </div>
   );
