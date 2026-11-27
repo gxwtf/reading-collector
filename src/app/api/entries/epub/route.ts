@@ -1,5 +1,6 @@
 // 导入 epub：jszip 解包 + turndown 转 Markdown，直接入库，不走抓取
 import type { NextRequest } from "next/server";
+import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { saveTextEntry } from "@/lib/entry-import";
 import { parseEpub } from "@/lib/epub";
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest) {
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
   if (files.length === 0) return Response.json({ error: "没有收到文件" }, { status: 400 });
 
+  // 分组归属必须服务端校验，不能信前端传的 id
+  const rawCollection = Number(form.get("collectionId"));
+  const collectionId = Number.isInteger(rawCollection) && rawCollection > 0
+    ? (await prisma.collection.findFirst({ where: { id: rawCollection, userId: session.userId }, select: { id: true } }))?.id ?? null
+    : null;
+
   let added = 0;
   let skipped = 0;
   for (const file of files) {
@@ -36,6 +43,7 @@ export async function POST(request: NextRequest) {
         site: "EPUB",
         urlPrefix: "epub",
         author,
+        collectionId,
       });
       if (ok) added += 1;
       else skipped += 1;
