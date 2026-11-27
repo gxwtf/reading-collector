@@ -58,7 +58,9 @@ This is NOT the Next.js you know. 本项目用 Next 16，API 与约定与训练�
 改完不得直接结束：
 
 1. `pnpm typecheck` 必须通过；
-2. `pnpm build` 必须成功（线上用 `next start`，构建脚本固定 `next build --webpack`）；
+2. 构建只在部署器内跑：`bash scripts/deploy.sh deploy`（`sh` 会因 `set -o pipefail` 报错；
+   只验能否编译用 `bash scripts/deploy.sh build_only`）。**禁止在仓库里裸跑 `pnpm build`**——
+   Next 会先清 `.next`，线上立刻白屏；
 3. 动了 Prisma schema：本地 `pnpm db:migrate` 能跑通，且新迁移文件一起提交；
 4. 动了 worker：`python3 -m py_compile worker/*.py`，并用 `python3 worker/worker.py --dry-run` 验证能领到任务；
 5. 动了收藏/状态/重试等核心流程，手动跑一遍：收藏 → 等抓取 → 打开详情 → 标已读。
@@ -78,12 +80,18 @@ docs/          架构与设计说明
 ## 部署
 
 ```bash
-cd ~/gxwtf_reading && git pull
-pnpm install
+cd ~/gxwtf_reading
+git pull && git status --short          # 必须干净：部署器 rsync 磁盘内容，未提交改动也会上线
+bash scripts/deploy.sh log | tail -3    # 看 30 分钟内有没有别人在部署（部署器没有 flock）
+
+# schema 有变更时：先迁移、再部署，且迁移必须向后兼容（删列/改类型分两次发布）
 pnpm exec prisma migrate deploy
-pnpm build
-sudo /usr/local/sbin/gxwtf-systemctl restart gxreading.service
-sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
+
+bash scripts/deploy.sh deploy           # 构建 → 快照 → 切换 → 重启 → 冒烟；失败自动回滚
+
+# 动了 worker/*.py 才需要（部署器只重启 gxreading，不含 worker）
+sudo -n systemctl restart gxreading-worker.service
+journalctl -u gxreading-worker -n 20 --no-pager   # 无 traceback
 ```
 
 - 数据库：`gxwtf_reading`（独立库，不要塞进 `gxwtf_writing`）
@@ -114,17 +122,29 @@ sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
 搜索单次查询 0.27ms），照 ROADMAP 的旧描述决定先做「全文检索」是错的——那个量级
 谈性能没有意义，真问题通常在正确性（卡死任务回收、失败静默、越权）。
 
-### 2. Agent：按目标派活
+### 2. Agent：按补丁尺寸派活
 
-- 能一次说清「改哪个文件哪几行」→ 自己做；说不清 → 派 agent。
-- 派单用补丁式：目标 + 文件 + 验收标准 + 禁止事项。禁止「你先探索一下」。
-- 独立的子任务才并行（改不同文件、不共享状态）。共享 schema 或同一文件的串行做。
+**先写补丁，再决定谁做**。补丁 = 文件 + 「原字符串 → 新字符串」。
+
+| 情形 | 谁做 |
+| --- | --- |
+| ≤1 文件且 ≤5 行、无行为变化（文案/格式） | 自己做，跳过 Goal 文件 |
+| ≥2 文件 或 ≥20 行 | 派 agent |
+| 写不出补丁（要先探索才知道改哪） | 派 agent，让它先出补丁再改 |
+
+派单必须是补丁式：目标 + 文件 + 验收断言 + 禁止事项 + `Goal:` 路径。禁止「你先探索一下」。
+
+命令别混：本机子 agent 用 `Agent` 工具（当前唯一可用）；`minis-cloud agent` 是云端，**本机没装**（无 `minis_cloud.py`、agent-cloud 无 token，见 CLAUDE.md §8）。
+
+独立子任务才并行（改不同文件、不共享状态）；共享 schema 或同一文件的串行做。单提交 ≤5 文件 / ≤200 行 diff。
 
 ### 3. 审查：必须换视角
 
-1. **不能自己审自己**——换一个 agent，或用「按文件顺序从头读 diff」的方式重读。
-2. 对照第一段的**验收标准**审，不是对照代码好不好看。
-3. 必问四题：
+1. **派独立 agent 审**，不是自己重读——「换个心态重读」等于没换人。
+2. 对照第一段的**断言**审，不是对照代码好不好看。
+3. **结论只能三选一**：通过 / 不通过（附原因）/ 不通过但已豁免（附理由）。
+   产物用 **Edit** 追加到任务文件（非交互会话里 `Write(path)` 权限规则会被忽略）。
+4. 必问四题：
    - 失败时用户看到什么？会静默失败吗？
    - 边界：空 / 超长 / 并发 / 越权 / 别人的 id？
    - **有没有第二处同样的逻辑**？（本项目最高频的 bug：`retryFetch` 与
@@ -139,12 +159,38 @@ sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
 | 改动 | 最低验证 |
 | --- | --- |
 | 纯函数 / 规则 | `pnpm test`，关键分支各一条 |
-| 接口 | 真实 curl：正常 + 未登录 + 越权 + 非法输入 |
-| 前端 | typecheck 不够，要有浏览器实测或截图；没有就明说「未实测」 |
-| schema | `prisma validate` → `migrate deploy` → 查表结构 |
-| 部署 | `scripts/deploy.sh`（禁裸跑 build），冒烟全绿，确认回滚点 |
+| 接口 | 真实 curl：正常 + 未登录 + 越权 + 非法输入。要登录态先铸 cookie（见下） |
+| 前端 | typecheck 不够。本机 Windows 用 Chrome/Edge 打开线上点一遍并截图（服务器没 Playwright） |
+| schema | `prisma validate` → `migrate deploy` → 查表结构；删列/改类型分两次发布 |
+| 部署 | `bash scripts/deploy.sh deploy`（`sh` 会报 `Illegal option -o pipefail`），冒烟全绿，确认回滚点 |
 
 报完成时给三件套：改了什么 / 为什么 / **怎么验证的（贴实际输出）**。没测的部分点名说。
+
+**要登录态怎么造**（`/tmp` 下解析不到 `node_modules`，必须在仓库目录跑）：
+
+```bash
+cd ~/gxwtf_reading && cat > ./mint-tmp.mjs <<'EOF'
+import { sealData } from "iron-session";
+import fs from "node:fs";
+const env = fs.readFileSync(".env", "utf8");
+const pw = /^SECRET_COOKIE_PASSWORD=(.*)$/m.exec(env)[1].replace(/^"|"$/g, "");
+console.log(await sealData({ isLoggedIn:true, userId:2691, userName:"t", admin:0, email:"", realName:"", grade:12, counter:0, version:"senior" }, { password: pw, ttl: 900 }));
+EOF
+node ./mint-tmp.mjs; rm -f ./mint-tmp.mjs
+# 用法：curl -H "Cookie: gxreading_session=<输出>" http://127.0.0.1:3005/api/...
+```
+
+**断言要带具体路径**：未登录访问 `/api/dav/me` 是 401，但 `/books` 是 200、`/s/__nope__` 是 404——泛写「未登录 → 401」会产出跑不通的验收。
+
+**部署后观察期（5 分钟）**：`smoke.sh` 只看三个未登录页，对本次改动零信息量。补：
+
+```bash
+journalctl -u gxreading -n 50 --no-pager | grep -iE 'error|traceback'   # 无新错误
+curl -s localhost:3005/api/health                                       # db: up
+bash scripts/deploy.sh log | tail -1                                    # 记录落地
+```
+
+**未实测不是终态**：登记进任务文件，写清复测人和日期，不能凭一句「没测」结项。
 
 ## 新增功能的路由表
 
@@ -157,12 +203,13 @@ sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
 | 附件 / 图片 | `src/lib/attachments.ts` + `src/lib/image-sniff.ts` | `attachments.test.ts` + 真实上传 |
 | 正文渲染 | `src/app/entry/[id]/page.tsx` 的 MDXRemote `components` | 浅色 + 深色各看一遍 |
 | 分享页 | `src/app/s/[token]/page.tsx` | 无登录态下 curl，图片要走 `?share=` |
-| 抓取 / 转写逻辑 | `worker/*.py` | `py_compile` + `worker.py --dry-run` |
+| 抓取 / 转写逻辑 | `worker/*.py` | `py_compile` + `--dry-run` + **重启 worker** + `journalctl -u gxreading-worker -n 20` 无 traceback |
 | 数据库结构 | `prisma/schema.prisma` + 新迁移目录 | `prisma validate` 先跑，再 `migrate deploy` |
 
 ### 队列回收的测法（别被节流骗了）
 
 ```bash
+cd ~/gxwtf_reading && set -a && . ./.env && set +a   # DATABASE_URL / INTERNAL_API_KEY 只在这里
 sudo -n systemctl stop gxreading-worker        # 它每 5 秒轮询，会提前吃掉 5 分钟节流窗口
 sudo -n systemctl restart gxreading            # 重置模块级 lastReclaimAt
 psql "$DATABASE_URL" -c "INSERT INTO \"FetchJob\" (url,kind,status,attempts,\"claimedAt\",\"createdAt\",\"updatedAt\")
