@@ -61,7 +61,7 @@ function Inline({ text, seekable }: { text: string; seekable: boolean }) {
         <a
           key="t"
           href={`#t=${toSeconds(stamp)}`}
-          className="mr-1.5 inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 align-[1px] font-mono text-[11px] font-medium text-brand hover:bg-brand/20"
+          className="mr-1.5 inline-flex items-center rounded-md bg-brand-soft px-1.5 py-0.5 align-[1px] font-mono text-[11px] font-medium text-brand-strong hover:bg-brand-soft/70"
         >
           {stamp}
         </a>,
@@ -74,7 +74,7 @@ function Inline({ text, seekable }: { text: string; seekable: boolean }) {
   parts.forEach((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       nodes.push(
-        <strong key={`b${i}`} className="font-semibold text-foreground">
+        <strong key={`b${i}`} className="font-semibold text-ink">
           {part.slice(2, -2)}
         </strong>,
       );
@@ -100,12 +100,12 @@ export function SummaryPanel({
       {sections.map((section, si) => {
         const title = section.title || "";
 
-        // 一句话结论：整段强调
+        // 一句话结论：整段强调（§4.5 的概括是 3 段短文，15px / 1.7）
         if (/结论|一句话/.test(title)) {
           const text = section.blocks.map((b) => b.text).join(" ");
           return (
-            <div key={si} className="border-l-2 border-brand pl-3">
-              <p className="text-[15px] font-medium leading-7 text-foreground">
+            <div key={si} className="border-l-2 border-brand pl-3.5">
+              <p className="text-[15px] font-medium leading-[1.7] text-ink">
                 <Inline text={text} seekable={seekable} />
               </p>
             </div>
@@ -116,14 +116,14 @@ export function SummaryPanel({
         if (/金句|原句/.test(title)) {
           return (
             <div key={si} className="space-y-2">
-              <h3 className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <h3 className="flex items-center gap-1 text-[12px] text-ink-3">
                 <Quote className="size-3" />
                 {title}
               </h3>
               {section.blocks.map((b, i) => (
                 <blockquote
                   key={i}
-                  className="rounded-lg bg-muted/50 px-3 py-2 text-[13px] leading-6 text-muted-foreground"
+                  className="rounded-xl bg-paper-muted/70 px-3.5 py-2.5 text-[14px] leading-[1.7] text-ink-2"
                 >
                   <Inline text={b.text} seekable={seekable} />
                 </blockquote>
@@ -136,13 +136,13 @@ export function SummaryPanel({
         if (/要点|分章/.test(title)) {
           return (
             <div key={si} className="space-y-2">
-              <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
+              <h3 className="text-[12px] text-ink-3">{title}</h3>
               <ul className="space-y-2">
                 {section.blocks
                   .filter((b) => b.type === "bullet")
                   .map((b, i) => (
-                    <li key={i} className="flex gap-2 text-[13px] leading-6 text-muted-foreground">
-                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand/70" />
+                    <li key={i} className="flex gap-2 text-[14px] leading-[1.7] text-ink-2">
+                      <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-brand" />
                       <span className="min-w-0">
                         <Inline text={b.text} seekable={seekable} />
                       </span>
@@ -156,9 +156,9 @@ export function SummaryPanel({
         // 其它小节
         return (
           <div key={si} className="space-y-2">
-            {title ? <h3 className="text-xs font-medium text-muted-foreground">{title}</h3> : null}
+            {title ? <h3 className="text-[12px] text-ink-3">{title}</h3> : null}
             {section.blocks.map((b, i) => (
-              <p key={i} className="text-[13px] leading-6 text-muted-foreground">
+              <p key={i} className="text-[15px] leading-[1.7] text-ink-2">
                 <Inline text={b.text} seekable={seekable} />
               </p>
             ))}

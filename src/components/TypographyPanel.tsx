@@ -35,7 +35,7 @@ const WIDTHS: Array<{ key: boolean; label: string }> = [
 const chipBase =
   "flex h-9 items-center justify-center rounded-md border px-3 text-xs transition-colors";
 const chipIdle = "border-border bg-transparent text-muted-foreground hover:text-foreground";
-const chipActive = "border-brand bg-muted text-brand";
+const chipActive = "border-brand bg-muted text-brand-strong";
 
 function chipClass(active: boolean): string {
   return cn(chipBase, active ? chipActive : chipIdle);

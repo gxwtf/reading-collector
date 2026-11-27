@@ -104,7 +104,7 @@ export function MemoOutline({ headings }: { headings: OutlineItem[] }) {
             aria-current={isActive ? "location" : undefined}
             className={
               isActive
-                ? "relative truncate rounded px-2 py-1 text-xs text-brand"
+                ? "relative truncate rounded px-2 py-1 text-xs text-brand-strong"
                 : "relative truncate rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
             }
             style={{ paddingInlineStart: 8 + (heading.level - minLevel) * 12 }}

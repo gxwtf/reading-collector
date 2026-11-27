@@ -123,17 +123,17 @@ export function ReadingShell({ children }: Props) {
         } as CSSProperties
       }
     >
-      <div className="fixed inset-x-0 top-14 z-30 h-0.5 bg-transparent">
+      <div className="fixed inset-x-0 top-16 z-30 h-0.5 bg-transparent">
         <div className="h-full bg-brand transition-[width] duration-150" style={{ width: `${progress}%` }} />
       </div>
 
-      <div className="sticky top-14 z-10 -mx-1 mb-3 flex items-center gap-1 bg-background/85 px-1 py-1.5 backdrop-blur">
+      <div className="sticky top-16 z-10 -mx-1 mb-3 flex items-center gap-1 bg-paper/85 px-1 py-1.5 backdrop-blur">
         <button
           type="button"
           onClick={() => update({ ...settings, size: stepSize(settings.size, -1) })}
           aria-label="缩小字号"
           disabled={atMinSize}
-          className="h-8 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+          className="h-9 rounded-[10px] border border-hairline px-2.5 text-[13px] text-ink-2 hover:text-ink disabled:opacity-40"
         >
           A−
         </button>
@@ -142,7 +142,7 @@ export function ReadingShell({ children }: Props) {
           onClick={() => update({ ...settings, size: stepSize(settings.size, 1) })}
           aria-label="放大字号"
           disabled={atMaxSize}
-          className="h-8 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+          className="h-9 rounded-[10px] border border-hairline px-2.5 text-[13px] text-ink-2 hover:text-ink disabled:opacity-40"
         >
           A+
         </button>
@@ -151,12 +151,12 @@ export function ReadingShell({ children }: Props) {
           onClick={() => setPanelOpen((v) => !v)}
           aria-expanded={panelOpen}
           aria-label="排版设置"
-          className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex h-9 items-center gap-1 rounded-[10px] border border-hairline px-2.5 text-[13px] text-ink-2 hover:text-ink"
         >
           <Settings2 className="size-3.5" />
           排版
         </button>
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">{progress}%</span>
+        <span className="ml-auto text-[13px] text-ink-3 tabular-nums">{progress}%</span>
       </div>
 
       {panelOpen ? (

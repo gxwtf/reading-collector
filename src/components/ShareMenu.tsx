@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { Check, ImageIcon, Link2, Loader2, MessageCircle, Share2, SquareArrowOutUpRight, X } from "lucide-react";
@@ -12,12 +12,15 @@ export function ShareMenu({
   title,
   text,
   site,
+  /** primary：详情页右栏的「生成精美小图分享」陶土主按钮；ghost：顶部小按钮 */
+  variant = "ghost",
 }: {
   entryId: number;
   token: string | null;
   title: string;
   text: string;
   site: string;
+  variant?: "ghost" | "primary";
 }) {
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState(false);
@@ -61,18 +64,18 @@ export function ShareMenu({
   }
 
   const item =
-    "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-foreground hover:bg-muted";
+    "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-ink transition-colors hover:bg-paper-muted";
+
+  const trigger =
+    variant === "primary"
+      ? "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-fill text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-fill/92"
+      : "inline-flex items-center gap-1.5 rounded-xl border border-hairline px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:border-hairline-dashed hover:text-ink";
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        aria-expanded={open}
-      >
+    <div className={variant === "primary" ? "w-full" : "relative"}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className={trigger} aria-expanded={open}>
         <Share2 className="size-3.5" />
-        分享
+        {variant === "primary" ? "生成精美小图分享" : "分享"}
       </button>
 
       {open ? (
@@ -83,7 +86,12 @@ export function ShareMenu({
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 z-50 mt-1 w-44 rounded-lg border border-border bg-background p-1 shadow-lg">
+          <div
+            className={[
+              "absolute z-50 mt-1 w-48 rounded-xl border border-hairline bg-popover p-1",
+              variant === "primary" ? "left-0" : "right-0",
+            ].join(" ")}
+          >
             <button
               type="button"
               className={item}
@@ -92,14 +100,14 @@ export function ShareMenu({
                 setCard(true);
               }}
             >
-              <ImageIcon className="size-3.5 text-brand" />
+              <ImageIcon className="size-3.5 text-brand-strong" />
               生成分享图
             </button>
 
             {token ? (
               <>
                 <button type="button" className={item} onClick={toWechat}>
-                  <MessageCircle className="size-3.5 text-brand-green" />
+                  <MessageCircle className="size-3.5 text-brand-strong" />
                   发到微信
                 </button>
                 <button type="button" className={item} onClick={copy}>
@@ -114,7 +122,7 @@ export function ShareMenu({
                   type="button"
                   disabled={pending}
                   onClick={() => start(() => toggleShare(entryId))}
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-destructive hover:bg-muted disabled:opacity-50"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-destructive transition-colors hover:bg-paper-muted disabled:opacity-50"
                 >
                   {pending ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
                   停止分享
@@ -136,7 +144,7 @@ export function ShareMenu({
       ) : null}
 
       {hint ? (
-        <div className="absolute right-0 top-full z-50 mt-1 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[11px] text-background">
+        <div className="absolute right-0 top-full z-50 mt-1 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[12px] text-paper">
           {hint}
         </div>
       ) : null}

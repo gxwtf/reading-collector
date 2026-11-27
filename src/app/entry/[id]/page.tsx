@@ -25,6 +25,7 @@ import { MarkdownImage } from "@/components/MarkdownImage";
 import { SearchHighlight } from "@/components/SearchHighlight";
 import { MemoOutline } from "@/components/MemoOutline";
 import { extractOutline } from "@/lib/outline";
+import { kindLabel } from "@/lib/kind";
 
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ only?: string; q?: string }>;
@@ -102,20 +103,20 @@ export default async function EntryPage({
   const preciseEnabled = Boolean(prefs?.preciseVideo);
 
   return (
-    <article className="mx-auto w-full max-w-6xl space-y-4">
+    <article className="mx-auto w-full max-w-[1180px] space-y-7">
       {/* 顶部一行打包：返回 + 正文操作。横屏（高度只有 768）时这段每省一行，正文就多露一截 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-[14px] text-ink-2 transition-colors hover:text-ink"
         >
           <ArrowLeft className="size-4" />
-          返回列表
+          返回全部收藏
         </Link>
         <div className="flex items-center gap-2">
           <Link
             href={onlySummary ? `/entry/${entry.id}` : `/entry/${entry.id}?only=summary`}
-            className="inline-flex items-center rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center rounded-xl border border-hairline px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:border-hairline-dashed hover:text-ink"
           >
             {onlySummary ? "显示原文" : "只看概括"}
           </Link>
@@ -134,7 +135,7 @@ export default async function EntryPage({
             href={entry.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1.5 text-[13px] text-ink-2 transition-colors hover:text-ink"
           >
             原文
             <ExternalLink className="size-3.5" />
@@ -142,24 +143,29 @@ export default async function EntryPage({
         </div>
       </div>
 
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold leading-snug">{entry.title}</h1>
-        {/* 元信息与标签合并成一行：横屏高度只有 768，少一行就多露一行正文 */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
-          {entry.site ? <span>{entry.site}</span> : null}
-          {entry.author ? <span>{entry.author}</span> : null}
+      <header className="max-w-[820px] space-y-3">
+        <p className="text-[13px] font-medium text-brand-strong">
+          {[kindLabel(entry.kind), entry.site, entry.author].filter(Boolean).join(" · ")}
+        </p>
+        {/* break-words + overflow-wrap:anywhere：标题常常是一条 URL（抓取失败时
+            title 直接取链接），没有空格的超长串会把整页撑出横向滚动。 */}
+        <h1 className="font-serif text-[28px] font-semibold leading-[1.3] text-ink break-words [overflow-wrap:anywhere] md:text-[40px]">
+          {entry.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-ink-3">
           {entry.wordCount ? <span>{entry.wordCount} 字</span> : null}
+          {entry.durationSec ? <span>{Math.round(entry.durationSec / 60)} 分钟</span> : null}
           <span>收藏于 {entry.createdAt.toLocaleDateString("zh-CN")}</span>
           {entry.tags.map((t) => (
-            <Badge key={t.tagId} variant="secondary" className="font-normal">
+            <span key={t.tagId} className="rounded-full bg-paper-muted px-2.5 py-[3px] text-[12px] text-ink-2">
               {t.tag.name}
-            </Badge>
+            </span>
           ))}
         </div>
       </header>
 
       {entry.state === "failed" ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
+        <div className="flex flex-col gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-[14px]">
           <p className="text-destructive">抓取失败{lastJob?.error ? `：${lastJob.error}` : ""}</p>
           <form action={retryFetch.bind(null, entry.id)}>
             <Button type="submit" variant="outline" size="sm">
@@ -170,9 +176,9 @@ export default async function EntryPage({
         </div>
       ) : null}
 
-      <div className={onlySummary ? "grid gap-6" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]"}>
-        {/* 左栏：原文 / 播放器 / 逐字稿 */}
-        <div className={onlySummary ? "hidden" : "min-w-0 space-y-6"}>
+      <div className={onlySummary ? "grid gap-6" : "grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]"}>
+        {/* 左栏：原文 / 播放器 / 逐字稿。小屏时顺序调到右栏之后（§6：概括置于正文之前） */}
+        <div className={onlySummary ? "hidden" : "order-2 min-w-0 space-y-6 lg:order-1"}>
           {embed && entry.transcript && preciseEnabled && entry.mediaState !== "ready" ? (
             <PrepareVideo entryId={entry.id} state={entry.mediaState} />
           ) : null}
@@ -199,7 +205,7 @@ export default async function EntryPage({
             <>
 
               {entry.state === "pending" ? (
-                <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
+                <div className="rounded-xl border border-hairline bg-paper-muted/60 p-4 text-[14px] text-ink-2">
                   正在后台抓取正文，稍后刷新即可。视频与播客需要先转写，可能要几分钟。
                 </div>
               ) : null}
@@ -237,19 +243,12 @@ export default async function EntryPage({
           )}
         </div>
 
-        {/* 右栏：目录 + 概括 + 划线批注 */}
-        <aside className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-auto lg:pr-1">
-          {/* 没有标题就不渲染，避免留一个空框 */}
-          {outline.length >= 2 ? (
-            <section className="rounded-xl border border-border bg-card p-4">
-              <h2 className="mb-2 text-sm font-medium">目录</h2>
-              <MemoOutline headings={outline} />
-            </section>
-          ) : null}
-
-          <section className="rounded-xl border border-border bg-card p-4">
+        {/* 右栏：AI 概括（§4.5 要求概括在前）+ 目录 + 划线批注 + 分组。
+            小屏 order-1 让它排在正文之前。 */}
+        <aside className="order-1 space-y-5 lg:order-2 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-auto lg:pr-1">
+          <section className="rounded-2xl border border-hairline bg-card p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium">概括</h2>
+              <h2 className="font-serif text-[18px] font-semibold text-ink">AI 概括</h2>
               <RegenerateButton action={regenerateSummary.bind(null, entry.id)} />
             </div>
 
@@ -259,14 +258,46 @@ export default async function EntryPage({
                 seekable={entry.kind === "video" || entry.kind === "podcast"}
               />
             ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-3 text-[14px] leading-[1.7] text-ink-2">
                 {entry.state === "pending" ? "抓取完成后自动生成。" : "还没有概括，点「重算」生成。"}
               </p>
             )}
+
+            {/* §4.5 的两个按钮：生成小图（陶土实底）/ 打开原文（虚线描边） */}
+            <div className="mt-5 flex flex-col gap-3">
+              <ShareMenu
+                entryId={entry.id}
+                token={entry.shareToken}
+                title={entry.title}
+                site={entry.site ?? ""}
+                text={(entry.summary ?? "")
+                  .replace(/\s+/g, " ")
+                  .replace(/[#>*_`[\]]/g, "")
+                  .trim()
+                  .slice(0, 260)}
+                variant="primary"
+              />
+              <a
+                href={entry.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-hairline-dashed text-[15px] text-ink transition-colors hover:bg-paper-muted/50"
+              >
+                打开原文
+              </a>
+            </div>
           </section>
 
-          <section className="space-y-3 rounded-xl border border-border bg-card p-4">
-            <h2 className="text-sm font-medium">划线批注（{entry.highlights.length}）</h2>
+          {/* 没有标题就不渲染，避免留一个空框 */}
+          {outline.length >= 2 ? (
+            <section className="rounded-2xl border border-hairline bg-card p-4">
+              <h2 className="mb-2 text-[14px] text-ink-3">目录</h2>
+              <MemoOutline headings={outline} />
+            </section>
+          ) : null}
+
+          <section className="space-y-3 rounded-2xl border border-hairline bg-card p-4">
+            <h2 className="text-[14px] text-ink-3">划线批注（{entry.highlights.length}）</h2>
             <HighlightList
               entryUrl={
                 entry.shareToken
@@ -286,8 +317,8 @@ export default async function EntryPage({
           </section>
 
           {collections.length > 0 ? (
-            <section className="rounded-xl border border-border bg-card p-4">
-              <h2 className="text-sm font-medium">分组</h2>
+            <section className="rounded-2xl border border-hairline bg-card p-4">
+              <h2 className="text-[14px] text-ink-3">分组</h2>
               <div className="mt-2 flex flex-wrap gap-2">
                 {collections.map((c) => {
                   const inGroup = c.entries.length > 0;
@@ -304,8 +335,8 @@ export default async function EntryPage({
                         type="submit"
                         className={
                           inGroup
-                            ? "rounded-full border border-brand/40 bg-brand/10 px-2.5 py-0.5 text-xs text-brand"
-                            : "rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+                            ? "rounded-full bg-brand-soft px-2.5 py-1 text-[12px] text-brand-strong"
+                            : "rounded-full border border-hairline px-2.5 py-1 text-[12px] text-ink-2 transition-colors hover:text-ink"
                         }
                       >
                         {inGroup ? `✓ ${c.name}` : `+ ${c.name}`}

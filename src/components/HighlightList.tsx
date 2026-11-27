@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
@@ -12,6 +12,12 @@ export type HighlightItem = {
   anchor: { block?: number; start?: number; end?: number } | null;
   createdAt: string;
 };
+
+/** 品牌色现值。Web Animations API 不认 var()，只能现读。 */
+function brand(): string {
+  if (typeof window === "undefined") return "#d97757";
+  return getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#d97757";
+}
 
 /** 划线列表：点击可定位到正文对应段落 */
 export function HighlightList({
@@ -47,9 +53,11 @@ export function HighlightList({
       if (!item) return;
       item.scrollIntoView({ behavior: "smooth", block: "center" });
       item.animate(
+        // 用品牌变量而不是旧的实验红 rgba(163,31,36,…)：换配色后那串数字就成了孤岛。
+        // Web Animations API 不接受 var()，所以从 :root 现读一次。
         [
-          { backgroundColor: "rgba(163,31,36,0.18)" },
-          { backgroundColor: "rgba(163,31,36,0)" },
+          { backgroundColor: `color-mix(in srgb, ${brand()} 18%, transparent)` },
+          { backgroundColor: `color-mix(in srgb, ${brand()} 0%, transparent)` },
         ],
         { duration: 1600 },
       );
@@ -63,8 +71,8 @@ export function HighlightList({
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.animate(
       [
-        { backgroundColor: "rgba(163,31,36,0.18)" },
-        { backgroundColor: "rgba(163,31,36,0)" },
+        { backgroundColor: `color-mix(in srgb, ${brand()} 18%, transparent)` },
+        { backgroundColor: `color-mix(in srgb, ${brand()} 0%, transparent)` },
       ],
       { duration: 1600 },
     );
@@ -134,7 +142,7 @@ export function HighlightList({
             <button
                     type="button"
                     onClick={() => setCardFor(h)}
-                    className="text-xs text-muted-foreground hover:text-brand"
+                    className="text-xs text-muted-foreground hover:text-brand-strong"
                     title="生成金句图"
                   >
                     生成图
