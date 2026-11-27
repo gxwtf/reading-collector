@@ -91,6 +91,88 @@ sudo /usr/local/sbin/gxwtf-systemctl restart gxreading-worker.service
 - Nginx 需透传 `Host` 与 `X-Forwarded-Proto`（SSO 的 `system` 取 Host）
 - 上线前：广学账号侧把 `reading.gxwtf.cn` 加进 system 白名单
 
+## 开发流程：Goal → Agent → 审查（强制）
+
+凡是要改代码的任务，三段走完才算完成。跳过第一步会做错方向，跳过第三步会把
+「typecheck 过了」当成「功能对」。
+
+### 1. Goal：先定验收，再动代码
+
+开工前一句话说清四件事，说不清就先别写：
+
+| 项 | 要求 | 反例 |
+| --- | --- | --- |
+| 目标 | 一句话，动词开头 | 「优化一下搜索」 |
+| 验收标准 | 可观测、能当场跑或点 | 「性能更好」 |
+| 边界 | 明确不做什么 | （没写 → 必然蔓延） |
+| 失败形态 | 出错时用户看到什么 | （不写 → 静默失败） |
+
+验收标准优先写成**能跑的断言**：`pnpm test` 的某条用例、某个 curl 的状态码、某次
+`cmp` 的字节一致。写不出断言说明还没想清楚。
+
+**先量再定优先级。** 本项目规模很小（2026-11 实测：Entry 31 条、总内容 47KB、
+搜索单次查询 0.27ms），照 ROADMAP 的旧描述决定先做「全文检索」是错的——那个量级
+谈性能没有意义，真问题通常在正确性（卡死任务回收、失败静默、越权）。
+
+### 2. Agent：按目标派活
+
+- 能一次说清「改哪个文件哪几行」→ 自己做；说不清 → 派 agent。
+- 派单用补丁式：目标 + 文件 + 验收标准 + 禁止事项。禁止「你先探索一下」。
+- 独立的子任务才并行（改不同文件、不共享状态）。共享 schema 或同一文件的串行做。
+
+### 3. 审查：必须换视角
+
+1. **不能自己审自己**——换一个 agent，或用「按文件顺序从头读 diff」的方式重读。
+2. 对照第一段的**验收标准**审，不是对照代码好不好看。
+3. 必问四题：
+   - 失败时用户看到什么？会静默失败吗？
+   - 边界：空 / 超长 / 并发 / 越权 / 别人的 id？
+   - **有没有第二处同样的逻辑**？（本项目最高频的 bug：`retryFetch` 与
+     `ingest.ts` 各写一遍任务分类，其中一处写错，PDF 重试被排成转写。
+     现在统一走 `src/lib/url.ts` 的 `jobKindFor()`。）
+   - 改动真的生效了吗？构建产物里有吗、服务重启了吗、**节流/缓存会不会把测试骗过去**？
+     （实例：回收卡死任务的 5 分钟节流，被 worker 每 5 秒的轮询提前吃掉，
+     导致手动 curl 测不出效果。测这类逻辑要先 `systemctl stop` worker。）
+
+### 4. 收尾：验证必须跑
+
+| 改动 | 最低验证 |
+| --- | --- |
+| 纯函数 / 规则 | `pnpm test`，关键分支各一条 |
+| 接口 | 真实 curl：正常 + 未登录 + 越权 + 非法输入 |
+| 前端 | typecheck 不够，要有浏览器实测或截图；没有就明说「未实测」 |
+| schema | `prisma validate` → `migrate deploy` → 查表结构 |
+| 部署 | `scripts/deploy.sh`（禁裸跑 build），冒烟全绿，确认回滚点 |
+
+报完成时给三件套：改了什么 / 为什么 / **怎么验证的（贴实际输出）**。没测的部分点名说。
+
+## 新增功能的路由表
+
+改哪类东西、去哪改、怎么验，照这张表走：
+
+| 改动 | 改哪里 | 验证 |
+| --- | --- | --- |
+| 条目类型 / 任务分类 | `src/lib/url.ts`（`detectKind` / `jobKindFor`） | `ingest.test.ts` |
+| 抓取队列状态机 | `src/app/api/worker/jobs/route.ts`（领取 + 回收） | 造卡死任务实测，见下 |
+| 附件 / 图片 | `src/lib/attachments.ts` + `src/lib/image-sniff.ts` | `attachments.test.ts` + 真实上传 |
+| 正文渲染 | `src/app/entry/[id]/page.tsx` 的 MDXRemote `components` | 浅色 + 深色各看一遍 |
+| 分享页 | `src/app/s/[token]/page.tsx` | 无登录态下 curl，图片要走 `?share=` |
+| 抓取 / 转写逻辑 | `worker/*.py` | `py_compile` + `worker.py --dry-run` |
+| 数据库结构 | `prisma/schema.prisma` + 新迁移目录 | `prisma validate` 先跑，再 `migrate deploy` |
+
+### 队列回收的测法（别被节流骗了）
+
+```bash
+sudo -n systemctl stop gxreading-worker        # 它每 5 秒轮询，会提前吃掉 5 分钟节流窗口
+sudo -n systemctl restart gxreading            # 重置模块级 lastReclaimAt
+psql "$DATABASE_URL" -c "INSERT INTO \"FetchJob\" (url,kind,status,attempts,\"claimedAt\",\"createdAt\",\"updatedAt\")
+  VALUES ('https://probe/x','fetch','running',1, NOW() - INTERVAL '3 hours', NOW(), NOW());"
+curl -s -H "Authorization: Bearer $INTERNAL_API_KEY"   "http://127.0.0.1:3005/api/worker/jobs?worker=probe"
+psql "$DATABASE_URL" -c "select status,attempts from \"FetchJob\" where url='https://probe/x';"
+# 期望：attempts<3 → pending；attempts>=3 → failed 且 Entry 也 failed
+sudo -n systemctl start gxreading-worker
+```
+
 ## 未来规划
 
 - 标签页与分组管理页
