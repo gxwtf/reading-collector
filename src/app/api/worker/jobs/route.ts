@@ -14,10 +14,77 @@ type ClaimedJob = {
   attempts: number;
 };
 
+/**
+ * 回收卡死的任务。
+ *
+ * worker 崩溃 / 被 OOM 杀掉 / 回填请求打不通时，任务会永远停在 running：
+ * claim 只捞 pending，全仓没有任何路径把 running 改回去。表现是用户页面上
+ * 「抓取中」一直转，FetchProgress 因为 active>0 每 4 秒 router.refresh() 一次，
+ * 永远到不了头，只能手动删了重收。
+ *
+ * worker 单个任务上限约 30 分钟（WORKER_TASK_TIMEOUT），这里留 2 小时余量，
+ * 避免把正在跑的长视频转写误收。5 分钟最多扫一次，别让 5 秒一次的 claim 全表更新。
+ */
+const RECLAIM_INTERVAL_MS = 5 * 60 * 1000;
+const MAX_ATTEMPTS = 3;
+let lastReclaimAt = 0;
+
+async function reclaimStaleJobs(): Promise<void> {
+  if (Date.now() - lastReclaimAt < RECLAIM_INTERVAL_MS) return;
+  lastReclaimAt = Date.now();
+
+  try {
+    // 还有重试余量 → 放回队列，worker 会重新领
+    const requeued = await prisma.$executeRaw`
+      UPDATE "FetchJob"
+         SET status = 'pending',
+             "claimedAt" = NULL,
+             worker = NULL,
+             "updatedAt" = NOW(),
+             error = '上次执行超时（worker 可能崩溃），已自动重新排队'
+       WHERE status = 'running'
+         AND "claimedAt" < NOW() - INTERVAL '2 hours'
+         AND attempts < ${MAX_ATTEMPTS}
+    `;
+
+    // 重试用完 → 判失败，条目也标失败，页面给「重试」
+    const dead = await prisma.$queryRaw<{ id: number; entryId: number | null }[]>`
+      UPDATE "FetchJob"
+         SET status = 'failed',
+             "finishedAt" = NOW(),
+             "updatedAt" = NOW(),
+             error = '任务超时未回填（worker 可能崩溃），已放弃'
+       WHERE status = 'running'
+         AND "claimedAt" < NOW() - INTERVAL '2 hours'
+         AND attempts >= ${MAX_ATTEMPTS}
+       RETURNING id, "entryId"
+    `;
+
+    if (dead.length > 0) {
+      const entryIds = dead.map((d) => d.entryId).filter((id): id is number => id !== null);
+      if (entryIds.length > 0) {
+        await prisma.entry.updateMany({
+          where: { id: { in: entryIds }, state: "pending" },
+          data: { state: "failed" },
+        });
+      }
+    }
+
+    if (requeued > 0 || dead.length > 0) {
+      console.warn(`[reclaim] 重新排队 ${requeued} 条、判失败 ${dead.length} 条卡死任务`);
+    }
+  } catch (error) {
+    // 回收失败不能影响正常领取
+    console.error("[reclaim] 回收卡死任务失败", error);
+  }
+}
+
 export async function GET(request: Request) {
   if (!verifyWorkerRequest(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  await reclaimStaleJobs();
 
   const worker = new URL(request.url).searchParams.get("worker") || "worker";
 

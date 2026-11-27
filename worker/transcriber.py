@@ -212,7 +212,10 @@ def try_bilibili_subtitle(url: str, locale: str | None = None) -> dict | None:
     if "bilibili.com" not in url:
         return None
     if not os.environ.get("BILI_SESSDATA", "").strip():
+        # 没登录态时 /x/player/v2 的 subtitles 恒为空数组，再查一次纯属浪费一轮 API。
+        # 直接回 None 交给 yt-dlp / whisper；要拿官方字幕请在「设置 → 站点登录态」绑 B 站。
         print("[subtitle] 未配置 BILI_SESSDATA，跳过官方字幕（B 站接口需要登录态）", flush=True)
+        return None
     m = re.search(r"(BV[0-9A-Za-z]+)", url)
     if not m:
         return None
@@ -222,7 +225,8 @@ def try_bilibili_subtitle(url: str, locale: str | None = None) -> dict | None:
         view = _bili_json(f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}")
         data = view.get("data") or {}
         pages = data.get("pages") or []
-        page_no = int(re.search(r"[?&]p=(\d+)", url).group(1)) if re.search(r"[?&]p=(\d+)", url) else 1
+        page_m = re.search(r"[?&]p=(\d+)", url)
+        page_no = int(page_m.group(1)) if page_m else 1
         cid = pages[page_no - 1]["cid"] if pages and len(pages) >= page_no else data.get("cid")
         if not cid:
             return None
@@ -244,7 +248,12 @@ def try_bilibili_subtitle(url: str, locale: str | None = None) -> dict | None:
                 break
         chosen = chosen or subs[0]
 
-        sub_url = chosen.get("subtitle_url") or ""
+        sub_url = (chosen.get("subtitle_url") or "").strip()
+        # 登录态过期 / 字幕被下架时 subtitle_url 会是空串，直接拿去 urlopen 会抛
+        # `unknown url type: ''`，日志里看着像 worker 崩了。这里判空后回退转写。
+        if not sub_url:
+            print("[subtitle] 字幕地址为空（登录态可能已过期），回退语音识别", flush=True)
+            return None
         if sub_url.startswith("//"):
             sub_url = "https:" + sub_url
         body = _bili_json(sub_url).get("body") or []

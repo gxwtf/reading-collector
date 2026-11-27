@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { requireSession } from "@/lib/session";
 
-export type HighlightState = { ok: boolean; error?: string };
+export type HighlightState = { ok: boolean; error?: string; id?: number };
 
 /** 新建划线 / 批注 */
 export async function createHighlight(
@@ -25,7 +25,7 @@ export async function createHighlight(
   });
   if (!entry) return { ok: false, error: "条目不存在" };
 
-  await prisma.highlight.create({
+  const created = await prisma.highlight.create({
     data: {
       entryId,
       userId: session.userId,
@@ -33,10 +33,12 @@ export async function createHighlight(
       note: note.trim().slice(0, 1000) || null,
       ...(anchor ? { anchor: anchor as Prisma.InputJsonValue } : {}),
     },
+    select: { id: true },
   });
 
   revalidatePath(`/entry/${entryId}`);
-  return { ok: true };
+  // 把 id 带回前端：正文要立刻把这段字画成黄底，不用等服务端整页刷新
+  return { ok: true, id: created.id };
 }
 
 export async function deleteHighlight(highlightId: number) {

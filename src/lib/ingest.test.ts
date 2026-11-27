@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectKind, extractUrlsFromText, hashUrl, parseTags } from "./url.ts";
+import { detectKind, extractUrlsFromText, hashUrl, jobKindFor, parseTags } from "./url.ts";
 
 test("按域名判断类型", () => {
   assert.equal(detectKind("https://www.bilibili.com/video/BV1xx"), "video");
@@ -33,4 +33,14 @@ test("从文本里抠链接并去掉尾部标点", () => {
 test("链接数量上限", () => {
   const text = Array.from({ length: 150 }, (_, i) => `https://example.com/${i}`).join(" ");
   assert.equal(extractUrlsFromText(text).length, 100);
+});
+
+test("只有音视频走转写，PDF/文档走抓取", () => {
+  assert.equal(jobKindFor("video"), "transcribe");
+  assert.equal(jobKindFor("podcast"), "transcribe");
+  assert.equal(jobKindFor("article"), "fetch");
+  // 曾经的 bug：retryFetch 用 `kind === "article" ? fetch : transcribe`，
+  // 于是 PDF 重试被排成转写，worker 拿 PDF 去下载音轨，必然失败。
+  assert.equal(jobKindFor("document"), "fetch");
+  assert.equal(jobKindFor("未知类型"), "fetch");
 });

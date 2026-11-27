@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Highlighter, Loader2, X } from "lucide-react";
 import { createHighlight } from "@/actions/highlights";
 
@@ -90,6 +90,29 @@ export function HighlightLayer({
   const [note, setNote] = useState("");
   const [saving, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  // 刚存下的划线先挂本地：服务端 revalidatePath 触发的 RSC 重渲染是异步的，
+  // 不等它回来，用户点「保存」后应该立刻看到字变黄。
+  const [localHighlights, setLocalHighlights] = useState<InlineHighlight[]>([]);
+
+  const all = useMemo(() => {
+    const byId = new Map<number, InlineHighlight>();
+    for (const h of highlights) byId.set(h.id, h);
+    // 服务端刷新回来后，本地临时项（负 id）应当被真身取代；按 quote+anchor 认领，
+    // 否则同一段文字会被画两次，且临时项永远留着。
+    for (const h of localHighlights) {
+      const matched = h.id < 0
+        ? highlights.find(
+            (s) =>
+              s.quote === h.quote &&
+              s.anchor?.start === h.anchor?.start &&
+              s.anchor?.end === h.anchor?.end,
+          )
+        : undefined;
+      if (matched) continue;
+      if (!byId.has(h.id)) byId.set(h.id, h);
+    }
+    return Array.from(byId.values());
+  }, [highlights, localHighlights]);
 
   /** 把已存的划线画回正文：先校验偏移，对不上就按原文重新定位 */
   useEffect(() => {
@@ -107,7 +130,7 @@ export function HighlightLayer({
 
     const text = root.textContent ?? "";
 
-    for (const h of highlights) {
+    for (const h of all) {
       if (!h.quote) continue;
       let start = h.anchor?.start ?? -1;
       let end = h.anchor?.end ?? -1;
@@ -122,7 +145,7 @@ export function HighlightLayer({
 
       wrapRange(root, start, end, h.id);
     }
-  }, [highlights]);
+  }, [all]);
 
   const readSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -186,6 +209,18 @@ export function HighlightLayer({
         end: pending.anchor?.end ?? 0,
       });
       if (res.ok) {
+        // 立刻挂到本地，下一帧就画出黄底；服务端刷新回来后 all 会按 id 去重，不会画两遍
+        if (pending.anchor) {
+          setLocalHighlights((prev) => [
+            ...prev,
+            {
+              id: res.id ?? -Date.now(),
+              quote: pending.quote,
+              note: note.trim() || null,
+              anchor: pending.anchor,
+            },
+          ]);
+        }
         setSaved(true);
         setPending(null);
         setNote("");

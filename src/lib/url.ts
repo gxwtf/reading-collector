@@ -58,3 +58,14 @@ export function extractUrlsFromText(text: string, limit = 100): string[] {
   const cleaned = found.map((u) => u.replace(/[.,;:!?]+$/, ""));
   return Array.from(new Set(cleaned)).slice(0, limit);
 }
+
+/**
+ * 条目类型 → 抓取任务类型。只有音视频才走 transcribe，其余（文章 / PDF / 文档）都走 fetch。
+ *
+ * 抽成函数是因为这条规则在 ingest.ts 和 retryFetch 里各写了一遍，其中一处写成了
+ * `kind === "article" ? "fetch" : "transcribe"`——PDF（document）点重试就被排成转写，
+ * worker 拿 PDF 链接去下载音轨，必然失败。两处从此共用本函数。
+ */
+export function jobKindFor(kind: string): "fetch" | "transcribe" {
+  return kind === "video" || kind === "podcast" ? "transcribe" : "fetch";
+}

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
-import { detectKind, hashUrl } from "./url";
+import { detectKind, hashUrl, jobKindFor } from "./url";
 
-export { detectKind, hashUrl, parseTags, extractUrlsFromText } from "./url";
+export { detectKind, hashUrl, jobKindFor, parseTags, extractUrlsFromText } from "./url";
 
 
 
@@ -67,11 +67,11 @@ export async function ingestUrls(options: {
         data: { userId, url, urlHash, title: url, kind },
       });
       await prisma.fetchJob.create({
-        // 只有音视频走转写，其余（文章/PDF/文档）都走抓取
+        // 只有音视频走转写，其余（文章/PDF/文档）都走抓取。规则见 url.ts 的 jobKindFor
         data: {
           entryId: entry.id,
           url,
-          kind: kind === "video" || kind === "podcast" ? "transcribe" : "fetch",
+          kind: jobKindFor(kind),
         },
       });
       entryId = entry.id;

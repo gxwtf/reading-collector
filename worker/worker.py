@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import sys
+import threading
 import time
 import traceback
 
@@ -70,6 +71,45 @@ def handle(client: httpx.Client, job: dict) -> None:
     kind = job.get("kind", "fetch")
     log(f"领取 job {job_id} · {kind} · {url}")
 
+    # 硬上限：整条任务（下载 + 转写 + 概括 + 打标）不超过 TASK_TIMEOUT。
+    # 之前这个常量导入了却从没用过，一个卡住的 yt-dlp 会把 worker 钉死，
+    # 站点侧又没有任何回收 running 的路径 —— 这条任务就永远「抓取中」。
+    watchdog = threading.Timer(TASK_TIMEOUT, _abort_task, args=(job_id, url))
+    watchdog.daemon = True
+    watchdog.start()
+    try:
+        _handle_inner(client, job, job_id, url, kind)
+    finally:
+        watchdog.cancel()
+
+
+def _abort_task(job_id: int, url: str) -> None:
+    """超时兜底：先把「超时」回填成 failed（用户立刻看到原因），再退出进程。
+
+    为什么用 os._exit 而不是抛异常：卡住的多半是 yt-dlp / whisper 这类子进程，
+    主线程等候在 subprocess.run 上，抛异常唤不醒它。整个进程退掉由 systemd
+    Restart=always 拉起来，是唯一可靠的“复位”手段。
+    """
+    msg = f"任务超过 {TASK_TIMEOUT}s 未完成，已中止（可能是视频过长或网络卡住）"
+    print(f"[{time.strftime('%H:%M:%S')}] job {job_id} {msg}", flush=True)
+    try:
+        # 开一个独立的短连接回填，不复用主线程那个可能已经半死的 client
+        with httpx.Client(timeout=10) as c:
+            c.post(
+                f"{BASE_URL}/api/worker/jobs/{job_id}",
+                json={"status": "failed", "error": msg},
+                headers=HEADERS,
+            )
+    except Exception as exc:  # noqa: BLE001 - 回填失败也不能拦住退出
+        print(f"[{time.strftime('%H:%M:%S')}] 超时回填失败：{exc}", flush=True)
+    finally:
+        try:
+            sys.stdout.flush()
+        finally:
+            os._exit(70)
+
+
+def _handle_inner(client: httpx.Client, job: dict, job_id: int, url: str, kind: str) -> None:
     try:
         if kind == "transcribe":
             result = transcribe(url)

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
-import { extractUrlsFromText, ingestUrls, parseTags } from "@/lib/ingest";
+import { extractUrlsFromText, ingestUrls, jobKindFor, parseTags } from "@/lib/ingest";
 
 export type CreateEntryState = {
   ok: boolean;
@@ -95,12 +95,23 @@ export async function retryFetch(entryId: number) {
   });
   if (!entry) return;
 
+  // 已经有排队中 / 正在跑的任务就不再建新的：连点两下「重试」会排出两条一样的任务，
+  // 一条转写动辄两分钟，重复跑纯属浪费。
+  const active = await prisma.fetchJob.findFirst({
+    where: { entryId: entry.id, status: { in: ["pending", "running"] } },
+    select: { id: true },
+  });
+  if (active) return;
+
   await prisma.entry.update({ where: { id: entryId }, data: { state: "pending" } });
   await prisma.fetchJob.create({
     data: {
       entryId: entry.id,
       url: entry.url,
-      kind: entry.kind === "article" ? "fetch" : "transcribe",
+      // 只有音视频走转写，文章 / PDF / 文档都走抓取（规则见 url.ts 的 jobKindFor）。
+      // 这里曾经写成 `kind === "article" ? "fetch" : "transcribe"`，
+      // 结果 PDF（document）重试被排成 transcribe，worker 拿它去下载音轨。
+      kind: jobKindFor(entry.kind),
     },
   });
   revalidatePath(`/entry/${entryId}`);
