@@ -186,6 +186,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           }))}
           collections={collections.map((c) => ({ id: c.id, name: c.name }))}
           activeCollectionId={collectionId}
+          searchQuery={q || undefined}
         />
       </div>
     </div>

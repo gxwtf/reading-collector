@@ -22,9 +22,12 @@ import { mmss } from "@/lib/time";
 import { PrepareVideo } from "@/components/PrepareVideo";
 import { SummaryPanel } from "@/components/SummaryPanel";
 import { MarkdownImage } from "@/components/MarkdownImage";
+import { SearchHighlight } from "@/components/SearchHighlight";
+import { MemoOutline } from "@/components/MemoOutline";
+import { extractOutline } from "@/lib/outline";
 
 type Params = Promise<{ id: string }>;
-type Search = Promise<{ only?: string }>;
+type Search = Promise<{ only?: string; q?: string }>;
 
 function toSeconds(stamp: string): number {
   const parts = stamp.split(":").map(Number);
@@ -73,6 +76,8 @@ export default async function EntryPage({
 
   const sp = await searchParams;
   const onlySummary = sp.only === "summary";
+  // 从列表搜索进来时带上 q，正文里命中处高亮。限 60 字，与列表页同一口径
+  const searchQuery = (sp.q ?? "").trim().slice(0, 60);
 
   const session = await requireSession(`/entry/${entryId}`);
   const entry = await loadEntry(entryId, session.userId);
@@ -85,6 +90,7 @@ export default async function EntryPage({
   });
 
   const body = entry.contentMd ?? "";
+  const outline = extractOutline(body);
   const embed = getEmbed(entry.url, entry.kind);
   const lastJob = entry.jobs[0];
 
@@ -210,11 +216,13 @@ export default async function EntryPage({
                     }))}
                   >
                     <div className="prose-reading max-w-none">
-                      <MDXRemote
-                        source={body}
-                        options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-                        components={{ img: MarkdownImage }}
-                      />
+                      <SearchHighlight query={searchQuery}>
+                        <MDXRemote
+                          source={body}
+                          options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+                          components={{ img: MarkdownImage }}
+                        />
+                      </SearchHighlight>
                     </div>
                   </HighlightLayer>
                 </ReadingShell>
@@ -229,8 +237,16 @@ export default async function EntryPage({
           )}
         </div>
 
-        {/* 右栏：概括 + 划线批注 */}
+        {/* 右栏：目录 + 概括 + 划线批注 */}
         <aside className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-auto lg:pr-1">
+          {/* 没有标题就不渲染，避免留一个空框 */}
+          {outline.length >= 2 ? (
+            <section className="rounded-xl border border-border bg-card p-4">
+              <h2 className="mb-2 text-sm font-medium">目录</h2>
+              <MemoOutline headings={outline} />
+            </section>
+          ) : null}
+
           <section className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium">概括</h2>

@@ -39,9 +39,11 @@ type Props = {
   selectable?: boolean;
   selected?: boolean;
   onToggle?: (id: number, checked: boolean) => void;
+  /** 当前列表的搜索词；带上它，详情页才知道要highlight哪些词 */
+  searchQuery?: string;
 };
 
-export function EntryCard({ entry, selectable, selected, onToggle }: Props) {
+export function EntryCard({ entry, selectable, selected, onToggle, searchQuery }: Props) {
   return (
     <article
       className={`rounded-lg border bg-card p-4 transition-colors ${
@@ -65,7 +67,11 @@ export function EntryCard({ entry, selectable, selected, onToggle }: Props) {
 
         <div className="min-w-0 flex-1">
           <Link
-            href={`/entry/${entry.id}`}
+            href={
+              searchQuery
+                ? `/entry/${entry.id}?q=${encodeURIComponent(searchQuery)}`
+                : `/entry/${entry.id}`
+            }
             className="block truncate font-medium hover:text-brand"
             title={entry.title}
           >

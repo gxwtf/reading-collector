@@ -538,6 +538,21 @@
   background: color-mix(in srgb, var(--brand) 32%, transparent);
 }
 
+/* ===== 搜索命中高亮（CSS Custom Highlight API）=====
+ * 用 ::highlight() 而不是给 DOM 插 <mark>：正文是 MDX 渲染的，
+ * 插标签会打乱 React 调和，且会和划线的 DOM 改动打架。
+ * 深浅色必须成对给，否则深色模式下黄底会刺眼。
+ */
+::highlight(reading-search-match) {
+  background-color: color-mix(in srgb, var(--brand) 22%, transparent);
+  color: inherit;
+}
+.dark ::highlight(reading-search-match) {
+  /* 深色下品牌红太暗，换成暖一点的琥珀，保证在深底上看得见 */
+  background-color: color-mix(in srgb, #f5c451 30%, transparent);
+  color: inherit;
+}
+
 /* ===== 阅读器优化 ===== */
 .prose-reading {
   text-wrap: pretty;

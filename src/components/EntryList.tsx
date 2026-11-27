@@ -17,10 +17,13 @@ export function EntryList({
   entries,
   collections,
   activeCollectionId,
+  searchQuery,
 }: {
   entries: EntryCardData[];
   collections: CollectionOption[];
   activeCollectionId?: number;
+  /** 当前搜索词；点进详情时带过去，正文里才知道高亮什么 */
+  searchQuery?: string;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -82,6 +85,7 @@ export function EntryList({
               selectable
               selected={selected.has(entry.id)}
               onToggle={toggle}
+              searchQuery={searchQuery}
             />
           </li>
         ))}
