@@ -2,29 +2,48 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import QRCode from "qrcode";
+import { kindLabel } from "@/lib/kind";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * 分享图（含二维码）：
- *   /api/share-card?kind=article&title=…&text=…&site=…&url=…
- *   /api/share-card?kind=quote&title=…&text=…&site=…&url=…
+ * 分享小图（《稍后再看》设计说明 §4.6）。
+ *
+ * 固定 1080×1080，四段纵向分布（两端对齐）：
+ *   1. 顶：左「类型 · 来源」（陶土），右品牌名（衬线）
+ *   2. 主标题：衬线 72px，最多三行
+ *   3. 引用区：左侧 6px 陶土竖条 + 金句 + 出处
+ *   4. 底：gxwtf.cn / 二维码
+ *
+ * 与旧版的差别：旧版是 1080×1440 的「微信读书卡片」，两种版式（article / quote）。
+ * 新设计只有一套 1:1 的版式，两个入口都走它。旧参数仍接受，只是不再分叉，
+ * 免得 ShareCardDialog 那边还要改。
+ *
+ * 注意：ImageResponse 不认 CSS 变量，也不认 Tailwind，颜色必须写字面值。
+ * 这里的值与 globals.css 的 :root 保持一致，改动时要一起改。
  */
 
-const FONTS: Record<string, string> = {
-  song: process.env.QUOTE_FONT || "/home/gxwtf/.fonts/simsun.ttf",
-  kai: process.env.QUOTE_FONT_KAI || "/home/gxwtf/.fonts/LXGWWenKai-Regular.ttf",
-  yuan: "/home/gxwtf/gxwtf_ji/public/fonts/lingxiu.ttf",
-  hei: "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-};
+const FONT_SERIF =
+  process.env.SHARE_FONT_SERIF || "/home/gxwtf/.fonts/NotoSerifSC-Regular.otf";
+/**
+ * 候选字体，按顺序取第一个存在的。
+ *
+ * **只能放单字体文件（.otf / .ttf），不能放 .ttc**：satori 只认单一字体，
+ * 遇到 TTC 集合会抛 `Unsupported OpenType signature ttcf`，整张图 500。
+ * Windows 的 simsun.ttc / msyh.ttc 都属于这一类，别往这里加。
+ */
+const FONT_FALLBACK = [
+  process.env.QUOTE_FONT || "/home/gxwtf/.fonts/simsun.ttf",
+  "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.otf",
+  "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+];
 
 const cache = new Map<string, ArrayBuffer>();
 
-async function loadFont(key: string): Promise<ArrayBuffer> {
-  const paths = [FONTS[key] ?? FONTS.song, FONTS.song];
-  for (const p of paths) {
-    if (!existsSync(p)) continue;
+async function loadFont(): Promise<ArrayBuffer> {
+  for (const p of [FONT_SERIF, ...FONT_FALLBACK]) {
+    if (!p || !existsSync(p)) continue;
     const hit = cache.get(p);
     if (hit) return hit;
     const buf = await readFile(p);
@@ -35,143 +54,114 @@ async function loadFont(key: string): Promise<ArrayBuffer> {
   throw new Error("找不到中文字体");
 }
 
+/** 设计说明 §3.1 的纸张配色；深色用 §9 建议的那套 */
+const THEME = {
+  light: { bg: "#FAF9F5", surface: "#FFFFFF", text: "#141413", text2: "#5E5D57", text3: "#6E6A61", accent: "#B4552F", rule: "#D97757" },
+  dark: { bg: "#1F1E1D", surface: "#262524", text: "#FAF9F5", text2: "#B9B5AA", text3: "#9A968C", accent: "#E58A69", rule: "#D97757" },
+} as const;
+
 export async function GET(request: Request) {
   const q = new URL(request.url).searchParams;
-  const kind = q.get("kind") === "article" ? "article" : "quote";
+  const kind = q.get("kind") ?? "article";
+  const title = (q.get("title") ?? "").trim().slice(0, 80);
   const text = (q.get("text") ?? "").trim().slice(0, 320);
-  const title = (q.get("title") ?? "").trim().slice(0, 60);
-  const site = (q.get("site") ?? "").trim().slice(0, 20);
-  const theme = q.get("theme") === "dark" ? "dark" : "light";
-  const fontKey = q.get("font") ?? "song";
+  const site = (q.get("site") ?? "").trim().slice(0, 40);
   const url = (q.get("url") ?? "").trim().slice(0, 300);
+  const theme = q.get("theme") === "dark" ? THEME.dark : THEME.light;
 
   if (!text && !title) return new Response("缺少内容", { status: 400 });
 
-  const font = await loadFont(fontKey);
-  const dark = theme === "dark";
-  const bg = dark ? "#14100f" : "#f7f3ec";
-  const fg = dark ? "#f5efe6" : "#231815";
-  const muted = dark ? "#9d938a" : "#8a7f78";
-  const accent = dark ? "#e0574f" : "#a31f24";
+  const font = await loadFont();
+
   const qr = url
     ? await QRCode.toDataURL(url, {
-        margin: 1,
-        width: 360,
+        margin: 0,
+        width: 264,
         errorCorrectionLevel: "M",
-        color: { dark: fg, light: "#00000000" },
+        color: { dark: theme.text, light: "#00000000" },
       }).catch(() => "")
     : "";
 
-  const header = (label: string) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ display: "flex", width: 46, height: 46, borderRadius: 12, background: accent }} />
-      <div style={{ display: "flex", fontSize: 30, color: muted, letterSpacing: 2 }}>{label}</div>
-    </div>
-  );
+  // 标题越长字号越小，保证最多三行放得下（1080 - 88*2 = 904px 可用宽）
+  const titleSize = title.length > 46 ? 54 : title.length > 30 ? 62 : 72;
+  // 金句同理
+  const quoteSize = text.length > 90 ? 26 : text.length > 55 ? 29 : 32;
 
-  const footer = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", height: 1, background: muted, opacity: 0.35 }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ display: "flex", fontSize: 24, color: muted }}>
-            {site || "reading.gxwtf.cn"} · 广学五题坊
-          </div>
+  const body = (
+    <div
+      style={{
+        width: 1080,
+        height: 1080,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        background: theme.bg,
+        padding: 88,
+        fontFamily: "Share",
+      }}
+    >
+      {/* 1. 顶部：类别与来源 / 品牌名 */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <div style={{ display: "flex", fontSize: 24, color: theme.accent }}>
+          {[kindLabel(kind), site].filter(Boolean).join(" · ")}
         </div>
-        {qr ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qr} width={150} height={150} alt="" />
-            <div style={{ display: "flex", fontSize: 20, color: muted }}>扫码阅读</div>
-          </div>
-        ) : null}
+        <div style={{ display: "flex", fontSize: 24, color: theme.text3 }}>稍后再看</div>
       </div>
-    </div>
-  );
 
-  const body =
-    kind === "article" ? (
+      {/* 2. 主标题 */}
       <div
         style={{
-          width: 1080,
-          height: 1440,
           display: "flex",
-          flexDirection: "column",
-          background: bg,
-          padding: "96px 88px",
-          fontFamily: "Quote",
+          fontSize: titleSize,
+          lineHeight: 1.25,
+          color: theme.text,
+          // ImageResponse 支持 -webkit-line-clamp 的部分实现；这里靠限字数兜底
+          overflow: "hidden",
         }}
       >
-        {header("阅读收集")}
-        <div
-          style={{
-            display: "flex",
-            marginTop: 72,
-            fontSize: title.length > 18 ? 66 : 78,
-            lineHeight: 1.35,
-            color: fg,
-          }}
-        >
-          {title || "未命名"}
-        </div>
-        <div style={{ display: "flex", marginTop: 40, width: 120, height: 6, background: accent, opacity: 0.85 }} />
-        <div
-          style={{
-            display: "flex",
-            marginTop: 32,
-            flexGrow: 1,
-            alignItems: "center",
-            fontSize: text.length <= 60 ? 44 : text.length <= 130 ? 38 : 32,
-            lineHeight: 1.9,
-            color: muted,
-          }}
-        >
-          {text}
-        </div>
-        {footer}
+        {title || "未命名"}
       </div>
-    ) : (
-      <div
-        style={{
-          width: 1080,
-          height: 1440,
-          display: "flex",
-          flexDirection: "column",
-          background: bg,
-          padding: "96px 88px",
-          fontFamily: "Quote",
-        }}
-      >
-        {header("金句")}
-        <div style={{ display: "flex", marginTop: 60, fontSize: 110, lineHeight: 1, color: accent, opacity: 0.35 }}>
-          {"\u201C"}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexGrow: 1,
-            fontSize: text.length <= 30 ? 76 : text.length <= 60 ? 64 : 52,
-            lineHeight: 1.7,
-            letterSpacing: 1,
-            color: fg,
-          }}
-        >
-          {text}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {title ? (
-            <div style={{ display: "flex", fontSize: 30, color: fg, opacity: 0.9 }}>{`《${title}》`}</div>
+
+      {/* 3. 引用区：左侧 6px 陶土竖条（§4.6 明确这是全站唯一允许的左侧彩条） */}
+      <div style={{ display: "flex", gap: 28 }}>
+        <div style={{ display: "flex", width: 6, background: theme.rule, borderRadius: 3 }} />
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 18 }}>
+          {text ? (
+            <div style={{ display: "flex", fontSize: quoteSize, lineHeight: 1.6, color: theme.text }}>
+              {text}
+            </div>
           ) : null}
-          {footer}
+          <div style={{ display: "flex", fontSize: 24, color: theme.text3 }}>
+            {site ? `AI 概括 · ${site}` : "AI 概括"}
+          </div>
         </div>
       </div>
-    );
+
+      {/* 4. 底部：域名 / 二维码 */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", fontSize: 22, color: theme.text3 }}>gxwtf.cn</div>
+        {qr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={qr} width={132} height={132} alt="" />
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              width: 132,
+              height: 132,
+              border: `1px dashed ${theme.text3}`,
+              borderRadius: 8,
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
 
   return new ImageResponse(body, {
     width: 1080,
-    height: 1440,
-    fonts: [{ name: "Quote", data: font, style: "normal", weight: 400 }],
+    height: 1080,
+    fonts: [{ name: "Share", data: font, style: "normal", weight: 400 }],
     headers: { "Cache-Control": "public, max-age=3600" },
   });
 }
