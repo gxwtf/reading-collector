@@ -520,8 +520,8 @@
 @media (max-width: 640px) {
   .prose-reading {
     font-size: calc(var(--reading-font-size, 16px) + 1px);
-    /* 不再写死行距：那会让手机端忽略用户在排版面板里的选择 */
-    line-height: var(--reading-line-height, 1.9);
+    /* 有用户设置就用，没有（分享页不在 ReadingShell 里）回落到原来的 1.85 */
+    line-height: var(--reading-line-height, 1.85);
     text-align: left;
   }
 }
@@ -571,7 +571,9 @@
   text-wrap: balance;
 }
 .prose-reading p + p {
-  margin-top: 1.05em;
+  /* 段距完全由 p 的 margin-bottom 驱动（var(--reading-paragraph-gap)）。
+     这里原本写死 1.05em，会把「小」档顶住，用户点了看不出变化。 */
+  margin-top: 0;
 }
 .prose-reading ul li::marker,
 .prose-reading ol li::marker {
@@ -585,11 +587,13 @@
 }
 
 /* iPad / 手机：边距更小、表格满宽横滑。
-   行距不再在这里写死——用户可能已在排版面板里选过，这里覆盖等于静默忽略选择。
-   默认值由 .prose-reading 的 var(--reading-line-height, 1.9) 提供。 */
+   行距优先用用户设置（--reading-line-height）；没注入该变量的页面
+   （分享页 /s/<token> 不在 ReadingShell 里）回落到原来的 1.95，
+   避免这次改动顺带把分享页的行距改紧了。 */
 @media (max-width: 820px) {
   .prose-reading {
     padding-bottom: 1rem;
+    line-height: var(--reading-line-height, 1.95);
   }
   .prose-reading table {
     margin-inline: -1rem;
@@ -598,15 +602,6 @@
   }
   .prose-reading pre {
     margin-inline: -0.5rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .prose-reading {
-    font-size: calc(var(--reading-font-size, 16px) + 1px);
-    /* 行距跟随排版设置，不在手机端写死——否则用户的选择被静默忽略 */
-    line-height: var(--reading-line-height, 1.9);
-    text-align: left;
   }
 }
 

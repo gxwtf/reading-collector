@@ -73,6 +73,23 @@ export function TypographyPanel({
   // 避免和工具条的 A−/A+ 各写一套边界判断
   const activeSize = sizeIndex(value.size);
 
+  /**
+   * 正文实际解析到的字体。
+   *
+   * 光看设置项不够——字体栈里的名字系统没有时会静默回退，用户会以为
+   * 「点了没反应」。这里读一次真实的 computed font-family 显示出来，
+   * 一眼能分清「是真变了」还是「回退成默认了」。
+   */
+  const [effectiveFont, setEffectiveFont] = useState("");
+  useEffect(() => {
+    const el = document.querySelector(".prose-reading");
+    if (!el) return;
+    const family = getComputedStyle(el).fontFamily;
+    // 只取第一个（最常是实际选中的那个），太长就截断
+    const first = family.split(",")[0]?.replace(/["']/g, "").trim() ?? "";
+    setEffectiveFont(first || family.slice(0, 24));
+  }, [value.font]);
+
   function patch(next: Partial<TypographySettings>) {
     onChange({ ...value, ...next });
   }
@@ -114,7 +131,14 @@ export function TypographyPanel({
 
         {/* 字体 */}
         <section className="flex flex-col gap-1.5">
-          <span className="text-xs text-muted-foreground">字体</span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-xs text-muted-foreground">字体</span>
+            {/* 显示当前实际解析到的字体族。系统没有该字体会回退，
+                这行能立刻看出「点了但没变」是回退还是没生效。 */}
+            <span className="truncate pl-2 text-[0.65rem] text-muted-foreground/80" style={{ maxWidth: "60%" }} title={effectiveFont}>
+              {effectiveFont}
+            </span>
+          </div>
           <div className="grid grid-cols-4 gap-1.5">
             {FONTS.map((item) => (
               <button

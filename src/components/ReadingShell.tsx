@@ -48,14 +48,18 @@ function loadSettings(): TypographySettings {
       };
     }
 
-    // 迁移旧格式
-    const legacySize = Number(localStorage.getItem("reading:size"));
+    // 迁移旧格式。
+    // 注意 Number(null) === 0：没存过 reading:size 时 getItem 返回 null，
+    // 直接 Number() 会得到 0，被当成合法的「第 0 档」，让新用户默认落在最小的
+    // 15px 而不是 16px（这个 bug 改动前就有）。所以先判 null 再转数字。
+    const rawSize = localStorage.getItem("reading:size");
+    const legacyIndex = rawSize === null ? Number.NaN : Number(rawSize);
     const legacyWide = localStorage.getItem("reading:wide");
     return {
       ...DEFAULT_TYPOGRAPHY,
       size:
-        Number.isInteger(legacySize) && legacySize >= 0 && legacySize < SIZES.length
-          ? SIZES[legacySize]
+        Number.isInteger(legacyIndex) && legacyIndex >= 0 && legacyIndex < SIZES.length
+          ? SIZES[legacyIndex]
           : DEFAULT_TYPOGRAPHY.size,
       wide: legacyWide === "1",
     };
