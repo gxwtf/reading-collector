@@ -149,10 +149,16 @@ def fetch_article(url: str) -> dict:
     if len(html) < 500:
         raise FetchError("页面内容过少，可能被反爬拦截")
 
+    # 公众号一类站点用 <section> 当段落，trafilatura 只认 <p>，
+    # 不先规范化的话整篇会被并成一大段（实测 4400 字一行）。
+    from paragraphs import convert_sections_to_paragraphs
+
+    html_for_extract = convert_sections_to_paragraphs(html)
+
     # trafilatura 2.x 支持 markdown 输出；老版本退回纯文本
     try:
         content = trafilatura.extract(
-            html,
+            html_for_extract,
             url=url,
             output_format="markdown",
             include_links=True,
@@ -160,7 +166,7 @@ def fetch_article(url: str) -> dict:
             include_formatting=True,
         )
     except (TypeError, ValueError):
-        content = trafilatura.extract(html, url=url, include_links=True)
+        content = trafilatura.extract(html_for_extract, url=url, include_links=True)
 
     if not content or len(content.strip()) < 120:
         raise FetchError("抽不到正文，可能需要登录或依赖前端渲染")
