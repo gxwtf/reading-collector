@@ -10,7 +10,7 @@ const initial: CreateEntryState = { ok: false };
 /** 一次最多传这么多文件，防止有人把整个文件夹拖进来把服务器打满 */
 const MAX_FILES = 20;
 
-const UNSUPPORTED = "这个格式暂不支持，目前可以拖链接、图片、.md、.epub";
+const UNSUPPORTED = "这个格式暂不支持，目前可以拖链接、图片、.md、.epub、.pdf";
 const NOT_A_LINK = "没有识别到链接，请粘贴以 http 开头的地址";
 
 type Props = {
@@ -91,18 +91,22 @@ export function DropZone({ collections, activeCollectionId }: Props) {
       const truncated = files.length - list.length;
       const md: File[] = [];
       const epub: File[] = [];
+      const pdf: File[] = [];
       const images: File[] = [];
       const rejected: string[] = [];
 
       for (const f of list) {
         const name = f.name.toLowerCase();
-        if (f.type.startsWith("image/")) images.push(f);
+        // PDF 放在 image 之前判断：有些系统给 PDF 的 type 是 application/octet-stream，
+        // 靠扩展名更可靠；而 image/* 只认真正的图片。
+        if (/\.pdf$/.test(name)) pdf.push(f);
+        else if (f.type.startsWith("image/")) images.push(f);
         else if (/\.epub$/.test(name)) epub.push(f);
         else if (/\.(md|markdown|txt)$/.test(name) || f.type.startsWith("text/")) md.push(f);
         else rejected.push(f.name);
       }
 
-      if (rejected.length > 0 && md.length + epub.length + images.length === 0) {
+      if (rejected.length > 0 && md.length + epub.length + pdf.length + images.length === 0) {
         report(UNSUPPORTED, true);
         return;
       }
@@ -112,15 +116,18 @@ export function DropZone({ collections, activeCollectionId }: Props) {
       const notes: string[] = [];
 
       try {
-        if (md.length + epub.length > 0) {
+        if (md.length + epub.length + pdf.length > 0) {
           const mdFd = new FormData();
           md.forEach((f) => mdFd.append("files", f));
           const epubFd = new FormData();
           epub.forEach((f) => epubFd.append("files", f));
+          const pdfFd = new FormData();
+          pdf.forEach((f) => pdfFd.append("files", f));
           // 分组页里投进来的文件也要进这个组——UI 上已经写了「投进「X」」
           if (activeCollectionId) {
             mdFd.append("collectionId", String(activeCollectionId));
             epubFd.append("collectionId", String(activeCollectionId));
+            pdfFd.append("collectionId", String(activeCollectionId));
           }
 
           if (md.length > 0) {
@@ -134,6 +141,20 @@ export function DropZone({ collections, activeCollectionId }: Props) {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) notes.push(data.error ?? "EPUB 导入失败");
             else notes.push(`EPUB 导入 ${data.added} 本`);
+          }
+          if (pdf.length > 0) {
+            // PDF 解析比 md/epub 慢得多（要逐页抽文字），单独给出正在处理的提示
+            report("正在解析 PDF…");
+            const res = await fetch("/api/entries/pdf", { method: "POST", body: pdfFd });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              notes.push(data.error ?? "PDF 导入失败");
+            } else {
+              notes.push(`PDF 导入 ${data.added} 个`);
+              // 抽不出文字的那几本要单独说，否则用户以为全都正常
+              const detail = (data.notes as string[] | undefined)?.filter((n) => n.includes("抽不出文字"));
+              if (detail?.length) notes.push(detail.join("；"));
+            }
           }
         }
 
@@ -234,7 +255,7 @@ export function DropZone({ collections, activeCollectionId }: Props) {
           "拖进来，或粘贴链接"
         )}
       </p>
-      <p className="mt-1.5 text-[13px] text-ink-3">链接、文件、图片、视频都可以，自动归类</p>
+      <p className="mt-1.5 text-[13px] text-ink-3">链接、PDF、Markdown、EPUB、图片都可以，自动归类</p>
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <button
@@ -258,6 +279,7 @@ export function DropZone({ collections, activeCollectionId }: Props) {
         ref={fileRef}
         type="file"
         multiple
+        accept=".pdf,.md,.markdown,.txt,.epub,image/*,application/pdf,text/markdown,text/plain"
         className="hidden"
         onChange={(e) => {
           const files = Array.from(e.target.files ?? []);

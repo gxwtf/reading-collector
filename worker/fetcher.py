@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 
@@ -106,11 +107,14 @@ def _pdf_from_bytes(url: str, content: bytes, entry_id: int | None = None) -> di
     body = f"# {_escape_mdx_angles(title)}\n\n{safe_text}"
 
     # 落盘原文件。抽文字失败时不写，免得留下打不开的孤儿文件。
+    # 文件名用内容 sha256，与站点侧 /api/entries/pdf 保持一致——
+    # 同一个 PDF 无论走「贴链接」还是「拖文件」，落盘名相同，不会存两份。
     pdf_path = None
     if entry_id is not None:
         try:
             os.makedirs(PDF_DIR, exist_ok=True)
-            pdf_path = os.path.join(PDF_DIR, f"{entry_id}.pdf")
+            digest = hashlib.sha256(content).hexdigest()[:32]
+            pdf_path = os.path.join(PDF_DIR, f"{digest}.pdf")
             tmp = pdf_path + ".tmp"
             with open(tmp, "wb") as f:
                 f.write(content)
