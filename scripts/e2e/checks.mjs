@@ -136,13 +136,16 @@ export async function runChecks(page, { baseUrl, entryId }) {
   // ── 8. 搜索高亮生效：CSS.highlights 有区间，且 DOM 未被改写
   results.push(
     await expect("搜索高亮生效", async () => {
+      // 从正文里挑一个**连续的汉字/字母串**当搜索词。
+      // 不能简单 slice：正文开头常是「@某某\n\n上周末」，切出来会带空白或换行，
+      // findSearchMatches 按字面匹配当然找不到——这会让测试误报成功能坏了。
       const q = await page.evaluate(() => {
-        // 从正文里挑一个真实存在的词，避免硬编码的搜索词在某条目上不存在
         const el = document.querySelector(".prose-reading");
-        const text = (el?.textContent ?? "").replace(/\s+/g, "");
-        return text.length > 8 ? text.slice(2, 6) : "";
+        const text = el?.textContent ?? "";
+        const runs = text.match(/[一-龥A-Za-z]{4,12}/g);
+        return runs && runs.length > 0 ? runs[0] : "";
       });
-      must(q, "正文太短，挑不出搜索词");
+      must(q, "正文里找不到连续 4–12 字的中文/字母串，挑不出搜索词");
 
       await page.goto(`${baseUrl}/entry/${entryId}?q=${encodeURIComponent(q)}`, {
         waitUntil: "domcontentloaded",
