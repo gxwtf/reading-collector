@@ -89,7 +89,7 @@ smoke() {
   fi
   check "健康检查"          200 "/api/health"
   check "登录页"            200 "/login" "登录"
-  check "书库页（未登录跳转）" "200" "/books"
+  check "批注页（未登录跳转）" "200" "/annotations"
   check "未登录访问分享页"    "404" "/s/__nope__"
 
   # 静态资源抽样：从 HTML 里取一个 chunk
