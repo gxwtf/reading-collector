@@ -66,6 +66,18 @@ def _is_zhihu(url: str) -> bool:
     return host == "zhihu.com" or host.endswith(".zhihu.com")
 
 
+def _escape_mdx_angles(text: str) -> str:
+    """把文本里的尖括号转成 HTML 实体，避免 MDX 当成 JSX 标签。
+
+    只转 < 和 >，不动 &（PDF 里 &amp; 这类实体本来就少，
+    再转一次会变成可见的 "&amp;amp;"）。
+
+    为什么不用代码块包起来：PDF 抽出的文字本来就该按普通段落排版，
+    包进 ``` 会丢掉所有换行结构和可读性。
+    """
+    return text.replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _pdf_from_bytes(url: str, content: bytes, entry_id: int | None = None) -> dict:
     """把 PDF 字节抽成文字（需要 pypdf），并落盘原文件供详情页原样查看。"""
     try:
@@ -86,7 +98,12 @@ def _pdf_from_bytes(url: str, content: bytes, entry_id: int | None = None) -> di
         raise FetchError("PDF 里抽不到文字（可能是扫描件）")
 
     title = url.rsplit("/", 1)[-1].replace(".pdf", "")[:120]
-    body = f"# {title}\n\n{text}"
+    # 正文要塞进 MDX 渲染。PDF 里常有 <pad>、<EOS>、<unk> 这种尖括号记号，
+    # MDX 会把它们当 JSX 标签解析，编译期直接抛
+    # 「Expected a closing tag for <pad>」，整个详情页 500。
+    # 学术 PDF 尤其常见（arxiv 的 Attention 论文就有 <pad>）。
+    safe_text = _escape_mdx_angles(text)
+    body = f"# {_escape_mdx_angles(title)}\n\n{safe_text}"
 
     # 落盘原文件。抽文字失败时不写，免得留下打不开的孤儿文件。
     pdf_path = None
