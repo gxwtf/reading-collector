@@ -51,10 +51,15 @@ export const PARAGRAPH_GAPS: Record<TypographySettings["paragraphGap"], string> 
   lg: "1.7em",
 };
 
-/** 默认值：与改动前完全一致（16px / 1.9 行距 / 标准版心） */
+/**
+ * 默认值。正文 17px / 行距 1.9，依据《稍后再看》设计说明 §3.3。
+ *
+ * 曾经是 16px。17 本来就在 `SIZES` 档位里，所以老用户存下的选择不受影响，
+ * 只有从没调过字号的人会看到新默认。
+ */
 export const DEFAULT_TYPOGRAPHY: TypographySettings = {
   font: "sans",
-  size: 16,
+  size: 17,
   lineHeight: 1.9,
   paragraphGap: "md",
   wide: false,

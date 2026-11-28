@@ -24,3 +24,7 @@ worker/.cache/
 .DS_Store
 
 tsconfig.tsbuildinfo
+
+# e2e 临时产物
+.e2e-mint.mjs
+/e2e-shots/
