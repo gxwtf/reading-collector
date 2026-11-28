@@ -160,7 +160,7 @@ journalctl -u gxreading-worker -n 20 --no-pager   # 无 traceback
 | --- | --- |
 | 纯函数 / 规则 | `pnpm test`，关键分支各一条 |
 | 接口 | 真实 curl：正常 + 未登录 + 越权 + 非法输入。要登录态先铸 cookie（见下） |
-| 前端 | typecheck 不够。本机 Windows 用 Chrome/Edge 打开线上点一遍并截图（服务器没 Playwright） |
+| 前端 | typecheck 不够。跑 `node scripts/e2e/smoke.mjs`（Edge + playwright-core，10 项断言，含登录/布局/排版面板/搜索高亮/深色/390px），退出码 0 才算过；它同时落截图到 `~/e2e-shots/<日期>/` 供人复核。**「服务器没 Playwright 所以只能人肉点」是错的**——系统已有 Edge 158，见 `docs/tasks/2026-11-28-e2e-capability.md` |
 | schema | `prisma validate` → `migrate deploy` → 查表结构；删列/改类型分两次发布 |
 | 部署 | `bash scripts/deploy.sh deploy`（`sh` 会报 `Illegal option -o pipefail`），冒烟全绿，确认回滚点 |
 
