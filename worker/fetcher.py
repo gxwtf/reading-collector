@@ -5,12 +5,17 @@
 """
 from __future__ import annotations
 
+import os
 import re
 
 import httpx
 from urllib.parse import urlparse
 
 from config import HTTP_TIMEOUT, USER_AGENT
+
+# PDF 原文件落盘目录：详情页要靠它原样查看。
+# 与站点的 mediaPath（转码后 mp4）分开，两者生命周期不同。
+PDF_DIR = os.environ.get("PDF_DIR", "/home/gxwtf/reading-pdfs")
 
 
 class FetchError(RuntimeError):
@@ -61,8 +66,8 @@ def _is_zhihu(url: str) -> bool:
     return host == "zhihu.com" or host.endswith(".zhihu.com")
 
 
-def _pdf_from_bytes(url: str, content: bytes) -> dict:
-    """把 PDF 字节抽成文字（需要 pypdf）。"""
+def _pdf_from_bytes(url: str, content: bytes, entry_id: int | None = None) -> dict:
+    """把 PDF 字节抽成文字（需要 pypdf），并落盘原文件供详情页原样查看。"""
     try:
         from pypdf import PdfReader
     except ImportError as exc:
@@ -82,6 +87,21 @@ def _pdf_from_bytes(url: str, content: bytes) -> dict:
 
     title = url.rsplit("/", 1)[-1].replace(".pdf", "")[:120]
     body = f"# {title}\n\n{text}"
+
+    # 落盘原文件。抽文字失败时不写，免得留下打不开的孤儿文件。
+    pdf_path = None
+    if entry_id is not None:
+        try:
+            os.makedirs(PDF_DIR, exist_ok=True)
+            pdf_path = os.path.join(PDF_DIR, f"{entry_id}.pdf")
+            tmp = pdf_path + ".tmp"
+            with open(tmp, "wb") as f:
+                f.write(content)
+            os.replace(tmp, pdf_path)
+        except OSError:
+            # 落盘失败不该让整个抓取失败——文字已经抽到了，正文仍可读
+            pdf_path = None
+
     return {
         "title": title,
         "site": "PDF",
@@ -93,10 +113,11 @@ def _pdf_from_bytes(url: str, content: bytes) -> dict:
         "wordCount": len(re.sub(r"\s+", "", text)),
         "publishedAt": None,
         "kind": "document",
+        "pdfPath": pdf_path,
     }
 
 
-def fetch_article(url: str) -> dict:
+def fetch_article(url: str, entry_id: int | None = None) -> dict:
     """返回 {title, site, author, excerpt, contentMd, coverImage, lang, wordCount, publishedAt}"""
     if url.lower().split("?")[0].endswith(".pdf"):
         try:
@@ -104,7 +125,7 @@ def fetch_article(url: str) -> dict:
             resp.raise_for_status()
         except httpx.HTTPError as exc:
             raise FetchError(f"PDF 下载失败：{exc}") from exc
-        return _pdf_from_bytes(url, resp.content)
+        return _pdf_from_bytes(url, resp.content, entry_id)
 
     if _is_zhihu(url):
         from zhihu import fetch_zhihu
@@ -143,7 +164,7 @@ def fetch_article(url: str) -> dict:
         raise FetchError(f"请求失败：{exc}") from exc
 
     if "application/pdf" in (resp.headers.get("content-type") or ""):
-        return _pdf_from_bytes(url, resp.content)
+        return _pdf_from_bytes(url, resp.content, entry_id)
 
     html = resp.text
     if len(html) < 500:

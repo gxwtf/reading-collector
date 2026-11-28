@@ -93,6 +93,9 @@ model Entry {
   mediaState  String    @default("none") @db.VarChar(20)
   mediaPath   String?   @db.VarChar(500)
   mediaError  String?   @db.Text
+  /// PDF 原文件在磁盘上的路径（worker 下载后保存，供详情页原样查看）。
+  /// 与 mediaPath 分开：那是转码后的 mp4，这是原始 PDF，两者生命周期不同。
+  pdfPath     String?   @db.VarChar(500)
   coverImage  String?   @db.VarChar(2048)
   wordCount   Int?
   durationSec Int?
@@ -287,93 +290,4 @@ model FetchJob {
   @@index([entryId])
 }
 
-/// ── Readest / Grimmory 同步 ─────────────────────────────────────────────
-/// 书库里的书（文件放在 READEST_BOOKS_DIR，由 WebDAV 服务对外提供）
-model Book {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  /// 相对 READEST_BOOKS_DIR 的路径，唯一
-  fileName     String    @unique
-  title        String
-  author       String?
-  /// epub | pdf | cbz | mobi | azw3 | fb2
-  format       String
-  /// 文件字节数（Readest 用 fileSizeKb = fileSize / 1024 向下取整匹配）
-  fileSize     BigInt
-  /// 简介（EPUB dc:description 或 PDF Info）
-  description  String?   @db.Text
-  publisher    String?
-  published    String?
-  language     String?
-  isbn         String?
-  pageCount    Int?
-  /// 封面文件名（存在 READEST_BOOKS_DIR/covers/）
-  coverFile    String?
-  readStatus   String?
-  epubCfi      String?
-  epubHref     String?
-  epubPercent  Float?
-  pdfPage      Int?
-  pdfPercent   Float?
-  lastReadTime DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
 
-  annotations BookAnnotation[]
-  bookmarks   BookBookmark[]
-  sessions    ReadingSession[]
-
-  @@index([userId])
-}
-
-/// 划线 / 标注（Readest 的 annotation）
-model BookAnnotation {
-  id           Int      @id @default(autoincrement())
-  /// 归属用户（广学账号 userId），隔离用
-  userId       Int      @default(2691)
-  bookId       Int
-  book         Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  cfi          String
-  text         String
-  color        String?
-  /// highlight | underline | strikethrough | squiggly
-  style        String?
-  note         String?
-  chapterTitle String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@unique([userId, bookId, cfi, text])
-  @@index([bookId])
-  @@index([userId])
-}
-
-/// 书签
-model BookBookmark {
-  id         Int      @id @default(autoincrement())
-  bookId     Int
-  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  cfi        String?
-  pageNumber Int?
-  title      String?
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([bookId])
-}
-
-/// 阅读会话（Readest 每次阅读上报一条）
-model ReadingSession {
-  id              Int      @id @default(autoincrement())
-  bookId          Int
-  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  startTime       DateTime
-  endTime         DateTime
-  durationSeconds Int
-  startProgress   Float?
-  endProgress     Float?
-  createdAt       DateTime @default(now())
-
-  @@index([bookId])
-}

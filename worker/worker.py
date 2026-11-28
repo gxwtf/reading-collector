@@ -135,7 +135,7 @@ def _handle_inner(client: httpx.Client, job: dict, job_id: int, url: str, kind: 
                 },
             }
         else:
-            article = fetch_article(url)
+            article = fetch_article(url, entry_id=job.get("entryId"))
             article["summary"] = ai_summary(article.get("contentMd") or "", "article")
             payload = {"status": "done", "entry": article}
 

@@ -203,11 +203,47 @@ export default async function EntryPage({
             />
           ) : (
             <>
-
               {entry.state === "pending" ? (
                 <div className="rounded-xl border border-hairline bg-paper-muted/60 p-4 text-[14px] text-ink-2">
                   正在后台抓取正文，稍后刷新即可。视频与播客需要先转写，可能要几分钟。
                 </div>
+              ) : null}
+
+              {/* PDF 原样查看。放在抽出的文字之前：图表、排版、公式只有原文件才保得住。
+                  用 <object> 而不是 iframe：Chrome/Safari 的内置 PDF 查看器对 object 支持更稳，
+                  且它自带降级链（里面的 <a> 在浏览器不支持内联 PDF 时显示）。
+                  高度 70vh：再高会把「抽出的文字」挤到首屏之外，而文字才是能搜索/划线的部分。 */}
+              {entry.pdfPath ? (
+                <section className="overflow-hidden rounded-2xl border border-hairline bg-card">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
+                    <h2 className="text-[14px] text-ink-2">原文 PDF</h2>
+                    <a
+                      href={`/api/pdf/${entry.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[13px] text-brand-strong hover:underline"
+                    >
+                      新标签打开
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                  <object
+                    data={`/api/pdf/${entry.id}`}
+                    type="application/pdf"
+                    aria-label={`${entry.title} 的 PDF 原文`}
+                    className="block h-[70vh] w-full"
+                  >
+                    <div className="p-6 text-center text-[14px] text-ink-2">
+                      <p>这个浏览器不能内嵌显示 PDF。</p>
+                      <a
+                        href={`/api/pdf/${entry.id}`}
+                        className="mt-2 inline-block text-brand-strong underline"
+                      >
+                        点这里下载后用阅读器打开
+                      </a>
+                    </div>
+                  </object>
+                </section>
               ) : null}
 
               {body ? (
@@ -221,15 +257,37 @@ export default async function EntryPage({
                       anchor: (h.anchor as { block?: number; start?: number; end?: number } | null) ?? null,
                     }))}
                   >
-                    <div className="prose-reading max-w-none">
-                      <SearchHighlight query={searchQuery}>
-                        <MDXRemote
-                          source={body}
-                          options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-                          components={{ img: MarkdownImage }}
-                        />
-                      </SearchHighlight>
-                    </div>
+                    {/* PDF 条目把文字版折叠起来：原文已经在上面的查看器里了，
+                        两边都铺开会让人不知道该读哪个。文章/视频照常直接展开。 */}
+                    {entry.pdfPath ? (
+                      <details className="rounded-xl border border-hairline">
+                        <summary className="cursor-pointer list-none px-4 py-3 text-[14px] text-ink-2 transition-colors hover:text-ink">
+                          展开文字版（可搜索、可划线）
+                        </summary>
+                        <p className="px-4 pb-2 text-[12px] leading-relaxed text-ink-3">
+                          从 PDF 里抽出的纯文本。图表、公式、排版会丢失，但能搜索、能划线、能被搜索命中。
+                        </p>
+                        <div className="prose-reading max-w-none px-4 pb-4">
+                          <SearchHighlight query={searchQuery}>
+                            <MDXRemote
+                              source={body}
+                              options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+                              components={{ img: MarkdownImage }}
+                            />
+                          </SearchHighlight>
+                        </div>
+                      </details>
+                    ) : (
+                      <div className="prose-reading max-w-none">
+                        <SearchHighlight query={searchQuery}>
+                          <MDXRemote
+                            source={body}
+                            options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+                            components={{ img: MarkdownImage }}
+                          />
+                        </SearchHighlight>
+                      </div>
+                    )}
                   </HighlightLayer>
                 </ReadingShell>
               ) : null}

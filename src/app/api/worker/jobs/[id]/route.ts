@@ -21,6 +21,8 @@ type JobResult = {
     durationSec?: number;
     publishedAt?: string;
     kind?: string;
+    /** PDF 原文件在 worker 机器上的绝对路径（详情页据此原样查看） */
+    pdfPath?: string | null;
   };
   tags?: string[];
   transcript?: {
@@ -103,6 +105,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
           ...(typeof entry.wordCount === "number" ? { wordCount: entry.wordCount } : {}),
           ...(typeof entry.durationSec === "number" ? { durationSec: entry.durationSec } : {}),
           ...(entry.kind ? { kind: entry.kind } : {}),
+          ...(entry.pdfPath ? { pdfPath: entry.pdfPath.slice(0, 500) } : {}),
           ...(entry.publishedAt ? { publishedAt: new Date(entry.publishedAt) } : {}),
         },
       });
