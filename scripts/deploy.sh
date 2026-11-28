@@ -182,6 +182,13 @@ cmd_deploy() {
   if [ -d "$APP_DIR/node_modules" ]; then
     cp -al "$APP_DIR/node_modules" "$BUILD_DIR/node_modules" 2>/dev/null || cp -a "$APP_DIR/node_modules" "$BUILD_DIR/node_modules"
   fi
+  # Prisma Client 必须在构建前重新生成。
+  # src/generated/ 在 .gitignore 里（它是由 schema 派生的产物），所以 rsync
+  # 过来的工作区里那份是**上一次构建时的**。改了 schema 却不重新生成，
+  # `next build` 的 TypeScript 检查会对着旧类型报「属性不存在」——
+  # 2026-11-28 加 Entry.pdfPath 时就是这么挂的。
+  ( cd "$BUILD_DIR" && pnpm exec prisma generate >/tmp/prisma-gen-$PROJECT.log 2>&1 ) \
+    || { tail -20 "/tmp/prisma-gen-$PROJECT.log"; log_event deploy failed version="$name" sha="$sha" stage=prisma; die "prisma generate 失败"; }
   ( cd "$BUILD_DIR" && pnpm build >/tmp/build-$PROJECT.log 2>&1 ) || { tail -30 /tmp/build-$PROJECT.log; log_event deploy failed version="$name" sha="$sha" stage=build; die "构建失败"; }
   ok "构建完成"
 
